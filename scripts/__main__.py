@@ -1,5 +1,6 @@
 import sys,os
 import argparse
+from collections import OrderedDict, Counter
 from xopen import xopen as open
 from Bio import SeqIO
 from .split_genomes import split_genomes
@@ -13,22 +14,27 @@ def makeArgparse():
 	parser.add_argument('-i', "-genomes", dest='genomes', nargs='+', metavar='GENOME', required=True,
 					help="Input genome sequences in fasta format [required]")
 	parser.add_argument('-c', '-sg_cfgs', dest='sg_cfgs', nargs='+', required=True, metavar='CFGFILE',
-					help="Subgenomes config file (one homologous group per line) [required]")
+					help="Subgenomes config file (one homologous group per line); \
+this chromosome set is for identifying differential kmers [required]")
 	parser.add_argument('-labels', nargs='+', type=str, metavar='LABEL',
 					help="For multiple genomes, provide prefix labels for each genome sequence\
 to avoid conficts among chromosome id \
 [default: '1- 2- ... n-']")
 	parser.add_argument('-no_label', action="store_true", default=False,
 					help="Do not use prefix labels for genome sequences as there is \
-no conficts among chromosome id [default=%(default)s]")
-	parser.add_argument('-outdir', default='phase-results', type=str, metavar='DIR',
+no conficts among chromosome id [default: %(default)s]")
+	parser.add_argument('-pre', '-prefix', default=None, dest='prefix', metavar='STR',
+                    help="Prefix for output directories [default=%(default)s]")
+	parser.add_argument('-o', '-outdir', default='phase-results', dest='outdir', metavar='DIR',
 					help="Output directory [default=%(default)s]")
-	parser.add_argument("-tmpdir", default='tmp', type=str, metavar='DIR',
+	parser.add_argument('-tmpdir', default='tmp', type=str, metavar='DIR',
 					help="Temporary directory [default=%(default)s]")
 	parser.add_argument("-target", default=None, type=str, metavar='FILE',
-                    help="Target chromosomes to output; id mapping is allowed \
+                    help="Target chromosomes to output; id mapping is allowed; \
+this chromosome set is for cluster and phase \
 [default: the chromosome set as `-sg_cfgs`]")
-
+	parser.add_argument("-sep", default="|", type=str, metavar='STR',
+                    help="Seperator for chromosome ID")
 	parser.add_argument('-k', type=int, default=15, metavar='INT',
 					 help="Length of kmer [default=%(default)s]")
 	parser.add_argument('-ncpu', type=int, default=16, metavar='INT',
@@ -37,9 +43,16 @@ no conficts among chromosome id [default=%(default)s]")
 					 help="Don't output k-mer with count < lower-count [default=%(default)s]")
 
 	parser.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
-					 help="Minimum total count for each kmer [default=%(default)s]")
+					 help="Minimum total count for each kmer; will not work \
+if `-min_prop` is specified [default=%(default)s]")
+	parser.add_argument('-min_prop', type=float, default=None, metavar='FLOAT',
+					help="Minimum total proportion (< 1) for each kmer [default=%(default)s]")
+
 	parser.add_argument('-max_freq', type=int, default=1e9, metavar='INT',
-					 help="Maximum total count for each kmer [default=%(default)s]")
+					 help="Maximum total count for each kmer; will not work \
+if `-max_prop` is specified [default=%(default)s]")
+	parser.add_argument('-max_prop', type=float, default=None, metavar='FLOAT',
+                    help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
 
 	parser.add_argument('-f', '-min_fold', type=float, default=2, metavar='FLOAT', dest='min_fold',
 					 help="Minimum fold [default=%(default)s]")
@@ -50,14 +63,16 @@ no conficts among chromosome id [default=%(default)s]")
 	parser.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
 	parser.add_argument('-heatmap_options', metavar='STR',
-					default='scale="row",key=TRUE,density.info="density",trace="none",labRow=F,main="",xlab="",margins=c(8,5)',
-					help="Options for heatmap plot (see more in R shell with `?heatmap.2` of `gplots` package) [default='%(default)s']")
+					default="Rowv=T,Colv=T,scale='row',key=T,key.title=NA,density.info='density',trace='none',labRow=F,main=NA,xlab=NA,margins=c(5,5)",
+					help='Options for heatmap plot (see more in R shell with `?heatmap.2` of `gplots` package) [default="%(default)s"]')
 	parser.add_argument('-clean', action="store_true", default=False,
-                    help="remove the temporary directory")
-
-	
-
+                    help="Remove the temporary directory [default: %(default)s]")	
+	parser.add_argument('-overwrite', action="store_true", default=False,
+                    help="Overwrite even if check point files existed [default: %(default)s]")
 	args = parser.parse_args()
+	if args.prefix is not None:
+		args.outdir = args.prefix + args.outdir
+		args.tmpdir = args.prefix + args.tmpdir
 	return args
 
 class Pipeline:
@@ -82,7 +97,7 @@ class Pipeline:
 			cfg_labels = [None] * len(self.sg_cfgs)
 		self.sgs, self.chrs, self.nsg = [], [], 0
 		for sgcfg, label in zip(self.sg_cfgs, cfg_labels):
-			sgcfg = SGConfig(sgcfg, label)
+			sgcfg = SGConfig(sgcfg, prefix=label, sep=self.sep)
 			self.sgs += sgcfg.sgs
 			self.chrs += sgcfg.chrs
 			self.nsg += sgcfg.nsg
@@ -92,6 +107,10 @@ class Pipeline:
 
 		self.kargs = kargs
 	def run(self):
+		# check 
+		check_duplicates(self.genomes)
+		check_duplicates(self.labels)
+		# mkdir
 		mkdirs(self.outdir)
 		mkdirs(self.tmpdir)
 		# split genome
@@ -102,27 +121,33 @@ class Pipeline:
 	#		logger.info('Check point `{}` exists, skipped'.format(ckp_file))
 	#	else:
 		d_targets = parse_idmap(self.target)
-		chromfiles, labels = split_genomes(self.genomes, self.labels, self.chrs, self.tmpdir, d_targets=d_targets)
+		chromfiles, labels, d_targets = split_genomes(self.genomes, self.labels, 
+					self.chrs, self.tmpdir, d_targets=d_targets, sep=self.sep)
 	#		os.mknod(ckp_file)
 		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
+		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
 			raise ValueError('Only 0 chromosome remained after filtering. Please check the inputs.')
 
 		# jellyfish
 		logger.info('Counting kmer by jellyfish')
-		dumpfiles = run_jellyfish_dumps(chromfiles, k=self.k, ncpu=self.ncpu, lower_count=self.lower_count)
+		dumpfiles = run_jellyfish_dumps(chromfiles, k=self.k, ncpu=self.ncpu, lower_count=self.lower_count,
+						overwrite=self.overwrite)
 
 		# matrix
-		logger.info('Loading kmer matrix by jellyfish')
+		logger.info('Loading kmer matrix of jellyfish')
 		dumps = JellyfishDumps(dumpfiles, labels)
 		matfile = '{}/kmer_k{}_q{}_f{}.mat'.format(self.outdir, self.k, self.min_freq, self.min_fold)
-		ckp_file = matfile + '.ok'
-		if not os.path.exists(ckp_file):
+		ckp_file = '{}/{}.ok'.format(self.tmpdir, os.path.basename(matfile))
+		if self.overwrite or not os.path.exists(ckp_file):
 			d_mat = dumps.to_matrix()
 			logger.info('{} kmers in total'.format(len(d_mat)))
 			lengths = dumps.lengths
 			logger.info('Filtering')
-			d_mat = dumps.filter(d_mat, lengths, self.sgs, min_fold=self.min_fold, min_freq=self.min_freq, max_freq=self.max_freq)
+			d_mat = dumps.filter(d_mat, lengths, self.sgs, d_targets=d_targets, 
+					min_fold=self.min_fold, 
+					min_freq=self.min_freq, max_freq=self.max_freq,
+					min_prop=self.min_prop, max_prop=self.max_prop)
 			logger.info('{} kmers remained after filtering'.format(len(d_mat)))
 			if len(d_mat) == 0:
 				raise ValueError('Only 0 kmer remained after filtering. Please reset the options.')
@@ -157,11 +182,16 @@ def parse_idmap(mapfile=None):
 		except IndexError: new_id = old_id.split('|')[-1]
 		d_map[old_id] = new_id
 	return d_map
+def check_duplicates(lst):
+	count = Counter(lst)
+	duplicates = {v: c for v,c in count.items() if c>1}
+	if duplicates:
+		raise ValueError('Duplicates detected: {}'.format(duplicates))
 
 class SGConfig:
-	def __init__(self, sgcfg, label=None):
+	def __init__(self, sgcfg, **kargs):
 		self.sgcfg = sgcfg
-		self.label = label	# prefix
+		self.kargs = kargs
 		self.sgs = list(self)
 	def __iter__(self):
 		return self._parse()
@@ -172,7 +202,7 @@ class SGConfig:
 			temp = line.split('#')[0].strip().split()
 			if not temp:
 				continue
-			chrs = [list(map(lambda x: add_prefix(x, self.label), v.split(','))) 
+			chrs = [list(map(lambda x: add_prefix(x, **self.kargs), v.split(','))) 
 						for v in temp]
 			if self.nsg == 0:
 				self.nsg = len(chrs)
@@ -184,9 +214,10 @@ class SGConfig:
 					self.chrs += [xxchr]
 			yield chrs
 
-def add_prefix(val, prefix=None):
+def add_prefix(val, prefix=None, sep='|'):
 	if prefix:
-		return '{}{}'.format(prefix, val)
+		vals = ['{}{}'.format(prefix, v) for v in val.split(sep)]
+		return ''.join(val)
 	else:
 		return val
 

@@ -38,9 +38,21 @@ class JellyfishDumps:
 				lengths[i] += line.freq
 		self.lengths = lengths
 		return d_mat
-	def filter(self, d_mat, lengths, sgs, min_freq=200, max_freq=5000, min_fold=2):
+	def filter(self, d_mat, lengths, sgs, d_targets={}, 
+				min_freq=200, max_freq=10000, min_fold=2,
+				min_prop=None, max_prop=None):
 		logger.info([min_freq, max_freq, min_fold])
 		#logger.info(sgs)
+		tot_lens = sum(self.lengths)
+		if min_prop is not None:
+			min_freq = min_prop * tot_lens
+			logger.info('Adjust `min_freq` to {} according to `min_prop`'.format(min_freq))
+		if max_prop is not None:
+			max_freq = max_prop * tot_lens
+			logger.info('Adjust `max_freq` to {} according to `max_prop`'.format(max_freq))
+		if min_freq > max_freq:
+			raise ValueError('`min_freq` ({}) should be lower than `max_freq` ({})'.format(min_freq, max_freq))
+
 		d_mat2 = {}
 		d_lens = dict(zip(self.labels, self.lengths))
 		i = 0
@@ -48,9 +60,9 @@ class JellyfishDumps:
 			i += 1
 			if i % 1000000 == 0:
 				logger.info('Processed {} kmers'.format(i))
-			rv_kmer = str(Seq(kmer).reverse_complement())
-			if rv_kmer in d_mat:
-				logger.warn(kmer+'is not canonical representation')
+#			rv_kmer = str(Seq(kmer).reverse_complement())
+#			if rv_kmer in d_mat:
+#				logger.warn(kmer+'is not canonical representation')
 			tot = sum(counts)
 			if tot < min_freq or tot > max_freq:
 				continue
@@ -61,6 +73,7 @@ class JellyfishDumps:
 				include = False
 				freqs = []
 				for chrs in sg:
+					chrs = [d_targets.get(chr, chr) for chr in chrs]
 					if len(chrs) == 1:
 						chr = chrs[0]
 						count = d_counts[chr]
@@ -88,7 +101,7 @@ class JellyfishDumps:
 			line = map(str, line)
 			fout.write( '\t'.join(line) + '\n')
 
-	def heatmap(self, matfile, figfmt='.pdf', color=('green', 'black', 'red'), 
+	def heatmap(self, matfile, figfmt='pdf', color=('green', 'black', 'red'), 
 			heatmap_options='scale="row", key=TRUE, density.info="density", trace="none", labRow=F, main="",xlab=""'):
 
 		if len(color) == 3:
@@ -97,16 +110,20 @@ class JellyfishDumps:
 			color = 'colorpanel(100, low="{}", high="{}")'.format(*color)
 		else:
 			logger.error('Colors must 2 or 3 in size but {} ({}) got'.format(len(color), color))
-		outfig = matfile+figfmt
+		outfig = matfile+ '.'+ figfmt
 		rsrc = '''
 data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F)
 data = as.matrix(data)
+#data = log(data+1e-9)
 library("gplots")
-if (nrow(data) > 65536) data = data[1:65536, ]
-pdf('{outfig}')
+if (nrow(data) > 10000) {{
+	data = data[1:10000, ]
+	print('Only use the first 10000 kmers to plot.')
+}}
+{dev}('{outfig}')
 heatmap.2(data, col={color}, {heatmap_options})
 dev.off()
-'''.format(matfile=matfile, outfig=outfig, color=color, heatmap_options=heatmap_options)
+'''.format(matfile=matfile, dev=figfmt, outfig=outfig, color=color, heatmap_options=heatmap_options)
 		rsrc_file = matfile + '.R'
 		with open(rsrc_file, 'w') as f:
 			f.write(rsrc)
@@ -125,12 +142,12 @@ def run_jellyfish_dumps(seqfiles, **kargs):
 		dumpfile = run_jellyfish_dump(seqfile, **kargs)
 		dumpfiles += [dumpfile]
 	return dumpfiles
-def run_jellyfish_dump(seqfile, ncpu=4, k=17, prefix=None, lower_count=2):
+def run_jellyfish_dump(seqfile, ncpu=4, k=17, prefix=None, lower_count=2, overwrite=False):
 	if prefix is None:
 		prefix = seqfile
 	output = '{prefix}_{KMER}.fa'.format(KMER=k, prefix=prefix)
 	ckp_file = output + '.ok'
-	if os.path.exists(ckp_file):
+	if not overwrite and os.path.exists(ckp_file):
 		logger.info('Check point {} exists, skipped'.format(ckp_file))
 	else:
 		xcat = 'cat'
