@@ -1,5 +1,6 @@
 import sys,os
 import argparse
+import json
 from collections import OrderedDict, Counter
 from xopen import xopen as open
 from Bio import SeqIO
@@ -71,6 +72,7 @@ if `-max_prop` is specified [default=%(default)s]")
                     help="Overwrite even if check point files existed [default: %(default)s]")
 	args = parser.parse_args()
 	if args.prefix is not None:
+		args.prefix = args.prefix.replace('/', '_')
 		args.outdir = args.prefix + args.outdir
 		args.tmpdir = args.prefix + args.tmpdir
 	return args
@@ -80,14 +82,15 @@ class Pipeline:
 				labels=None, **kargs):
 		self.genomes = genomes
 		self.sg_cfgs = sg_cfgs
-		for key, value in kargs.items():
-			setattr(self, key, value)
+		self.__dict__.update(**kargs)
+#		for key, value in kargs.items():
+#			setattr(self, key, value)
 		# labels
 		if labels is None:
 			if len(genomes) == 1 or self.no_label:
 				self.labels = [''] * (len(genomes))
 			else:
-				self.labels = ['{}-'.format(i) for i in range(len(genomes))]
+				self.labels = ['{}-'.format(i, ) for i in range(len(genomes))]
 		else:
 			self.labels = labels
 		# config + label
@@ -113,6 +116,12 @@ class Pipeline:
 		# mkdir
 		mkdirs(self.outdir)
 		mkdirs(self.tmpdir)
+		self.outdir += '/'
+		self.tmpdir += '/'
+		if self.prefix is not None:
+			self.outdir = self.outdir + self.prefix
+			self.tmpdir = self.tmpdir + self.prefix
+
 		# split genome
 		logger.info('Target chromosomes: {}'.format(self.chrs))
 	#	logger.info('Splitting genomes by chromosom')
@@ -137,8 +146,8 @@ class Pipeline:
 		# matrix
 		logger.info('Loading kmer matrix of jellyfish')
 		dumps = JellyfishDumps(dumpfiles, labels)
-		matfile = '{}/kmer_k{}_q{}_f{}.mat'.format(self.outdir, self.k, self.min_freq, self.min_fold)
-		ckp_file = '{}/{}.ok'.format(self.tmpdir, os.path.basename(matfile))
+		matfile = '{}kmer_k{}_q{}_f{}.mat'.format(self.outdir, self.k, self.min_freq, self.min_fold)
+		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(matfile))
 		if self.overwrite or not os.path.exists(ckp_file):
 			d_mat = dumps.to_matrix()
 			logger.info('{} kmers in total'.format(len(d_mat)))
@@ -153,7 +162,7 @@ class Pipeline:
 				raise ValueError('Only 0 kmer remained after filtering. Please reset the options.')
 			with open(matfile, 'w') as fout:
 				dumps.write_matrix(d_mat, fout)
-			os.mknod(ckp_file)
+			mk_ckp(ckp_file)
 		else:
 			logger.info('Check point `{}` exists, skipped'.format(ckp_file))	
 		# heatmap
@@ -168,6 +177,12 @@ class Pipeline:
 		# clean
 		if self.clean:
 			rmdirs(self.tmpdir)
+def mk_ckp(ckgfile, data=None):
+	with open(ckgfile, 'w') as f:
+		if data is not None:
+			json.dump(data, f)
+	logger.info('New check point file: `{}`'.format(ckgfile))
+
 def parse_idmap(mapfile=None):
 	if not mapfile:
 		return None
@@ -196,6 +211,7 @@ class SGConfig:
 	def __iter__(self):
 		return self._parse()
 	def _parse(self):
+		self.nsgs = []
 		self.nsg = 0
 		self.chrs = []
 		for line in open(self.sgcfg):
@@ -204,15 +220,17 @@ class SGConfig:
 				continue
 			chrs = [list(map(lambda x: add_prefix(x, **self.kargs), v.split(','))) 
 						for v in temp]
+			self.nsgs += [len(chrs)]
 			if self.nsg == 0:
 				self.nsg = len(chrs)
 			if len(chrs) != self.nsg:
-				raise ValueError('Number of subgenome is different in line {}: \
+				logger.warn('Number of subgenome is different in line {}: \
 {} in this line but {} in previous line'.format(temp, len(chrs), self.nsg))
 			for xchr in chrs:
 				for xxchr in xchr:
 					self.chrs += [xxchr]
 			yield chrs
+		self.nsg = max(self.nsgs)
 
 def add_prefix(val, prefix=None, sep='|'):
 	if prefix:

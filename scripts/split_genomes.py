@@ -4,6 +4,8 @@ from Bio import SeqIO
 from xopen import xopen as open
 
 def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
+#	if not outdir.endswith('/'):
+#		outdir += '/'
 	# allow renaming id split by `|`
 	d_targets2 = {}
 	if not d_targets:
@@ -29,7 +31,7 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 			if d_targets and rc.id not in d_targets:
 				continue
 			rc.id = d_targets[rc.id]
-			outfa = '{}/{}.fasta'.format(outdir, rc.id)
+			outfa = '{}{}.fasta'.format(outdir, rc.id)
 			with open(outfa, 'w') as fout:
 				SeqIO.write(rc, fout, 'fasta')
 			outfas += [outfa]

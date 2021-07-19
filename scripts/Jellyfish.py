@@ -70,6 +70,9 @@ class JellyfishDumps:
 			d_counts = dict(zip(self.labels, counts))
 			includes = []
 			for sg in sgs:
+				if len(sg) == 1:
+					logger.warn('Singleton `{}` is ignored'.format(sg))
+					continue
 				include = False
 				freqs = []
 				for chrs in sg:
@@ -84,8 +87,11 @@ class JellyfishDumps:
 						lens = [d_lens[chr] for chr in chrs]
 						freq = sum(count) / sum(lens)
 					freqs += [freq]
-				_min_freq = min(freqs)
-				_max_freq = max(freqs)
+				freqs = sorted(freqs, reverse=1)
+				_max_freq = freqs[0]
+				_min_freq = freqs[1]
+			#	_min_freq = min(freqs)
+			#	_max_freq = max(freqs)
 				if 1.0 * _max_freq / (_min_freq+1e-9) >= min_fold:
 					include = True
 				includes += [include]
@@ -114,7 +120,9 @@ class JellyfishDumps:
 		rsrc = '''
 data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F)
 data = as.matrix(data)
-#data = log(data+1e-9)
+z.scale <- function(x) (x - mean(x))/ sqrt(var(x))
+data = t(apply(data, 1, z.scale))
+
 library("gplots")
 if (nrow(data) > 10000) {{
 	data = data[1:10000, ]
