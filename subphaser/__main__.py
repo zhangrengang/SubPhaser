@@ -1,13 +1,20 @@
 import sys,os
 import argparse
+import shutil
 import json
+import multiprocessing
 from collections import OrderedDict, Counter
 from xopen import xopen as open
 from Bio import SeqIO
-from .split_genomes import split_genomes
+from .Seqs import split_genomes, map_kmer
 from .Jellyfish import run_jellyfish_dumps, JellyfishDumps
-from .small_tools import mkdirs, rmdirs
+from .Cluster import Cluster
+from .Circos import circos_plot
+from .small_tools import mkdirs, rmdirs, mk_ckp
 from .RunCmdsMP import logger
+
+bindir = os.path.dirname(os.path.realpath(__file__))
+NCPU = multiprocessing.cpu_count()
 
 def makeArgparse():
 	parser = argparse.ArgumentParser( \
@@ -50,13 +57,13 @@ if `-min_prop` is specified [default=%(default)s]")
 					help="Minimum total proportion (< 1) for each kmer [default=%(default)s]")
 
 	parser.add_argument('-max_freq', type=int, default=1e9, metavar='INT',
-					 help="Maximum total count for each kmer; will not work \
+					help="Maximum total count for each kmer; will not work \
 if `-max_prop` is specified [default=%(default)s]")
 	parser.add_argument('-max_prop', type=float, default=None, metavar='FLOAT',
                     help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
 
 	parser.add_argument('-f', '-min_fold', type=float, default=2, metavar='FLOAT', dest='min_fold',
-					 help="Minimum fold [default=%(default)s]")
+					help="Minimum fold [default=%(default)s]")
 
 	parser.add_argument("-figfmt", default='pdf', type=str, metavar='STR',
 					choices=['pdf', 'png', 'tiff', 'jpeg', 'bmp'],
@@ -64,8 +71,12 @@ if `-max_prop` is specified [default=%(default)s]")
 	parser.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
 	parser.add_argument('-heatmap_options', metavar='STR',
-					default="Rowv=T,Colv=T,scale='row',key=T,key.title=NA,density.info='density',trace='none',labRow=F,main=NA,xlab=NA,margins=c(5,5)",
-					help='Options for heatmap plot (see more in R shell with `?heatmap.2` of `gplots` package) [default="%(default)s"]')
+					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
+key=T,key.title=NA,density.info='density',main=NA,xlab=NA,margins=c(5,6)",
+					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
+of `gplots` package) [default="%(default)s"]')
+	parser.add_argument('-window_size', type=int, default=1000000, metavar='INT',
+                    help="Window size for circos plot")
 	parser.add_argument('-clean', action="store_true", default=False,
                     help="Remove the temporary directory [default: %(default)s]")	
 	parser.add_argument('-overwrite', action="store_true", default=False,
@@ -109,15 +120,21 @@ class Pipeline:
 			self.labels = [''] * (len(genomes))
 
 		self.kargs = kargs
+		# thread for pre process, i.e. jellyfish
+		self.threads = max(1, self.ncpu/len(set(self.chrs)))
+
 	def run(self):
 		# check 
 		check_duplicates(self.genomes)
 		check_duplicates(self.labels)
 		# mkdir
+		self.outdir = os.path.realpath(self.outdir)
+		self.tmpdir = os.path.realpath(self.tmpdir)
 		mkdirs(self.outdir)
 		mkdirs(self.tmpdir)
 		self.outdir += '/'
 		self.tmpdir += '/'
+		self._outdir = self.outdir
 		if self.prefix is not None:
 			self.outdir = self.outdir + self.prefix
 			self.tmpdir = self.tmpdir + self.prefix
@@ -141,11 +158,11 @@ class Pipeline:
 		# jellyfish
 		logger.info('Counting kmer by jellyfish')
 		dumpfiles = run_jellyfish_dumps(chromfiles, k=self.k, ncpu=self.ncpu, lower_count=self.lower_count,
-						overwrite=self.overwrite)
+						threads=self.threads, overwrite=self.overwrite)
 
 		# matrix
-		logger.info('Loading kmer matrix of jellyfish')
-		dumps = JellyfishDumps(dumpfiles, labels)
+		logger.info('Loading kmer matrix from jellyfish')
+		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu)
 		matfile = '{}kmer_k{}_q{}_f{}.mat'.format(self.outdir, self.k, self.min_freq, self.min_fold)
 		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(matfile))
 		if self.overwrite or not os.path.exists(ckp_file):
@@ -168,20 +185,48 @@ class Pipeline:
 		# heatmap
 		outfig = dumps.heatmap(matfile, figfmt=self.figfmt, color=self.heatmap_colors, heatmap_options=self.heatmap_options)
 		
+		# kmeans
+		cluster = Cluster(matfile, n_clusters=self.nsg)
+		sg_chrs = matfile + '.subgenomes'
+		with open(sg_chrs, 'w') as fout:
+			cluster.output_subgenomes(fout)
+		logger.info('Output `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
+
+		sg_kmers = matfile + '.kmers'
+		with open(sg_kmers, 'w') as fout:
+			d_kmers = cluster.output_kmers(fout)
+		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)))
+		logger.info('Output significant `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
+	
+		sg_map = matfile + '.sg.bed'
+		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(sg_map))
+		if self.overwrite or not os.path.exists(ckp_file):	# SG id changes, so skipping is not allowed
+	#	if True:
+			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
+			with open(sg_map, 'w') as fout:
+				map_kmer(chromfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu)
+#			logger.info('Output `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
+			mk_ckp(ckp_file)
+		else:
+			logger.info('Check point `{}` exists, skipped'.format(ckp_file))
+
 		# PCA
 
-		# kmeans
-	
+		# LTR
+
 		# circos
-	
+		circos_dir = bindir+'/circos'
+		wkdir = self._outdir+'/circos'
+		rmdirs(wkdir)
+		try:
+			logger.info('Copy `{}` to `{}`'.format(circos_dir, self._outdir))
+			shutil.copytree(circos_dir, wkdir)
+		except FileExistsError:
+			pass
+		circos_plot(chromfiles, sg_map, wkdir, window_size=self.window_size)		
 		# clean
 		if self.clean:
 			rmdirs(self.tmpdir)
-def mk_ckp(ckgfile, data=None):
-	with open(ckgfile, 'w') as f:
-		if data is not None:
-			json.dump(data, f)
-	logger.info('New check point file: `{}`'.format(ckgfile))
 
 def parse_idmap(mapfile=None):
 	if not mapfile:

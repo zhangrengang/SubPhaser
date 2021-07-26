@@ -1,31 +1,33 @@
 #!/usr/bin/env python
-from TEsorter.version import __version__
+from subphaser.__version__ import version
 
 from setuptools import setup, find_packages
+# from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
 
 with open('README.md') as f:
     long_description = f.read()
 
 
 setup(
-    name='TEsorter',
-    version=__version__,
-    description='TEsorter: clade-level classification of transposable elements reflecting phylogenies and diversities',
-    url='https://github.com/zhangrengang/TEsorter',
-    download_url='https://github.com/zhangrengang/TEsorter/archive/v1.3.tar.gz',
-    author='Zhang, Ren-Gang and Wang, Zhao-Xuan, Jacques Dainat',
+    name='subphaser',
+    version=version,
+    description='subphaser: phase subgenomes of allopolyploidy based on repeatitive kmers',
+    url='https://github.com/zhangrengang/subphaser',
+#    download_url='https://github.com/zhangrengang/subphaser/archive/v1.x.tar.gz',
+    author='Zhang, Ren-Gang and Wang, Zhao-Xuan',
     license='GPL-3.0',
 
     python_requires='>=3',
     packages=find_packages(),
     include_package_data=True,
-    scripts=['TEsorter/modules/get_record.py',
-            'TEsorter/modules/concatenate_domains.py',
-            'TEsorter/modules/RepeatMasker.py',
-            'TEsorter/modules/LTR_retriever.py',],
+    scripts=[],
     entry_points={
-        'console_scripts': ['TEsorter = TEsorter.app:main',
-        'TEsorter-test = TEsorter.test.test_app:main',
+        'console_scripts': ['subphaser = subphaser.__main__:main',
         ],
-    }
+    },
+	ext_modules=cythonize([
+                Extension("subphaser.Kmer", ["subphaser/Kmer.pyx"]),
+	]),
 )

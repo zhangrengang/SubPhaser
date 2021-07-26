@@ -4,4 +4,4 @@ genome=$1
 shift
 opts=$@
 pre=$(basename $(pwd))_
-python3 /share/home/nature/users/zhangrenang/subphaser/subphaser.py -i $genome -c $config $opts -pre $pre
+python3 /share/home/nature/users/zhangrenang/subphaser/test_subphaser.py -i $genome -c $config $opts -pre $pre

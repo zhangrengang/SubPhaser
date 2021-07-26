@@ -12,10 +12,12 @@ import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s -%(levelname)s- %(message)s')
 logger = LOGGER = logging.getLogger(__name__)
 
+import multiprocessing
 try:
 	import pp
 except ImportError as e:
-	logger.warn('{}\nparallel computing is not available'.format(e))
+	pass
+	#logger.warn('{}\nparallel computing is not available'.format(e))
 try:
 	import drmaa    # for grid
 	GRID = True
@@ -210,8 +212,7 @@ def run_tasks(cmd_list, tc_tasks=None, mode='grid', grid_opts='', cpu=1, mem='1g
 	# if completed?
 	return len(uncmp)
 def avail_cpu(cpu):
-	import psutil
-	cpu_count = psutil.cpu_count()
+	cpu_count = multiprocessing.cpu_count()
 	return max(1, int(1.0*cpu_count/cpu))
 def avail_mem(mem):
 	import psutil
@@ -276,12 +277,44 @@ def default_processors(actual=None):
 	else:
 		return available_cpus
 def pp_run(cmd_list, processors='autodetect'):
+	return pool_run(cmd_list, processors)
 	if processors is None:
 		processors = 'autodetect'
 	ppservers = ()
 	job_server = pp.Server(processors, ppservers=ppservers)
 	jobs = [job_server.submit(run_cmd, (cmd,), (), ('subprocess',)) for cmd in cmd_list]
 	return [job() for job in jobs]
+def pp_func(func, lst, args=(), funcs=(), libs=(), processors='autodetect'):
+	ppservers = ()
+	job_server = pp.Server(processors, ppservers=ppservers)
+	jobs = [job_server.submit(func, add_args(value,args), funcs, libs) for value in lst]
+	return jobs #[job() for job in jobs]
+def pool_func(func, iterable, processors=8, method=None, ordered=True, imap=False, **kargs):
+	pool = multiprocessing.Pool(processors)
+	if method is not None:
+		pool_map = eval('pool.'+method)
+	elif ordered and not imap:
+		pool_map = pool.map
+	elif ordered:
+		pool_map = pool.imap
+	else:
+		pool_map = pool.imap_unordered
+	#jobs = [pool.imap(func, add_args(value,args),) for value in lst]
+	for returned in pool_map(func, iterable, **kargs):
+		yield returned
+	pool.close()
+	pool.join()
+def pool_run(cmd_list, processors=8):
+	try: processors = int(processors)
+	except (TypeError,ValueError):
+		processors = multiprocessing.cpu_count()
+	return pool_func(run_cmd, cmd_list, processors=processors)
+
+def add_args(value, args):
+	if isinstance(value, tuple):
+		return value + args
+	else:
+		return (value,) + args
 def get_cmd_list(cmd_file, cmd_cpd_file=None, cmd_sep="\n", cont=True):
 	if not '\n' in cmd_sep:
 		cmd_sep += '\n'

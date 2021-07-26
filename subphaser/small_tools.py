@@ -22,7 +22,19 @@ import time
 import shutil
 import subprocess
 from Bio import SeqIO
+from .RunCmdsMP import logger
+
 ISOTIMEFORMAT='%Y-%m-%d %X'
+def mk_ckp(ckgfile, data=None):
+    with open(ckgfile, 'w') as f:
+        if data is not None:
+            json.dump(data, f)
+    logger.info('New check point file: `{}`'.format(ckgfile))
+def check_ckp(ckgfile):
+	if os.path.exists(check_ckp):
+		logger.info('Check point file: `{}` exists; skip this step'.format(ckgfile))
+		return True
+	return False
 def sorted_version(lst, **kargs):
 	return sorted(lst, key=lambda x: get_version(x), **kargs)
 def get_version(value):
@@ -102,6 +114,8 @@ def rmdirs(*dirs):
 			shutil.rmtree(DIR)
 		else:
 			pass
+def cpdir(from_dir, to_dir):
+	shutil.copytree(from_dir, to_dir)
 
 def test_f(xfile):	#"test -f"
 	return os.path.exists(xfile)

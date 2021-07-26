@@ -1,0 +1,6 @@
+xopen
+scipy
+numpy
+tklearn
+biopython
+
