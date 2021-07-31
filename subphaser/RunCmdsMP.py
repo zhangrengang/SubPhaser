@@ -187,12 +187,12 @@ def run_tasks(cmd_list, tc_tasks=None, mode='grid', grid_opts='', cpu=1, mem='1g
 			job_status = pp_run(cmd_list, processors=tc_tasks)
 			exit_codes = []
 			fout = open(out_path, xmod) if out_path is not None else None
-			f = sys.stdout
+			#f = sys.stdout
 			for (stdout, stderr, status) in job_status:
 				if fout is not None:
-			#		print >>fout, '>>STATUS:\t{}\n>>STDOUT:\n{}\n>>STDERR:\n{}'.format(status, stdout, stderr)
-					print('>>STATUS:\t{}\n>>STDERR:\n{}'.format(status, stderr), file=fout)
-				f.write(stdout)
+					print('>>STATUS:\t{}\n>>STDOUT:\n{}\n>>STDERR:\n{}'.format(status, stdout, stderr), file=fout)
+			#		print('>>STATUS:\t{}\n>>STDERR:\n{}'.format(status, stderr), file=fout)
+			#	f.write(stdout)
 				exit_codes += [status]
 			if fout is not None:
 				fout.close()
@@ -241,7 +241,7 @@ echo "$JID:$PWD:\"$CMD\":$(whoami):$DATE" >> $LOGFILE
 def file2list(cmd_file, sep="\n"):
 	if not '\n' in sep:
 		sep += '\n'
-	if isinstance(cmd_file, file):
+	if not isinstance(cmd_file, str): # file = io.TextIOWrapper in py3
 		f = cmd_file
 		cmd_list = f.read().split(sep)
 	else:
@@ -277,7 +277,10 @@ def default_processors(actual=None):
 	else:
 		return available_cpus
 def pp_run(cmd_list, processors='autodetect'):
-	return pool_run(cmd_list, processors)
+#	'''use multiprocessing instead of pp'''
+#	try: return pool_run(cmd_list, processors)
+#	except: pass	# AssertionError: daemonic processes are not allowed to have children
+								# Nest of Pool
 	if processors is None:
 		processors = 'autodetect'
 	ppservers = ()
@@ -290,6 +293,9 @@ def pp_func(func, lst, args=(), funcs=(), libs=(), processors='autodetect'):
 	jobs = [job_server.submit(func, add_args(value,args), funcs, libs) for value in lst]
 	return jobs #[job() for job in jobs]
 def pool_func(func, iterable, processors=8, method=None, ordered=True, imap=False, **kargs):
+	'''method: map, imap, imap_unordered in Pool
+ordered: False for imap_unordered
+imap: True for imap'''
 	pool = multiprocessing.Pool(processors)
 	if method is not None:
 		pool_map = eval('pool.'+method)

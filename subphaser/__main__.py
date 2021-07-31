@@ -9,6 +9,7 @@ from Bio import SeqIO
 from .Seqs import split_genomes, map_kmer
 from .Jellyfish import run_jellyfish_dumps, JellyfishDumps
 from .Cluster import Cluster
+from .LTR import LTRpipelines
 from .Circos import circos_plot
 from .small_tools import mkdirs, rmdirs, mk_ckp
 from .RunCmdsMP import logger
@@ -19,67 +20,99 @@ NCPU = multiprocessing.cpu_count()
 def makeArgparse():
 	parser = argparse.ArgumentParser( \
 		formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('-i', "-genomes", dest='genomes', nargs='+', metavar='GENOME', required=True,
+	# input
+	group_in = parser.add_argument_group('Input', 'Input genome and config files')
+	group_in.add_argument('-i', "-genomes", dest='genomes', nargs='+', metavar='GENOME', required=True,
 					help="Input genome sequences in fasta format [required]")
-	parser.add_argument('-c', '-sg_cfgs', dest='sg_cfgs', nargs='+', required=True, metavar='CFGFILE',
+	group_in.add_argument('-c', '-sg_cfgs', dest='sg_cfgs', nargs='+', required=True, metavar='CFGFILE',
 					help="Subgenomes config file (one homologous group per line); \
 this chromosome set is for identifying differential kmers [required]")
-	parser.add_argument('-labels', nargs='+', type=str, metavar='LABEL',
-					help="For multiple genomes, provide prefix labels for each genome sequence\
+	group_in.add_argument('-labels', nargs='+', type=str, metavar='LABEL',
+					help="For multiple genomes, provide prefix labels for each genome sequence \
 to avoid conficts among chromosome id \
 [default: '1- 2- ... n-']")
-	parser.add_argument('-no_label', action="store_true", default=False,
-					help="Do not use prefix labels for genome sequences as there is \
+	group_in.add_argument('-no_label', action="store_true", default=False,
+					help="Do not use default prefix labels for genome sequences as there is \
 no conficts among chromosome id [default: %(default)s]")
-	parser.add_argument('-pre', '-prefix', default=None, dest='prefix', metavar='STR',
-                    help="Prefix for output directories [default=%(default)s]")
-	parser.add_argument('-o', '-outdir', default='phase-results', dest='outdir', metavar='DIR',
-					help="Output directory [default=%(default)s]")
-	parser.add_argument('-tmpdir', default='tmp', type=str, metavar='DIR',
-					help="Temporary directory [default=%(default)s]")
-	parser.add_argument("-target", default=None, type=str, metavar='FILE',
+	group_in.add_argument("-target", default=None, type=str, metavar='FILE',
                     help="Target chromosomes to output; id mapping is allowed; \
 this chromosome set is for cluster and phase \
 [default: the chromosome set as `-sg_cfgs`]")
-	parser.add_argument("-sep", default="|", type=str, metavar='STR',
-                    help="Seperator for chromosome ID")
-	parser.add_argument('-k', type=int, default=15, metavar='INT',
+	group_in.add_argument("-sep", default="|", type=str, metavar='STR',
+                    help='Seperator for chromosome ID [default="%(default)s"]')
+	# output
+	group_out = parser.add_argument_group('Output')
+	group_out.add_argument('-pre', '-prefix', default=None, dest='prefix', metavar='STR',
+                    help="Prefix for output [default=%(default)s]")
+	group_out.add_argument('-o', '-outdir', default='phase-results', dest='outdir', metavar='DIR',
+					help="Output directory [default=%(default)s]")
+	group_out.add_argument('-tmpdir', default='tmp', type=str, metavar='DIR',
+					help="Temporary directory [default=%(default)s]")
+	# kmer
+	group_kmer = parser.add_argument_group('Kmer', 'Options to count and filter kmers')
+	group_kmer.add_argument('-k', type=int, default=15, metavar='INT',
 					 help="Length of kmer [default=%(default)s]")
-	parser.add_argument('-ncpu', type=int, default=16, metavar='INT',
-					 help="Number of threads [default=%(default)s]")
-	parser.add_argument('-lower_count', type=int, default=3, metavar='INT',
-					 help="Don't output k-mer with count < lower-count [default=%(default)s]")
-
-	parser.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
-					 help="Minimum total count for each kmer; will not work \
+	group_kmer.add_argument('-f', '-min_fold', type=float, default=2, metavar='FLOAT', dest='min_fold',
+                    help="Minimum fold [default=%(default)s]")
+	group_kmer.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
+                     help="Minimum total count for each kmer; will not work \
 if `-min_prop` is specified [default=%(default)s]")
-	parser.add_argument('-min_prop', type=float, default=None, metavar='FLOAT',
+	group_kmer.add_argument('-lower_count', type=int, default=3, metavar='INT',
+					 help="Don't output k-mer with count < lower-count [default=%(default)s]")
+	group_kmer.add_argument('-min_prop', type=float, default=None, metavar='FLOAT',
 					help="Minimum total proportion (< 1) for each kmer [default=%(default)s]")
-
-	parser.add_argument('-max_freq', type=int, default=1e9, metavar='INT',
+	group_kmer.add_argument('-max_freq', type=int, default=1e9, metavar='INT',
 					help="Maximum total count for each kmer; will not work \
 if `-max_prop` is specified [default=%(default)s]")
-	parser.add_argument('-max_prop', type=float, default=None, metavar='FLOAT',
+	group_kmer.add_argument('-max_prop', type=float, default=None, metavar='FLOAT',
                     help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
 
-	parser.add_argument('-f', '-min_fold', type=float, default=2, metavar='FLOAT', dest='min_fold',
-					help="Minimum fold [default=%(default)s]")
-
-	parser.add_argument("-figfmt", default='pdf', type=str, metavar='STR',
+	# cluster
+	group_clst = parser.add_argument_group('Cluster', 'Options for cluster to phase')
+	group_clst.add_argument("-figfmt", default='pdf', type=str, metavar='STR',
 					choices=['pdf', 'png', 'tiff', 'jpeg', 'bmp'],
 					help="Format of figures [default=%(default)s]")
-	parser.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
+	group_clst.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
-	parser.add_argument('-heatmap_options', metavar='STR',
+	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
 key=T,key.title=NA,density.info='density',main=NA,xlab=NA,margins=c(5,6)",
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
-	parser.add_argument('-window_size', type=int, default=1000000, metavar='INT',
-                    help="Window size for circos plot")
-	parser.add_argument('-clean', action="store_true", default=False,
+	# LTR
+	group_ltr = parser.add_argument_group('LTR', 'Options for LTR analyses')
+	group_ltr.add_argument("-ltr_detectors", nargs='+', metavar='PROG', 
+					default=['ltr_finder', 'ltr_harvest'], 
+					choices=['ltr_finder', 'ltr_harvest'],
+                    help="Programs to detect LTR-RTs [default=%(default)s]")
+	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
+					default='-w 2 -D 15000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.85',
+					help='Options for `ltr_finder` to identify LTR-RTs (see more with \
+`ltr_finder -h`)[default="%(default)s"]')
+	group_ltr.add_argument("-ltr_harvest_options", metavar='STR',
+					default='-similar 85 -vic 10 -seed 20 -seqids yes -minlenltr 100 \
+-maxlenltr 7000 -mintsd 4 -maxtsd 6',
+					help='Options for `gt ltrharvest` to identify LTR-RTs (see more with \
+`gt ltrharvest -help`) [default="%(default)s"]')
+	group_ltr.add_argument("-tesorter_options", metavar='STR',
+					default='-db rexdb-plant',
+					help='Options for `TEsorter` to classify LTR-RTs [default="%(default)s"]')
+	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=7e-9,
+					help='Substitution rate for estimating age of LTR insertion \
+[default=%(default)s]')
+
+	# circos
+	group_circ = parser.add_argument_group('Circos', 'Options for circos plot')
+	group_circ.add_argument('-window_size', type=int, default=1000000, metavar='INT',
+                    help="Window size for circos plot [default: %(default)s]")
+
+	# others
+	group_other = parser.add_argument_group('Other options')
+	group_other.add_argument('-p', '-ncpu', type=int, default=NCPU, metavar='INT', dest='ncpu',
+                     help="Maximum number of processors to use [default=%(default)s]")
+	group_other.add_argument('-cleanup', action="store_true", default=False,
                     help="Remove the temporary directory [default: %(default)s]")	
-	parser.add_argument('-overwrite', action="store_true", default=False,
+	group_other.add_argument('-overwrite', action="store_true", default=False,
                     help="Overwrite even if check point files existed [default: %(default)s]")
 	args = parser.parse_args()
 	if args.prefix is not None:
@@ -121,7 +154,7 @@ class Pipeline:
 
 		self.kargs = kargs
 		# thread for pre process, i.e. jellyfish
-		self.threads = max(1, self.ncpu/len(set(self.chrs)))
+		self.threads = max(1, self.ncpu//len(set(self.chrs)))
 
 	def run(self):
 		# check 
@@ -213,6 +246,21 @@ class Pipeline:
 		# PCA
 
 		# LTR
+		tmpdir = '{}LTR'.format(self.tmpdir)
+		if '-p' not in self.tesorter_options:
+			self.tesorter_options += ' -p {}'.format(self.threads)
+		kargs = dict(progs=self.ltr_detectors, 
+				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
+				job_args={'mode': 'local', 'retry': 3, 'cont': 1,  'tc_tasks': self.threads},
+				tesorter_options=self.tesorter_options, mu=self.mu,)
+
+		ltrs, ltrfiles = LTRpipelines(chromfiles, tmpdir=tmpdir, ncpu=self.ncpu, **kargs).run()
+		ltr_map = matfile + '.ltr.bed'
+		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(ltr_map))
+		if True:
+			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
+			with open(ltr_map, 'w') as fout:
+				map_kmer(ltrfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu)
 
 		# circos
 		circos_dir = bindir+'/circos'
@@ -224,8 +272,8 @@ class Pipeline:
 		except FileExistsError:
 			pass
 		circos_plot(chromfiles, sg_map, wkdir, window_size=self.window_size)		
-		# clean
-		if self.clean:
+		# cleanup
+		if self.cleanup:
 			rmdirs(self.tmpdir)
 
 def parse_idmap(mapfile=None):

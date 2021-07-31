@@ -3,4 +3,4 @@ scipy
 numpy
 tklearn
 biopython
-
+binpacking

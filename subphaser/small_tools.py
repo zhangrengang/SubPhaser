@@ -31,7 +31,7 @@ def mk_ckp(ckgfile, data=None):
             json.dump(data, f)
     logger.info('New check point file: `{}`'.format(ckgfile))
 def check_ckp(ckgfile):
-	if os.path.exists(check_ckp):
+	if os.path.exists(ckgfile):
 		logger.info('Check point file: `{}` exists; skip this step'.format(ckgfile))
 		return True
 	return False

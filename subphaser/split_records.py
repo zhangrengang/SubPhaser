@@ -220,11 +220,15 @@ def cut_seqs(inSeq, outSeq, window_size=500000, window_ovl=100000, seqfmt='fasta
 				continue
 
 def bin_split_fastx_by_chunk_num(inFastx, prefix, chunk_num, seqfmt, suffix, window_size=1e6, window_ovl=1e5, tmpdir='/tmp'):
+	from tempfile import NamedTemporaryFile
 	window_size, window_ovl = int(window_size) ,int(window_ovl)
-	cutSeq = '{}/cut.{}'.format(tmpdir, seqfmt)
-	with open(cutSeq, 'w') as f:
+	#cutSeq = '{}/cut.{}'.format(tmpdir, seqfmt)
+	with NamedTemporaryFile('w+t', delete=False) as f:
 		cut_seqs(inFastx, f, window_size=window_size, window_ovl=window_ovl, seqfmt=seqfmt)
-	return split_fastx_by_size(cutSeq, prefix, chunk_num, seqfmt, suffix)
+		cutSeq = f.name
+	_return = split_fastx_by_size(cutSeq, prefix, chunk_num, seqfmt, suffix)
+	os.remove(cutSeq)
+	return _return
 
 def split_fastx_by_size(inFastx, prefix, chunk_num, seqfmt, suffix, out_random=True):
 	import binpacking

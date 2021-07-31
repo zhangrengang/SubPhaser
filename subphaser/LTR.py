@@ -4,7 +4,7 @@ from collections import OrderedDict
 from Bio import SeqIO
 from TEsorter.app import CommonClassifications
 from .split_records import bin_split_fastx_by_chunk_num
-from .RunCmdsMP import run_job, run_cmd
+from .RunCmdsMP import run_job, run_cmd, pool_func, logger
 from .small_tools import mkdirs, rmdirs, mk_ckp,check_ckp
 
 job_args = {
@@ -75,7 +75,6 @@ def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin
 # seq-nr = sequence order'''.format(inSeq), file=harvest_out)
 	d_idmap = {raw_id: i for i, raw_id in enumerate(d_len.keys())}
 	lines = []
-	d_source = {}
 	parsers = {
 		'ltr_finder': LTRFinder,
 		'ltr_harvest': LTRHarvest,
@@ -92,9 +91,11 @@ def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin
 				rc.seq_id = raw_id
 				rc.start, rc.end = rc.start+start-1, rc.end+start-1
 				rc.seq_nr = d_idmap[raw_id]
-				try: d_source[rc] += [prog]
-				except KeyError: d_source[rc] = [prog]
+				#	print(inSeq, prefix,chunk_files, d_outputs[prog], e, d_idmap)
+				rc.source = [prog]
 				d_ltrs[raw_id] += [rc]
+
+	# merge, remove overlaps and output
 	all_ltrs = []
 	for chrom in d_len.keys():
 		ltrs = d_ltrs[chrom]
@@ -103,33 +104,65 @@ def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin
 		all_ltrs += ltrs
 		for rc in ltrs:
 			line = tuple(rc.harvest_output())
-			source = set(d_source[rc])
+			source = rc.source
 			source = '#' + ','.join(source)
 			line = list(map(str, line)) + [source]
 			print(' '.join(line), file=harvest_out)
 
-	rmdirs(tmpdir)
+	#rmdirs(tmpdir)
 	return all_ltrs
 
 def resolve_overlaps(ltrs, max_ovl=10):
 	last_ltr = None
 	discards = []
+	ie, io = 0, 0
 	for ltr in sorted(ltrs, key=lambda x:x.start):
 		discard = None
+		print(last_ltr, ltr)
 		if last_ltr:
-			if ltr == last_ltr:
+			if ltr == last_ltr:	# equal
+				ie += 1
 				discard = ltr
-			elif ltr.overlap(last_ltr) > max_ovl:
+				last_ltr.source += ltr.source
+			elif ltr.overlap(last_ltr) > max_ovl: # overlaps
+				io += 1
 				if ltr.element_len > last_ltr.element_len:
 					discard = last_ltr
+					ltr.source += last_ltr.source
 				else:
+					last_ltr.source += ltr.source
 					discard = ltr
-			else:
+			else:	# no overlap or too short overlap
+				last_ltr = ltr
 				continue
 			discards += [discard]
-		if not discard or discard == last_ltr:
+			if last_ltr.source != ltr.source:
+				print(last_ltr, ltr, ltr.overlap(last_ltr))
+#		else:
+#			last_ltr = ltr
+#		if not discard or discard == last_ltr:
+		if not last_ltr or discard != ltr:
 			last_ltr = ltr
-	return sorted(set(ltrs) - set(discards), key=lambda x:x.start))
+	logger.info('Discard {} equal and {} overlapped; {} in total'.format(ie, io, ie+io))
+	return sorted(set(ltrs) - set(discards), key=lambda x:x.start)
+
+class LTRpipelines:
+	def __init__(self, genomes, ncpu=8, tmpdir='tmp', **kargs):
+		self.genomes = genomes
+		self.ncpu = ncpu
+		self.tmpdir = tmpdir
+		self.kargs = kargs
+	def run(self):
+		ltrs = []
+		seqs = []
+		for _ltrs, _seqs in pool_func(self._run, self.genomes, self.ncpu):
+			ltrs += _ltrs
+			seqs += [_seqs]
+		return ltrs, seqs
+	def _run(self, genome):
+#		tmpdir = '{}/{}'.format(self.tmpdir, os.path.basename(genome))
+		return LTRpipeline(genome, tmpdir=self.tmpdir, **self.kargs).run()
+
 class LTRpipeline:
 	def __init__(self, genome, tmpdir='./tmp', mu=7e-9, 
 			tesorter_options='', intact=True, **kargs):
@@ -141,7 +174,8 @@ class LTRpipeline:
 		self.kargs = kargs
 	def run(self):
 		mkdirs(self.tmpdir)
-		ltr_out = '{}/{}.scn'.format(self.tmpdir, os.path.basename(self.genome))
+		self.prefix = '{}/{}'.format(self.tmpdir, os.path.basename(self.genome))
+		ltr_out = self.prefix +'.scn'
 		ckp = ltr_out + '.ok'
 		if check_ckp(ckp):
 			ltrs = list(LTRHarvest(ltr_out))
@@ -149,14 +183,15 @@ class LTRpipeline:
 			with open(ltr_out, 'w') as fout:
 				ltrs = self.identify(fout)
 			mk_ckp(ckp)
-		int_seqs = '{}/INT.fasta'.format(self.tmpdir)
+		#int_seqs = '{}/INT.fasta'.format(self.tmpdir)
+		int_seqs = self.prefix + '.INT.fa'
 		with open(int_seqs, 'w') as fout:
 			self.get_int_seqs(ltrs, fout)
 		d_class = self.classfify(int_seqs)
 
 		filtered_ltrs = []
 		for ltr in ltrs:
-			if ltr.id is not in d_class:
+			if ltr.id not in d_class:
 				continue
 			cls = d_class[ltr.id]
 			if self.intact and cls.completed != 'yes':
@@ -165,29 +200,29 @@ class LTRpipeline:
 			ltr.age = ltr.estimate_age(mu=self.mu)
 			filtered_ltrs += [ltr]
 		ltrs = filtered_ltrs
-		ltr_seqs = '{}/LTR.fasta'.format(self.tmpdir)
+		ltr_seqs = self.prefix + '.LTR.fa' 
 		with open(ltr_seqs, 'w') as fout:
 			self.get_full_seqs(ltrs, fout)
-		return ltr_seqs
+		return ltrs, ltr_seqs
 
 	def identify(self, fout):
-		return detect_ltr(self.genome, fout, tmpdir=self.tmpdir, **self.kargs)
+		return detect_ltr(self.genome, fout, tmpdir=self.prefix, unique=False, **self.kargs)
 	def classfify(self, inseq):
-		cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir}'.format(
-				seqfile=inseq, options=tesorter_options, tmpdir=self.tmpdir)
+		cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > {seqfile}.tesort.log'.format(
+				seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
 		if self.intact:
 			cmd += ' -dp2'
-		run_cmd(cmd, logger=True)
+		run_cmd(cmd, log=True)
 		clsfile = '{seqfile}.cls.tsv'.format(seqfile=inseq)
 		d_class = {}
 		for classification in CommonClassifications(clsfile):
 			d_class[classification.id] = classification
 		return d_class
 
-	def get_seqs(self, ltrs, fout, method):
+	def get_seqs(self, ltrs, fout, method='get_full_seq'):
 		d_seqs = {rc.id: rc.seq for rc in SeqIO.parse(self.genome, 'fasta')}
 		for ltr in ltrs:
-			seq = ltr.getattr(method)(d_seqs=d_seqs)
+			seq = getattr(ltr, method)(d_seqs=d_seqs)
 			fout.write('>{}\n{}\n'.format(ltr.id, seq))
 	def get_int_seqs(self, ltrs, fout):
 		return self.get_seqs(ltrs, fout, method='get_int_seq')
@@ -198,10 +233,24 @@ class LTRHarvest():
 	def __init__(self, harvest_out, harvest_in=None):
 		self.harvest_out = harvest_out
 		self.harvest_in = harvest_in
-		try: self.idmap = {i: line.split()[0] for i, line in enumerate(open(harvest_in + '.des'))}
-		except IOError: self.idmap = None
+		self.idmap = self._parse_idmap()
 	def __iter__(self):
 		return self.parse()
+	def _parse_idmap(self):
+		des = str(self.harvest_in) + '.des'
+		d = {}
+		if os.path.exists(des):
+			for i, line in enumerate(open(des, 'rb')):
+				try: line = line.decode('UTF-8')
+				except: continue
+				d[i] = line.split()[0]
+		elif not self.harvest_in or not os.path.exists(self.harvest_in):
+			pass
+		else:
+			for i, rc in enumerate(SeqIO.parse(self.harvest_in, 'fasta')):
+				d[i] = rc.id
+		return d
+
 	def parse(self):
 		for line in open(self.harvest_out):
 			if not line.startswith('#'):
@@ -213,15 +262,16 @@ class LTRHarvestRecord(object):
 			self.lltr_e0, self.lltr, self.rltr_s0, self.end, self.rltr, \
 			self.similarity, self.seq_nr = self.line[:11]
 		self.seq_nr = int(self.seq_nr)
-		if len(line) == 11: # raw format
+		if len(self.line) == 11: # raw format
 			self.seq_id = idmap[self.seq_nr]
-		elif len(line) >= 12:	# modified format output by pipeline
+		elif len(self.line) >= 12:	# modified format output by pipeline
 			self.seq_id = self.line[11]
 		else:
 			raise ValueError('Unrecognized LTRHarvest format: {}'.format(self.line))
 		self.start, self.end = int(self.start), int(self.end)
 		self.lltr, self.rltr =  int(self.lltr), int(self.rltr)
-		self.similarity = round(float(self.similarity), 1)
+		self.similarity = float(self.similarity)
+		self.element_len = int(self.element_len)
 		self.lltr_e0, self.rltr_s0 = int(self.lltr_e0), int(self.rltr_s0)
 	def harvest_output(self, fout=None):
 		line = [self.start, self.end, self.element_len, self.start,
@@ -237,11 +287,13 @@ class LTRHarvestRecord(object):
 		return (self.seq_id, self.start, self.end, self.lltr_e, self.rltr_s)
 	@property
 	def id(self):
-		return '{seq_id}:{start}-{end}:{lltr_e}-{rltr_s}'.format(**self.__dict__)
-
+		return '{seq_id}:{start}-{end}:{lltr_e}-{rltr_s}'.format(
+			lltr_e=self.lltr_e, rltr_s=self.rltr_s, **self.__dict__)
+	def __str__(self):
+		return self.id
 	def __hash__(self):
 		return hash(self.key)
-	def __equal__(self, other):
+	def __eq__(self, other):
 		return self.key == other.key
 	def overlap(self, other):
 		ovl = max(0, min(self.end, other.end) - max(self.start, other.start))
@@ -254,19 +306,19 @@ class LTRHarvestRecord(object):
 			dist = -3/4* math.log(1-4*div/3, 10)
 		return dist / (mu *2)
 	@property
-	def lltr_e(self):
+	def lltr_e(self):	# compitable with ltrfinder
 		return self.start + self.lltr - 1
 	@property
 	def rltr_s(self):
 		return self.end - self.rltr + 1
-	def get_seq(self, seq=None, strat=None, end=None, d_seqs=None):
+	def get_seq(self, seq=None, start=None, end=None, d_seqs=None):
 		if seq is None and d_seqs is not None:
 			seq = d_seqs[self.seq_id]
 		return seq[start:end]
 	def get_int_seq(self, **kargs):
-		return self.get_seq(strat=self.lltr_e, end=self.rltr_s, **kargs)
+		return self.get_seq(start=self.lltr_e, end=self.rltr_s, **kargs)
 	def get_full_seq(self, **kargs):
-		return self.get_seq(strat=self.start, end=self.end, **kargs)
+		return self.get_seq(start=self.start, end=self.end, **kargs)
 
 class LTRFinder():
 	def __init__(self, finder_out):
@@ -283,11 +335,12 @@ class LTRFinderRecord(LTRHarvestRecord):
 		self.index, self.seq_id, self.location, self.ltr_len, self.element_len, \
 			self.TSR, self.PBS, self.PPT, self.RT, self.IN_core, self.IN_term, \
 			self.RH, self.strand, self.score, self.sharpness, self.similarity = self.line
-		self.similarity = 1e2 * float(self.similarity)
+		self.similarity = round(100 * float(self.similarity),1 )
 		self.start, self.end = self.location.split('-')
 		self.start, self.end = int(self.start), int(self.end)
 		self.lltr, self.rltr = self.ltr_len.split(',')
 		self.lltr, self.rltr =  int(self.lltr), int(self.rltr)
+		self.element_len = int(self.element_len)
 		self.seq_nr = None
 
 if __name__ == '__main__':
