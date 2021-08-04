@@ -84,6 +84,9 @@ cdef tuple get_kmer2(list seq, int s, int k):
 #	s,e = i, i+k
 	return get_kmer(seq, s, k)
 
+def get_2kmer(list seq, int s, int k):
+	return get_kmer(seq, s, k)
+
 def get_kmers(list seq, int size, int k):
 	cdef int i
 	cdef list xkmers

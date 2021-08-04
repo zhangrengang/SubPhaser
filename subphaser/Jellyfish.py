@@ -28,10 +28,11 @@ class JellyfishDump(object):
 				d_kmer[rc.seq] = rc.freq
 		return d_kmer
 class JellyfishDumps:
-	def __init__(self, dumpfiles, labels=None, ncpu=4):
+	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map'):
 		self.dumpfiles = dumpfiles
 		self.labels = labels
 		self.ncpu = ncpu
+		self.method = method
 	def __len__(self):
 		return len(self.dumpfiles)
 	def to_matrix(self):
@@ -116,7 +117,7 @@ class JellyfishDumps:
 #				continue
 ##			logger.info(tot)
 #			d_mat2[kmer] = [c/l for c,l in zip(counts, self.lengths)]
-		for kmer, freqs in pool_func(self._filter, args, self.ncpu):
+		for kmer, freqs in pool_func(self._filter, args, self.ncpu, method=self.method):
 			i += 1
 			if i % 1000000 == 0:
 				logger.info('Processed {} kmers'.format(i))
@@ -177,16 +178,12 @@ class JellyfishDumps:
 			logger.error('Colors must 2 or 3 in size but {} ({}) got'.format(len(color), color))
 		outfig = matfile+ '.'+ figfmt
 		rsrc = '''
-data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F)
+data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F, nrows=10000)
 data = as.matrix(data)
 z.scale <- function(x) (x - mean(x))/ sqrt(var(x))
 data = apply(data, 1, z.scale)	# transpose
 
 library("gplots")
-if (nrow(data) > 10000) {{
-	data = data[1:10000, ]
-	print('Only use the first 10000 kmers to plot.')
-}}
 {dev}('{outfig}')
 heatmap.2(data, col={color}, {heatmap_options})
 dev.off()

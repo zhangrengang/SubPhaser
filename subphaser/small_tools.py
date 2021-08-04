@@ -21,20 +21,31 @@ import re
 import time
 import shutil
 import subprocess
+import collections
+import pickle
 from Bio import SeqIO
 from .RunCmdsMP import logger
 
 ISOTIMEFORMAT='%Y-%m-%d %X'
-def mk_ckp(ckgfile, data=None):
-    with open(ckgfile, 'w') as f:
-        if data is not None:
-            json.dump(data, f)
-    logger.info('New check point file: `{}`'.format(ckgfile))
+def mk_ckp(ckgfile, *data):
+	with open(ckgfile, 'wb') as f:
+		for dat in data:
+			pickle.dump(dat, f)
+	logger.info('New check point file: `{}`'.format(ckgfile))
 def check_ckp(ckgfile):
 	if os.path.exists(ckgfile):
 		logger.info('Check point file: `{}` exists; skip this step'.format(ckgfile))
-		return True
+		if os.path.getsize(ckgfile) == 0:
+			return True
+		data = []
+		with open(ckgfile, 'rb') as f:
+			while True:
+				try: dat = pickle.load(f)
+				except EOFError: break
+				data += [dat]
+		return data
 	return False
+
 def sorted_version(lst, **kargs):
 	return sorted(lst, key=lambda x: get_version(x), **kargs)
 def get_version(value):
@@ -201,6 +212,15 @@ def open_file(infile, mode='r'):
 		return bz2.BZ2File(infile, mode)
 	else:
 		return open(infile, mode)
+def lazy_open(infile):
+	'''return a iterator of a object (file or iterable instance)'''
+	if isinstance(infile, str) and  os.path.isfile(infile):
+		return open_file(infile)
+	elif isinstance(infile, collections.abc.Iterable):
+		# such as list, tuple
+		return iter(infile)
+	else:
+		raise TypeError('{} is neither a file nor a iterable instance'.format(infile))
 
 def run_time(func):
 	def _run_time():

@@ -6,12 +6,15 @@ import multiprocessing
 from collections import OrderedDict, Counter
 from xopen import xopen as open
 from Bio import SeqIO
-from .Seqs import split_genomes, map_kmer
+from . import Seqs
 from .Jellyfish import run_jellyfish_dumps, JellyfishDumps
 from .Cluster import Cluster
+from . import LTR
 from .LTR import LTRpipelines
+from . import Stats
+from . import Circos
 from .Circos import circos_plot
-from .small_tools import mkdirs, rmdirs, mk_ckp
+from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
 from .RunCmdsMP import logger
 
 bindir = os.path.dirname(os.path.realpath(__file__))
@@ -66,9 +69,17 @@ if `-min_prop` is specified [default=%(default)s]")
 if `-max_prop` is specified [default=%(default)s]")
 	group_kmer.add_argument('-max_prop', type=float, default=None, metavar='FLOAT',
                     help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
-
+	group_kmer.add_argument('-low_mem', action="store_true", default=None,
+                    help="Low MEMory but slower [default: True if genome size > 3G, else False]")
 	# cluster
 	group_clst = parser.add_argument_group('Cluster', 'Options for cluster to phase')
+	group_clst.add_argument('-replicates', type=int, default=1000, metavar='INT',
+                    help="Number of replicates for bootstrap [default=%(default)s]")
+	group_clst.add_argument('-jackknife', type=float, default=80, metavar='FLOAT',
+                    help="Percent of kmers to resample for bootstrap [default=%(default)s]")
+	group_clst.add_argument('-min_pval', type=float, default=0.05, metavar='FLOAT',
+                    help="Minimum P value for hypothesis test [default=%(default)s]")
+
 	group_clst.add_argument("-figfmt", default='pdf', type=str, metavar='STR',
 					choices=['pdf', 'png', 'tiff', 'jpeg', 'bmp'],
 					help="Format of figures [default=%(default)s]")
@@ -103,7 +114,7 @@ of `gplots` package) [default="%(default)s"]')
 
 	# circos
 	group_circ = parser.add_argument_group('Circos', 'Options for circos plot')
-	group_circ.add_argument('-window_size', type=int, default=1000000, metavar='INT',
+	group_circ.add_argument('-window_size', type=int, default=500000, metavar='INT',
                     help="Window size for circos plot [default: %(default)s]")
 
 	# others
@@ -174,32 +185,43 @@ class Pipeline:
 
 		# split genome
 		logger.info('Target chromosomes: {}'.format(self.chrs))
-	#	logger.info('Splitting genomes by chromosom')
-	#	ckp_file = '{}/split.ok'.format(self.tmpdir)
-	#	if os.path.exists(ckp_file):
-	#		logger.info('Check point `{}` exists, skipped'.format(ckp_file))
-	#	else:
-		d_targets = parse_idmap(self.target)
-		chromfiles, labels, d_targets = split_genomes(self.genomes, self.labels, 
+		logger.info('Splitting genomes by chromosome')
+		ckp_file = '{}split.ok'.format(self.tmpdir)
+		ckp = check_ckp(ckp_file)
+		if isinstance(ckp, list) and len(ckp) ==4 and not self.overwrite:
+			chromfiles, labels, d_targets, d_size = data = ckp
+		else:
+			d_targets = parse_idmap(self.target)
+			data = chromfiles, labels, d_targets, d_size = Seqs.split_genomes(self.genomes, self.labels, 
 					self.chrs, self.tmpdir, d_targets=d_targets, sep=self.sep)
-	#		os.mknod(ckp_file)
+			mk_ckp(ckp_file, *data)
 		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
 		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
 			raise ValueError('Only 0 chromosome remained after filtering. Please check the inputs.')
 
+		# auto set pool method
+		genome_size = sum(d_size.values())
+		logger.info('Genome size: {:,}'.format(genome_size))
+		if self.low_mem is None and genome_size > 3e9:
+			pool_method = 'imap_unordered'
+			logger.info('Change pool method to reduce memory')
+		else:
+			pool_method = 'map'
+
+
 		# jellyfish
-		logger.info('Counting kmer by jellyfish')
+		logger.info('Counting kmer by jellyfish')	# multiprocessing by chromfile
 		dumpfiles = run_jellyfish_dumps(chromfiles, k=self.k, ncpu=self.ncpu, lower_count=self.lower_count,
-						threads=self.threads, overwrite=self.overwrite)
+						threads=self.threads, overwrite=self.overwrite)	# ckp for each chromfile
 
 		# matrix
-		logger.info('Loading kmer matrix from jellyfish')
-		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu)
+		logger.info('Loading kmer matrix from jellyfish')	# multiprocessing by kmer
+		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, method=pool_method)
 		matfile = '{}kmer_k{}_q{}_f{}.mat'.format(self.outdir, self.k, self.min_freq, self.min_fold)
 		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(matfile))
-		if self.overwrite or not os.path.exists(ckp_file):
-			d_mat = dumps.to_matrix()
+		if self.overwrite or not check_ckp(ckp_file):
+			d_mat = dumps.to_matrix()	# multiprocessing by kmer
 			logger.info('{} kmers in total'.format(len(d_mat)))
 			lengths = dumps.lengths
 			logger.info('Filtering')
@@ -209,43 +231,43 @@ class Pipeline:
 					min_prop=self.min_prop, max_prop=self.max_prop)
 			logger.info('{} kmers remained after filtering'.format(len(d_mat)))
 			if len(d_mat) == 0:
-				raise ValueError('Only 0 kmer remained after filtering. Please reset the options.')
+				raise ValueError('Only 0 kmer remained after filtering. Please reset the filter options.')
 			with open(matfile, 'w') as fout:
 				dumps.write_matrix(d_mat, fout)
 			mk_ckp(ckp_file)
-		else:
-			logger.info('Check point `{}` exists, skipped'.format(ckp_file))	
-		# heatmap
+		# heatmap	# static mechod
 		outfig = dumps.heatmap(matfile, figfmt=self.figfmt, color=self.heatmap_colors, heatmap_options=self.heatmap_options)
 		
-		# kmeans
-		cluster = Cluster(matfile, n_clusters=self.nsg)
+		# kmeans cluster
+		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG',
+				replicates=self.replicates, jackknife=self.jackknife)
+		sg_names = cluster.sg_names
 		sg_chrs = matfile + '.subgenomes'
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)
 		logger.info('Output `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
+		# PCA
+		outfig = matfile + '.pca.' + self.figfmt
+		cluster.pca(outfig)
+		logger.info('Output PCA plot to `{}`'.format(outfig))
 
 		sg_kmers = matfile + '.kmers'
-		with open(sg_kmers, 'w') as fout:
-			d_kmers = cluster.output_kmers(fout)
+		with open(sg_kmers, 'w') as fout:	# multiprocessing by kmer
+			d_kmers = cluster.output_kmers(fout, min_pval=self.min_pval, ncpu=self.ncpu)
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)))
-		logger.info('Output significant `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
+		logger.info('Output significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
 	
 		sg_map = matfile + '.sg.bed'
 		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(sg_map))
-		if self.overwrite or not os.path.exists(ckp_file):	# SG id changes, so skipping is not allowed
-	#	if True:
+		if self.overwrite or not check_ckp(ckp_file):	# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
-			with open(sg_map, 'w') as fout:
-				map_kmer(chromfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu)
-#			logger.info('Output `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
+			with open(sg_map, 'w') as fout:	# multiprocessing by chrom position
+				Seqs.map_kmer(chromfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, method=pool_method)
 			mk_ckp(ckp_file)
-		else:
-			logger.info('Check point `{}` exists, skipped'.format(ckp_file))
 
-		# PCA
 
 		# LTR
+		logger.info('Step: LTR')
 		tmpdir = '{}LTR'.format(self.tmpdir)
 		if '-p' not in self.tesorter_options:
 			self.tesorter_options += ' -p {}'.format(self.threads)
@@ -253,14 +275,32 @@ class Pipeline:
 				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
 				job_args={'mode': 'local', 'retry': 3, 'cont': 1,  'tc_tasks': self.threads},
 				tesorter_options=self.tesorter_options, mu=self.mu,)
-
-		ltrs, ltrfiles = LTRpipelines(chromfiles, tmpdir=tmpdir, ncpu=self.ncpu, **kargs).run()
+		# multiprocessing by chromfile
+		ltrs, ltrfiles = LTRpipelines(chromfiles, tmpdir=tmpdir, only_ltr=True, ncpu=self.ncpu, **kargs).run()
 		ltr_map = matfile + '.ltr.bed'
 		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(ltr_map))
 		if True:
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
 			with open(ltr_map, 'w') as fout:
-				map_kmer(ltrfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu)
+				lines = Seqs.map_kmer(ltrfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu)
+
+		# enrich SG
+		bins, counts = Circos.counts2matrix(lines, keys=sg_names, keycol=3, window_size=100000000)
+		ltr_enrich = matfile + '.ltr.enrich'
+		with open(ltr_enrich, 'w') as fout:
+			d_enriched = Stats.enrich_ltr(fout, counts, colnames=sg_names, rownames=bins, 
+					min_pval=self.min_pval)
+		# plot insert age
+		prefix = matfile + '.ltr.insert'
+		LTR.plot_insert_age(ltrs, d_enriched, prefix, mu=self.mu, figfmt=self.figfmt)
+
+		# enrich by BIN
+		bins, counts = Circos.counts2matrix(sg_map, keys=sg_names, keycol=3, window_size=self.window_size)
+		bin_enrich = matfile + '.bin.enrich'
+		with open(bin_enrich, 'w') as fout:
+			d_enriched = Stats.enrich_bin(fout, counts, colnames=sg_names, rownames=bins, 
+					min_pval=self.min_pval)
+
 
 		# circos
 		circos_dir = bindir+'/circos'
@@ -272,6 +312,7 @@ class Pipeline:
 		except FileExistsError:
 			pass
 		circos_plot(chromfiles, sg_map, wkdir, window_size=self.window_size)		
+		
 		# cleanup
 		if self.cleanup:
 			rmdirs(self.tmpdir)

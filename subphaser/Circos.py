@@ -1,9 +1,12 @@
 import sys, os
 import argparse
 #from xopen import xopen as open
+import collections
 from collections import OrderedDict
 import numpy as np
 from .small_tools import open_file as open
+from .small_tools import lazy_open
+
 __version__='0.1'
 __LastModified__='20190115'
 __Example__=''
@@ -220,7 +223,7 @@ def genomes_base(genome_fastas, out_karyotype):
 			print(' '.join(line1), file=f1)
 			i += 1
 	f1.close()
-def circos_plot(genomes, bedfiles, wddir='circos', window_size=100000):
+def circos_plot(genomes, bedfile, wddir='circos', window_size=100000):
 	from vualize_akchr import colors_rgb
 	from .RunCmdsMP import run_cmd
 	from .small_tools import mkdirs
@@ -229,7 +232,7 @@ def circos_plot(genomes, bedfiles, wddir='circos', window_size=100000):
 	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
 	genomes_base(genomes, karyotype_file)
 	outpre = '{}/subgenome'.format(datadir)
-	d_outfiles = bed_density_by_col(bedfiles, outpre, window_size=window_size)
+	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)
 	conf_file = datadir = '{}/histogram.conf'.format(wddir)
 	fout = open(conf_file, 'w')
 	fout.write('<plots>\n\n')
@@ -277,8 +280,11 @@ def _bed_density(inBed, window_size=None, chr_col=0, start_col=1, end_col=2, bas
 	if split_by is not None:	# split by one col
 		d_counts = {}
 	d_count = OrderedDict()
-	for line in open(inBed):
-		temp = line.strip().split()
+	for line in lazy_open(inBed):
+		if isinstance(line, str):
+			temp = line.strip().split()
+		elif isinstance(line, collections.abc.Iterable):
+			temp = list(line)
 		try:
 			CHR, START = temp[chr_col], temp[start_col]
 			START = int(START) - based
@@ -289,14 +295,14 @@ def _bed_density(inBed, window_size=None, chr_col=0, start_col=1, end_col=2, bas
 		except ValueError: continue
 		if by_sites and end_col is not None:
 			for POS in range(START, END):
-				BIN = POS // window_size
+				BIN = int(POS // window_size)
 				add_pos(d_count, CHR, BIN, POS)
 			continue
 		if split_by is not None:
 			key = temp[split_by]
 			try: d_count = d_counts[key]
 			except KeyError: d_counts[key] = d_count = OrderedDict()
-		BIN = START // window_size
+		BIN = int(START // window_size)
 		try: d_count[CHR][BIN] += 1
 		except KeyError:
 			try: d_count[CHR][BIN] = 1
@@ -315,7 +321,30 @@ def bed_density_by_col(inBed, outpre, keycol=3, window_size=100000, **kargs):
 		write_density(d_count, outfile, window_size)
 		d_outfiles[key] = outfile
 	return d_outfiles
+def counts2matrix(inBed, keys=None, keycol=3, window_size=100000, **kargs):
+	d_counts = _bed_density(inBed, window_size=window_size, split_by=keycol, **kargs)
+	_keys = set([])
+	d_bincounts = {}
+	# convert data
+	for key, d_count in d_counts.items():
+		_keys.add(key)
+		for CHR, d_bin in list(d_count.items()):
+			for BIN, count in sorted(d_bin.items()):
+				_key = (CHR, BIN)
+				try: d_bincounts[_key][key] = count
+				except KeyError: d_bincounts[_key] = {key: count}
+	if keys is None:
+		keys = sorted(_keys)
 
+	coords, counts = [], []
+	for (CHR, BIN), d_count in d_bincounts.items():
+		start = int(BIN * window_size)
+		end = int(start+window_size)
+		count = [d_count.get(key, 0) for key in keys]
+		coords += [(CHR, start, end)]
+		counts += [count]
+	return coords, counts
+	
 def bed_density(inBed, outfile, window_size=100000, **kargs):
 	d_count = _bed_density(inBed, window_size=window_size, **kargs)
 	write_density(d_count, outfile, window_size)

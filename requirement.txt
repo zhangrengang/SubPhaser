@@ -1,6 +1,12 @@
 xopen
 scipy
+fisher
 numpy
 tklearn
+matplotlib
+reportlab
 biopython
 binpacking
+pp
+psutil
+TEsorter

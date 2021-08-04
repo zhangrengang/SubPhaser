@@ -1,39 +1,126 @@
 import sys
 from collections import OrderedDict
+import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.utils import resample
+from sklearn import metrics
+from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
 from scipy import stats
 from .Data import LoadData
+from .colors import colors_hex
+from .RunCmdsMP import logger, pool_func
 
 class Cluster:
-	def __init__(self, datafile, n_clusters, **kargs):
+	def __init__(self, datafile, n_clusters, sg_prefix='SG', replicates=1000, jackknife=80, **kargs):
 		data = LoadData(datafile)
 		data.load_matrix()
-		self.data = data.data.transpose()
+		self.raw_data = data.data
+		self.data = self.raw_data.transpose()	# col: kmer, row: chr
 		self.chrs = data.colnames
 		self.kmers = data.rownames
 		self.d_kmers = data.d_rows
-		self.kmean = self.fit(n_clusters, **kargs)
+		self.kmean = self.fit(self.data, n_clusters, **kargs)
 		self.n_clusters = n_clusters
+		self.sg_prefix = sg_prefix
 		self.kargs = kargs
 		self.d_sg = self.assign_subgenomes()
-	def fit(self, n_clusters, **kargs):
+		self.d_bs = self.bootstrap(replicates, jackknife)
+	def pca(self, outfig, n_components=2, ):
+		pca = PCA(n_components=n_components)
+		X_pca = pca.fit_transform(self.data)
+		percent = pca.explained_variance_ratio_ * 100
+		X_pca = self.normalize_data(X_pca, axis=0)
+		x = X_pca[:, 0]
+		y = X_pca[:, 1]
+#		colors = [colors_hex[lab] for lab in self.labels]
+		plt.figure(figsize=(8,8))
+#		plt.scatter(x, y, c=colors, marker='o')
+		d_coord = {}
+		for _x, _y, _c, _l in zip(x, y, self.chrs, self.labels):
+			sg = self.d_sg[_c]
+			if sg not in d_coord:
+				d_coord[sg] = [[], [], colors_hex[_l]]
+			d_coord[sg][0] += [_x]
+			d_coord[sg][1] += [_y]
+		for sg, (_x, _y, _c) in sorted(d_coord.items()):
+			plt.scatter(_x, _y, c=_c, marker='o', label=sg)
+		xlabel = 'PC1 ({:.1f}%)'.format(percent[0])
+		ylabel = 'PC2 ({:.1f}%)'.format(percent[1])
+		plt.xlabel(xlabel)
+		plt.ylabel(ylabel)
+		plt.legend()
+		plt.savefig(outfig)
+	def normalize_data(self, data, axis=0):
+		'''Z normalization'''
+		mean = data.mean(axis=axis)
+		std = data.std(axis=axis)
+		return (data-mean)/std
+
+	def bootstrap(self, replicates=1000, jackknife=80):
+		logger.info('Performing bootstrap of {} replicates, resampling {}% data\
+ with replacement'.format(replicates, jackknife))
+		jackknife = int(jackknife/100 * len(self.kmers))
+		xlabels = []
+		scores, measures = [], []
+		for i in range(replicates):
+			data = resample(self.raw_data, replace=True, n_samples=replicates)
+			data = data.transpose()
+#			print(data.shape)
+			kmean = self.fit(data, self.n_clusters)
+			labels = kmean.labels_
+			labels = self.sort_subgenomes(labels)
+			xlabels += [labels]
+			adjusted_rand_score = metrics.adjusted_rand_score(self.labels, labels)
+			scores += [adjusted_rand_score]
+			v_measure_score = metrics.v_measure_score(self.labels, labels)
+			measures += [v_measure_score]
+		xlabels = np.array(xlabels)
+#		print(xlabels.shape)
+		d_bs = {}
+		for i, (label,chr) in enumerate(zip(self.labels, self.chrs)):
+			clabels = list(xlabels[:, i])
+			bs = clabels.count(label)
+			d_bs[chr] = int(100*bs/replicates)
+		self.mean_adjusted_rand_score = np.mean(scores)
+		self.mean_v_measure_score = np.mean(measures)
+		logger.info('Bootstrap: mean Adjusted Rand-Index: {:.4f}; mean V-measure score: {:.4f}'.format(
+			self.mean_adjusted_rand_score, self.mean_v_measure_score))
+		return d_bs
+
+	def fit(self, data, n_clusters, **kargs):
+		'''fit KMeans cluster'''
 		kmean = KMeans(n_clusters=n_clusters)
-		kmean.fit(self.data)
+		kmean.fit(data)
 		return kmean
-	def assign_subgenomes(self, prefix='SG', base=1):
+	def sort_subgenomes(self, labels):
+		assert len(self.chrs) == len(labels)
+		d_map = {}
+		for label, chr in sorted(zip(labels, self.chrs), key=lambda x:x[1]):
+			if label not in d_map:
+				try: d_map[label] = max(d_map.values()) + 1
+				except ValueError: d_map[label] = 0
+		return [d_map[label] for label in labels]
+
+	def assign_subgenomes(self, base=1):
 		d_sg = OrderedDict()
-		assert len(self.chrs) == len(self.kmean.labels_)
-		for label, chr in zip(self.kmean.labels_, self.chrs):
-			sg = '{}{}'.format(prefix, label+base)
+		sg_names = set([])
+		self.labels = labels = self.sort_subgenomes(self.kmean.labels_)
+		assert len(self.chrs) == len(labels)
+		for label, chr in zip(labels, self.chrs):
+			sg = '{}{}'.format(self.sg_prefix, label+base)
 			d_sg[chr] = sg
+			sg_names.add(sg)
+		self.sg_names = sorted(sg_names)
 		return d_sg
-	def output_subgenomes(self, fout=sys.stdout, prefix='SG', base=1):
-		line = ['#chrom', 'subgenome']
+	def output_subgenomes(self, fout=sys.stdout):
+		line = ['#chrom', 'subgenome', 'bootstrap']
 		print('\t'.join(line), file=fout)
 		for chr, sg in sorted(self.d_sg.items(), key=lambda x:x[1]):
-			line = [chr, sg]
+			line = [chr, sg, self.d_bs[chr]]
+			line = map(str, line)
 			print('\t'.join(line), file=fout)
-	def output_kmers(self, fout=sys.stdout, min_pval=0.05):
+	def output_kmers(self, fout=sys.stdout, min_pval=0.05, ncpu=4):
 		d_groups = {}
 		for i, (chr,sg) in enumerate(self.d_sg.items()):
 			try: d_groups[sg] += [i]
@@ -41,21 +128,35 @@ class Cluster:
 		d_ksg = {}
 		line = ['#kmer', 'subgenome', 'p_value']
 		print('\t'.join(line), file=fout)
-		for kmer, array in self.d_kmers.items():
-			grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
-			sgs = sorted(d_groups.keys())
-			xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
-			grouped = [x[0] for x in xgrouped]	# sorted with the same order
-			sgs = [x[1] for x in xgrouped]
-			max_freqs = grouped[0]
-			min_freqs = grouped[1]
-			max_sg = sgs[0]
-			ttest = stats.ttest_ind(max_freqs, min_freqs)
-			if ttest.pvalue > min_pval:
+		iterable = ((kmer, array, d_groups) for kmer, array in self.d_kmers.items())
+		for kmer, max_sg, pvalue in pool_func(self._output_kmers, iterable, processors=ncpu):
+#		for kmer, array in self.d_kmers.items():
+#			grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
+#			sgs = sorted(d_groups.keys())
+#			xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
+#			grouped = [x[0] for x in xgrouped]	# sorted with the same order
+#			sgs = [x[1] for x in xgrouped]
+#			max_freqs = grouped[0]
+#			min_freqs = grouped[1]
+#			max_sg = sgs[0]
+#			ttest = stats.ttest_ind(max_freqs, min_freqs)
+			if pvalue > min_pval:
 				continue
-			line = [kmer, max_sg, ttest.pvalue]
+			line = [kmer, max_sg, pvalue]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
 			kmer = tuple(kmer)
 			d_ksg[kmer] = max_sg
 		return d_ksg
+	def _output_kmers(self, args):
+		kmer, array, d_groups = args
+		grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
+		sgs = sorted(d_groups.keys())
+		xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
+		grouped = [x[0] for x in xgrouped]  # sorted with the same order
+		sgs = [x[1] for x in xgrouped]
+		max_freqs = grouped[0]
+		min_freqs = grouped[1]
+		max_sg = sgs[0]
+		ttest = stats.ttest_ind(max_freqs, min_freqs)
+		return kmer, max_sg, ttest.pvalue

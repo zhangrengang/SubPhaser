@@ -118,7 +118,7 @@ def resolve_overlaps(ltrs, max_ovl=10):
 	ie, io = 0, 0
 	for ltr in sorted(ltrs, key=lambda x:x.start):
 		discard = None
-		print(last_ltr, ltr)
+	#	print(last_ltr, ltr)
 		if last_ltr:
 			if ltr == last_ltr:	# equal
 				ie += 1
@@ -136,8 +136,8 @@ def resolve_overlaps(ltrs, max_ovl=10):
 				last_ltr = ltr
 				continue
 			discards += [discard]
-			if last_ltr.source != ltr.source:
-				print(last_ltr, ltr, ltr.overlap(last_ltr))
+#			if last_ltr.source != ltr.source:
+#				print(last_ltr, ltr, ltr.overlap(last_ltr))
 #		else:
 #			last_ltr = ltr
 #		if not discard or discard == last_ltr:
@@ -163,13 +163,40 @@ class LTRpipelines:
 #		tmpdir = '{}/{}'.format(self.tmpdir, os.path.basename(genome))
 		return LTRpipeline(genome, tmpdir=self.tmpdir, **self.kargs).run()
 
+def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
+	datfile = prefix + '.data'
+	fout = open(datfile, 'w')
+	line = ['ltr', 'sg', 'age']
+	fout.write('\t'.join(line) + '\n')
+	for ltr in ltrs:
+		age = ltr.estimate_age(mu=mu)
+		try: sg = d_enriched[ltr.id]
+		except KeyError: continue
+		line = [ltr.id, sg, age]
+		line = map(str, line)
+		fout.write('\t'.join(line) + '\n')
+	fout.close()
+	rsrc_file = prefix + '.R'
+	outfig = prefix + '.' + figfmt
+	rsrc = '''library(ggplot2)
+data = read.table('{datfile}',fill=T,header=T, sep='\t')
+p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.15) + \
+xlab('LTR insertion age (years)') + scale_colour_hue(l=45)
+ggsave('{outfig}', p, width=12, height=7)
+'''.format(datfile=datfile, outfig=outfig)
+	with open(rsrc_file, 'w') as f:
+		f.write(rsrc)
+	cmd = 'Rscript ' + rsrc_file
+	run_cmd(cmd, log=True)
+
 class LTRpipeline:
 	def __init__(self, genome, tmpdir='./tmp', mu=7e-9, 
-			tesorter_options='', intact=True, **kargs):
+			tesorter_options='', intact=True, only_ltr=False, **kargs):
 		self.genome = genome
 		self.tmpdir = tmpdir
 		self.tesorter_options = tesorter_options
-		self.intact = intact
+		self.intact = False if only_ltr else intact 
+		self.only_ltr = only_ltr	# only LTR classified by tesorter
 		self.mu = mu
 		self.kargs = kargs
 	def run(self):
@@ -192,9 +219,15 @@ class LTRpipeline:
 		filtered_ltrs = []
 		for ltr in ltrs:
 			if ltr.id not in d_class:
+				if self.only_ltr:
+					continue
+				elif not self.intact:
+					filtered_ltrs += [ltr]
 				continue
 			cls = d_class[ltr.id]
-			if self.intact and cls.completed != 'yes':
+			if self.only_ltr and cls.order != 'LTR':
+				continue
+			elif self.intact and cls.completed != 'yes':
 				continue
 			ltr.superfamily = cls.superfamily
 			ltr.age = ltr.estimate_age(mu=self.mu)
@@ -208,11 +241,17 @@ class LTRpipeline:
 	def identify(self, fout):
 		return detect_ltr(self.genome, fout, tmpdir=self.prefix, unique=False, **self.kargs)
 	def classfify(self, inseq):
-		cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > {seqfile}.tesort.log'.format(
-				seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
-		if self.intact:
-			cmd += ' -dp2'
-		run_cmd(cmd, log=True)
+		ckp = self.prefix + '.tesort.ok'
+		if check_ckp(ckp):
+			pass
+		else:
+			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > \
+{seqfile}.tesort.log'.format(
+					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
+			if self.intact:
+				cmd += ' -dp2'
+			run_cmd(cmd, log=True)
+			mk_ckp(ckp)
 		clsfile = '{seqfile}.cls.tsv'.format(seqfile=inseq)
 		d_class = {}
 		for classification in CommonClassifications(clsfile):

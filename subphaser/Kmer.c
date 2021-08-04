@@ -784,7 +784,7 @@ static const char *__pyx_f[] = {
 struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct__get_kmers;
 struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes;
 
-/* "subphaser/Kmer.pyx":87
+/* "subphaser/Kmer.pyx":90
  * 	return get_kmer(seq, s, k)
  * 
  * def get_kmers(list seq, int size, int k):             # <<<<<<<<<<<<<<
@@ -804,7 +804,7 @@ struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct__get_kmers {
 };
 
 
-/* "subphaser/Kmer.pyx":93
+/* "subphaser/Kmer.pyx":96
  * 		yield get_kmer2(seq, i, k)
  * 
  * def get_subgenomes(dict d_kmers, list seq, int k):             # <<<<<<<<<<<<<<
@@ -1320,6 +1320,7 @@ static const char __pyx_k_d_kmers[] = "d_kmers";
 static const char __pyx_k_rc_kmer[] = "rc_kmer";
 static const char __pyx_k_KeyError[] = "KeyError";
 static const char __pyx_k_get_kmer[] = "_get_kmer";
+static const char __pyx_k_get_2kmer[] = "get_2kmer";
 static const char __pyx_k_get_kmers[] = "get_kmers";
 static const char __pyx_k_get_subgenomes[] = "get_subgenomes";
 static const char __pyx_k_subphaser_Kmer[] = "subphaser.Kmer";
@@ -1352,6 +1353,7 @@ static PyObject *__pyx_n_s_cseq;
 static PyObject *__pyx_n_s_d_kmers;
 static PyObject *__pyx_n_s_e;
 static PyObject *__pyx_n_s_ei;
+static PyObject *__pyx_n_s_get_2kmer;
 static PyObject *__pyx_n_s_get_kmer;
 static PyObject *__pyx_n_s_get_kmers;
 static PyObject *__pyx_n_s_get_subgenomes;
@@ -1379,8 +1381,9 @@ static PyObject *__pyx_n_s_throw;
 static PyObject *__pyx_n_s_xkmers;
 static PyObject *__pyx_pf_9subphaser_4Kmer__reverse_complement(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq); /* proto */
 static PyObject *__pyx_pf_9subphaser_4Kmer_2_get_kmer(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, PyObject *__pyx_v_si, PyObject *__pyx_v_ei); /* proto */
-static PyObject *__pyx_pf_9subphaser_4Kmer_4get_kmers(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, int __pyx_v_size, int __pyx_v_k); /* proto */
-static PyObject *__pyx_pf_9subphaser_4Kmer_7get_subgenomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_d_kmers, PyObject *__pyx_v_seq, int __pyx_v_k); /* proto */
+static PyObject *__pyx_pf_9subphaser_4Kmer_4get_2kmer(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, int __pyx_v_s, int __pyx_v_k); /* proto */
+static PyObject *__pyx_pf_9subphaser_4Kmer_6get_kmers(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, int __pyx_v_size, int __pyx_v_k); /* proto */
+static PyObject *__pyx_pf_9subphaser_4Kmer_9get_subgenomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_d_kmers, PyObject *__pyx_v_seq, int __pyx_v_k); /* proto */
 static PyObject *__pyx_tp_new_9subphaser_4Kmer___pyx_scope_struct__get_kmers(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_int_neg_1;
@@ -1389,11 +1392,13 @@ static PyObject *__pyx_slice__2;
 static PyObject *__pyx_tuple__6;
 static PyObject *__pyx_tuple__8;
 static PyObject *__pyx_tuple__10;
-static PyObject *__pyx_tuple__11;
+static PyObject *__pyx_tuple__12;
+static PyObject *__pyx_tuple__13;
 static PyObject *__pyx_codeobj__4;
 static PyObject *__pyx_codeobj__5;
 static PyObject *__pyx_codeobj__7;
 static PyObject *__pyx_codeobj__9;
+static PyObject *__pyx_codeobj__11;
 /* Late includes */
 
 /* "subphaser/Kmer.pyx":37
@@ -1981,7 +1986,7 @@ static PyObject *__pyx_f_9subphaser_4Kmer_get_kmer2(PyObject *__pyx_v_seq, int _
  * #	s,e = i, i+k
  * 	return get_kmer(seq, s, k)             # <<<<<<<<<<<<<<
  * 
- * def get_kmers(list seq, int size, int k):
+ * def get_2kmer(list seq, int s, int k):
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_1 = __pyx_f_9subphaser_4Kmer_get_kmer(__pyx_v_seq, __pyx_v_s, __pyx_v_k); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 85, __pyx_L1_error)
@@ -2008,9 +2013,134 @@ static PyObject *__pyx_f_9subphaser_4Kmer_get_kmer2(PyObject *__pyx_v_seq, int _
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
-static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value); /* proto */
 
 /* "subphaser/Kmer.pyx":87
+ * 	return get_kmer(seq, s, k)
+ * 
+ * def get_2kmer(list seq, int s, int k):             # <<<<<<<<<<<<<<
+ * 	return get_kmer(seq, s, k)
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_9subphaser_4Kmer_5get_2kmer(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_9subphaser_4Kmer_5get_2kmer = {"get_2kmer", (PyCFunction)__pyx_pw_9subphaser_4Kmer_5get_2kmer, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9subphaser_4Kmer_5get_2kmer(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_seq = 0;
+  int __pyx_v_s;
+  int __pyx_v_k;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("get_2kmer (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_seq,&__pyx_n_s_s,&__pyx_n_s_k,0};
+    PyObject* values[3] = {0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_seq)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_s)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("get_2kmer", 1, 3, 3, 1); __PYX_ERR(0, 87, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_k)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("get_2kmer", 1, 3, 3, 2); __PYX_ERR(0, 87, __pyx_L3_error)
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_2kmer") < 0)) __PYX_ERR(0, 87, __pyx_L3_error)
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+    }
+    __pyx_v_seq = ((PyObject*)values[0]);
+    __pyx_v_s = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_s == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 87, __pyx_L3_error)
+    __pyx_v_k = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_k == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 87, __pyx_L3_error)
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("get_2kmer", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 87, __pyx_L3_error)
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("subphaser.Kmer.get_2kmer", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_seq), (&PyList_Type), 1, "seq", 1))) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_r = __pyx_pf_9subphaser_4Kmer_4get_2kmer(__pyx_self, __pyx_v_seq, __pyx_v_s, __pyx_v_k);
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_9subphaser_4Kmer_4get_2kmer(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, int __pyx_v_s, int __pyx_v_k) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  __Pyx_RefNannySetupContext("get_2kmer", 0);
+
+  /* "subphaser/Kmer.pyx":88
+ * 
+ * def get_2kmer(list seq, int s, int k):
+ * 	return get_kmer(seq, s, k)             # <<<<<<<<<<<<<<
+ * 
+ * def get_kmers(list seq, int size, int k):
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __pyx_f_9subphaser_4Kmer_get_kmer(__pyx_v_seq, __pyx_v_s, __pyx_v_k); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 88, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* "subphaser/Kmer.pyx":87
+ * 	return get_kmer(seq, s, k)
+ * 
+ * def get_2kmer(list seq, int s, int k):             # <<<<<<<<<<<<<<
+ * 	return get_kmer(seq, s, k)
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("subphaser.Kmer.get_2kmer", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+static PyObject *__pyx_gb_9subphaser_4Kmer_8generator(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value); /* proto */
+
+/* "subphaser/Kmer.pyx":90
  * 	return get_kmer(seq, s, k)
  * 
  * def get_kmers(list seq, int size, int k):             # <<<<<<<<<<<<<<
@@ -2019,9 +2149,9 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__p
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9subphaser_4Kmer_5get_kmers(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_9subphaser_4Kmer_5get_kmers = {"get_kmers", (PyCFunction)__pyx_pw_9subphaser_4Kmer_5get_kmers, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9subphaser_4Kmer_5get_kmers(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_9subphaser_4Kmer_7get_kmers(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_9subphaser_4Kmer_7get_kmers = {"get_kmers", (PyCFunction)__pyx_pw_9subphaser_4Kmer_7get_kmers, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9subphaser_4Kmer_7get_kmers(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_seq = 0;
   int __pyx_v_size;
   int __pyx_v_k;
@@ -2053,17 +2183,17 @@ static PyObject *__pyx_pw_9subphaser_4Kmer_5get_kmers(PyObject *__pyx_self, PyOb
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_size)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_kmers", 1, 3, 3, 1); __PYX_ERR(0, 87, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_kmers", 1, 3, 3, 1); __PYX_ERR(0, 90, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_k)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_kmers", 1, 3, 3, 2); __PYX_ERR(0, 87, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_kmers", 1, 3, 3, 2); __PYX_ERR(0, 90, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_kmers") < 0)) __PYX_ERR(0, 87, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_kmers") < 0)) __PYX_ERR(0, 90, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
@@ -2073,19 +2203,19 @@ static PyObject *__pyx_pw_9subphaser_4Kmer_5get_kmers(PyObject *__pyx_self, PyOb
       values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
     }
     __pyx_v_seq = ((PyObject*)values[0]);
-    __pyx_v_size = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_size == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 87, __pyx_L3_error)
-    __pyx_v_k = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_k == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 87, __pyx_L3_error)
+    __pyx_v_size = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_size == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L3_error)
+    __pyx_v_k = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_k == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_kmers", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 87, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_kmers", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 90, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("subphaser.Kmer.get_kmers", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_seq), (&PyList_Type), 1, "seq", 1))) __PYX_ERR(0, 87, __pyx_L1_error)
-  __pyx_r = __pyx_pf_9subphaser_4Kmer_4get_kmers(__pyx_self, __pyx_v_seq, __pyx_v_size, __pyx_v_k);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_seq), (&PyList_Type), 1, "seq", 1))) __PYX_ERR(0, 90, __pyx_L1_error)
+  __pyx_r = __pyx_pf_9subphaser_4Kmer_6get_kmers(__pyx_self, __pyx_v_seq, __pyx_v_size, __pyx_v_k);
 
   /* function exit code */
   goto __pyx_L0;
@@ -2096,7 +2226,7 @@ static PyObject *__pyx_pw_9subphaser_4Kmer_5get_kmers(PyObject *__pyx_self, PyOb
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9subphaser_4Kmer_4get_kmers(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, int __pyx_v_size, int __pyx_v_k) {
+static PyObject *__pyx_pf_9subphaser_4Kmer_6get_kmers(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_seq, int __pyx_v_size, int __pyx_v_k) {
   struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct__get_kmers *__pyx_cur_scope;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2105,7 +2235,7 @@ static PyObject *__pyx_pf_9subphaser_4Kmer_4get_kmers(CYTHON_UNUSED PyObject *__
   if (unlikely(!__pyx_cur_scope)) {
     __pyx_cur_scope = ((struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct__get_kmers *)Py_None);
     __Pyx_INCREF(Py_None);
-    __PYX_ERR(0, 87, __pyx_L1_error)
+    __PYX_ERR(0, 90, __pyx_L1_error)
   } else {
     __Pyx_GOTREF(__pyx_cur_scope);
   }
@@ -2115,7 +2245,7 @@ static PyObject *__pyx_pf_9subphaser_4Kmer_4get_kmers(CYTHON_UNUSED PyObject *__
   __pyx_cur_scope->__pyx_v_size = __pyx_v_size;
   __pyx_cur_scope->__pyx_v_k = __pyx_v_k;
   {
-    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9subphaser_4Kmer_6generator, __pyx_codeobj__4, (PyObject *) __pyx_cur_scope, __pyx_n_s_get_kmers, __pyx_n_s_get_kmers, __pyx_n_s_subphaser_Kmer); if (unlikely(!gen)) __PYX_ERR(0, 87, __pyx_L1_error)
+    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9subphaser_4Kmer_8generator, __pyx_codeobj__4, (PyObject *) __pyx_cur_scope, __pyx_n_s_get_kmers, __pyx_n_s_get_kmers, __pyx_n_s_subphaser_Kmer); if (unlikely(!gen)) __PYX_ERR(0, 90, __pyx_L1_error)
     __Pyx_DECREF(__pyx_cur_scope);
     __Pyx_RefNannyFinishContext();
     return (PyObject *) gen;
@@ -2131,7 +2261,7 @@ static PyObject *__pyx_pf_9subphaser_4Kmer_4get_kmers(CYTHON_UNUSED PyObject *__
   return __pyx_r;
 }
 
-static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value) /* generator body */
+static PyObject *__pyx_gb_9subphaser_4Kmer_8generator(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value) /* generator body */
 {
   struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct__get_kmers *__pyx_cur_scope = ((struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct__get_kmers *)__pyx_generator->closure);
   PyObject *__pyx_r = NULL;
@@ -2149,9 +2279,9 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__p
     return NULL;
   }
   __pyx_L3_first_run:;
-  if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 87, __pyx_L1_error)
+  if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 90, __pyx_L1_error)
 
-  /* "subphaser/Kmer.pyx":90
+  /* "subphaser/Kmer.pyx":93
  * 	cdef int i
  * 	cdef list xkmers
  * 	for i in range(size):             # <<<<<<<<<<<<<<
@@ -2163,14 +2293,14 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__p
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_cur_scope->__pyx_v_i = __pyx_t_3;
 
-    /* "subphaser/Kmer.pyx":91
+    /* "subphaser/Kmer.pyx":94
  * 	cdef list xkmers
  * 	for i in range(size):
  * 		yield get_kmer2(seq, i, k)             # <<<<<<<<<<<<<<
  * 
  * def get_subgenomes(dict d_kmers, list seq, int k):
  */
-    __pyx_t_4 = __pyx_f_9subphaser_4Kmer_get_kmer2(__pyx_cur_scope->__pyx_v_seq, __pyx_cur_scope->__pyx_v_i, __pyx_cur_scope->__pyx_v_k); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 91, __pyx_L1_error)
+    __pyx_t_4 = __pyx_f_9subphaser_4Kmer_get_kmer2(__pyx_cur_scope->__pyx_v_seq, __pyx_cur_scope->__pyx_v_i, __pyx_cur_scope->__pyx_v_k); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 94, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_r = __pyx_t_4;
     __pyx_t_4 = 0;
@@ -2187,11 +2317,11 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__p
     __pyx_t_1 = __pyx_cur_scope->__pyx_t_0;
     __pyx_t_2 = __pyx_cur_scope->__pyx_t_1;
     __pyx_t_3 = __pyx_cur_scope->__pyx_t_2;
-    if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 91, __pyx_L1_error)
+    if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 94, __pyx_L1_error)
   }
   CYTHON_MAYBE_UNUSED_VAR(__pyx_cur_scope);
 
-  /* "subphaser/Kmer.pyx":87
+  /* "subphaser/Kmer.pyx":90
  * 	return get_kmer(seq, s, k)
  * 
  * def get_kmers(list seq, int size, int k):             # <<<<<<<<<<<<<<
@@ -2213,9 +2343,9 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_6generator(__pyx_CoroutineObject *__p
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
-static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value); /* proto */
+static PyObject *__pyx_gb_9subphaser_4Kmer_11generator1(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value); /* proto */
 
-/* "subphaser/Kmer.pyx":93
+/* "subphaser/Kmer.pyx":96
  * 		yield get_kmer2(seq, i, k)
  * 
  * def get_subgenomes(dict d_kmers, list seq, int k):             # <<<<<<<<<<<<<<
@@ -2224,9 +2354,9 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9subphaser_4Kmer_8get_subgenomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_9subphaser_4Kmer_8get_subgenomes = {"get_subgenomes", (PyCFunction)__pyx_pw_9subphaser_4Kmer_8get_subgenomes, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9subphaser_4Kmer_8get_subgenomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_9subphaser_4Kmer_10get_subgenomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_9subphaser_4Kmer_10get_subgenomes = {"get_subgenomes", (PyCFunction)__pyx_pw_9subphaser_4Kmer_10get_subgenomes, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9subphaser_4Kmer_10get_subgenomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_d_kmers = 0;
   PyObject *__pyx_v_seq = 0;
   int __pyx_v_k;
@@ -2258,17 +2388,17 @@ static PyObject *__pyx_pw_9subphaser_4Kmer_8get_subgenomes(PyObject *__pyx_self,
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_seq)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_subgenomes", 1, 3, 3, 1); __PYX_ERR(0, 93, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_subgenomes", 1, 3, 3, 1); __PYX_ERR(0, 96, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_k)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_subgenomes", 1, 3, 3, 2); __PYX_ERR(0, 93, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_subgenomes", 1, 3, 3, 2); __PYX_ERR(0, 96, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_subgenomes") < 0)) __PYX_ERR(0, 93, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_subgenomes") < 0)) __PYX_ERR(0, 96, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
@@ -2279,19 +2409,19 @@ static PyObject *__pyx_pw_9subphaser_4Kmer_8get_subgenomes(PyObject *__pyx_self,
     }
     __pyx_v_d_kmers = ((PyObject*)values[0]);
     __pyx_v_seq = ((PyObject*)values[1]);
-    __pyx_v_k = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_k == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 93, __pyx_L3_error)
+    __pyx_v_k = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_k == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 96, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_subgenomes", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 93, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_subgenomes", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 96, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("subphaser.Kmer.get_subgenomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_d_kmers), (&PyDict_Type), 1, "d_kmers", 1))) __PYX_ERR(0, 93, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_seq), (&PyList_Type), 1, "seq", 1))) __PYX_ERR(0, 93, __pyx_L1_error)
-  __pyx_r = __pyx_pf_9subphaser_4Kmer_7get_subgenomes(__pyx_self, __pyx_v_d_kmers, __pyx_v_seq, __pyx_v_k);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_d_kmers), (&PyDict_Type), 1, "d_kmers", 1))) __PYX_ERR(0, 96, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_seq), (&PyList_Type), 1, "seq", 1))) __PYX_ERR(0, 96, __pyx_L1_error)
+  __pyx_r = __pyx_pf_9subphaser_4Kmer_9get_subgenomes(__pyx_self, __pyx_v_d_kmers, __pyx_v_seq, __pyx_v_k);
 
   /* function exit code */
   goto __pyx_L0;
@@ -2302,7 +2432,7 @@ static PyObject *__pyx_pw_9subphaser_4Kmer_8get_subgenomes(PyObject *__pyx_self,
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9subphaser_4Kmer_7get_subgenomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_d_kmers, PyObject *__pyx_v_seq, int __pyx_v_k) {
+static PyObject *__pyx_pf_9subphaser_4Kmer_9get_subgenomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_d_kmers, PyObject *__pyx_v_seq, int __pyx_v_k) {
   struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes *__pyx_cur_scope;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2311,7 +2441,7 @@ static PyObject *__pyx_pf_9subphaser_4Kmer_7get_subgenomes(CYTHON_UNUSED PyObjec
   if (unlikely(!__pyx_cur_scope)) {
     __pyx_cur_scope = ((struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes *)Py_None);
     __Pyx_INCREF(Py_None);
-    __PYX_ERR(0, 93, __pyx_L1_error)
+    __PYX_ERR(0, 96, __pyx_L1_error)
   } else {
     __Pyx_GOTREF(__pyx_cur_scope);
   }
@@ -2323,7 +2453,7 @@ static PyObject *__pyx_pf_9subphaser_4Kmer_7get_subgenomes(CYTHON_UNUSED PyObjec
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_seq);
   __pyx_cur_scope->__pyx_v_k = __pyx_v_k;
   {
-    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9subphaser_4Kmer_9generator1, __pyx_codeobj__5, (PyObject *) __pyx_cur_scope, __pyx_n_s_get_subgenomes, __pyx_n_s_get_subgenomes, __pyx_n_s_subphaser_Kmer); if (unlikely(!gen)) __PYX_ERR(0, 93, __pyx_L1_error)
+    __pyx_CoroutineObject *gen = __Pyx_Generator_New((__pyx_coroutine_body_t) __pyx_gb_9subphaser_4Kmer_11generator1, __pyx_codeobj__5, (PyObject *) __pyx_cur_scope, __pyx_n_s_get_subgenomes, __pyx_n_s_get_subgenomes, __pyx_n_s_subphaser_Kmer); if (unlikely(!gen)) __PYX_ERR(0, 96, __pyx_L1_error)
     __Pyx_DECREF(__pyx_cur_scope);
     __Pyx_RefNannyFinishContext();
     return (PyObject *) gen;
@@ -2339,7 +2469,7 @@ static PyObject *__pyx_pf_9subphaser_4Kmer_7get_subgenomes(CYTHON_UNUSED PyObjec
   return __pyx_r;
 }
 
-static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value) /* generator body */
+static PyObject *__pyx_gb_9subphaser_4Kmer_11generator1(__pyx_CoroutineObject *__pyx_generator, CYTHON_UNUSED PyThreadState *__pyx_tstate, PyObject *__pyx_sent_value) /* generator body */
 {
   struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes *__pyx_cur_scope = ((struct __pyx_obj_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes *)__pyx_generator->closure);
   PyObject *__pyx_r = NULL;
@@ -2366,9 +2496,9 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
     return NULL;
   }
   __pyx_L3_first_run:;
-  if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 93, __pyx_L1_error)
+  if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 96, __pyx_L1_error)
 
-  /* "subphaser/Kmer.pyx":97
+  /* "subphaser/Kmer.pyx":100
  * 	cdef str sg
  * 	cdef tuple kmers, kmer
  * 	size = len(seq)             # <<<<<<<<<<<<<<
@@ -2377,12 +2507,12 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
  */
   if (unlikely(__pyx_cur_scope->__pyx_v_seq == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    __PYX_ERR(0, 97, __pyx_L1_error)
+    __PYX_ERR(0, 100, __pyx_L1_error)
   }
-  __pyx_t_1 = PyList_GET_SIZE(__pyx_cur_scope->__pyx_v_seq); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 97, __pyx_L1_error)
+  __pyx_t_1 = PyList_GET_SIZE(__pyx_cur_scope->__pyx_v_seq); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 100, __pyx_L1_error)
   __pyx_cur_scope->__pyx_v_size = __pyx_t_1;
 
-  /* "subphaser/Kmer.pyx":100
+  /* "subphaser/Kmer.pyx":103
  * #	cdef str sg
  * #	cdef list lines = []
  * 	for i in range(size):             # <<<<<<<<<<<<<<
@@ -2394,7 +2524,7 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_cur_scope->__pyx_v_i = __pyx_t_4;
 
-    /* "subphaser/Kmer.pyx":101
+    /* "subphaser/Kmer.pyx":104
  * #	cdef list lines = []
  * 	for i in range(size):
  * 		s,e = i, i+k             # <<<<<<<<<<<<<<
@@ -2406,21 +2536,21 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
     __pyx_cur_scope->__pyx_v_s = __pyx_t_5;
     __pyx_cur_scope->__pyx_v_e = __pyx_t_6;
 
-    /* "subphaser/Kmer.pyx":102
+    /* "subphaser/Kmer.pyx":105
  * 	for i in range(size):
  * 		s,e = i, i+k
  * 		kmers = get_kmer2(seq, i, k)             # <<<<<<<<<<<<<<
  * #	for s, e, kmers in get_kmers(seq, size, k):
  * 		for kmer in kmers:
  */
-    __pyx_t_7 = __pyx_f_9subphaser_4Kmer_get_kmer2(__pyx_cur_scope->__pyx_v_seq, __pyx_cur_scope->__pyx_v_i, __pyx_cur_scope->__pyx_v_k); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 102, __pyx_L1_error)
+    __pyx_t_7 = __pyx_f_9subphaser_4Kmer_get_kmer2(__pyx_cur_scope->__pyx_v_seq, __pyx_cur_scope->__pyx_v_i, __pyx_cur_scope->__pyx_v_k); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 105, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_kmers);
     __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_kmers, ((PyObject*)__pyx_t_7));
     __Pyx_GIVEREF(__pyx_t_7);
     __pyx_t_7 = 0;
 
-    /* "subphaser/Kmer.pyx":104
+    /* "subphaser/Kmer.pyx":107
  * 		kmers = get_kmer2(seq, i, k)
  * #	for s, e, kmers in get_kmers(seq, size, k):
  * 		for kmer in kmers:             # <<<<<<<<<<<<<<
@@ -2429,24 +2559,24 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
  */
     if (unlikely(__pyx_cur_scope->__pyx_v_kmers == Py_None)) {
       PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-      __PYX_ERR(0, 104, __pyx_L1_error)
+      __PYX_ERR(0, 107, __pyx_L1_error)
     }
     __pyx_t_7 = __pyx_cur_scope->__pyx_v_kmers; __Pyx_INCREF(__pyx_t_7); __pyx_t_1 = 0;
     for (;;) {
       if (__pyx_t_1 >= PyTuple_GET_SIZE(__pyx_t_7)) break;
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-      __pyx_t_8 = PyTuple_GET_ITEM(__pyx_t_7, __pyx_t_1); __Pyx_INCREF(__pyx_t_8); __pyx_t_1++; if (unlikely(0 < 0)) __PYX_ERR(0, 104, __pyx_L1_error)
+      __pyx_t_8 = PyTuple_GET_ITEM(__pyx_t_7, __pyx_t_1); __Pyx_INCREF(__pyx_t_8); __pyx_t_1++; if (unlikely(0 < 0)) __PYX_ERR(0, 107, __pyx_L1_error)
       #else
-      __pyx_t_8 = PySequence_ITEM(__pyx_t_7, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 104, __pyx_L1_error)
+      __pyx_t_8 = PySequence_ITEM(__pyx_t_7, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 107, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       #endif
-      if (!(likely(PyTuple_CheckExact(__pyx_t_8))||((__pyx_t_8) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "tuple", Py_TYPE(__pyx_t_8)->tp_name), 0))) __PYX_ERR(0, 104, __pyx_L1_error)
+      if (!(likely(PyTuple_CheckExact(__pyx_t_8))||((__pyx_t_8) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "tuple", Py_TYPE(__pyx_t_8)->tp_name), 0))) __PYX_ERR(0, 107, __pyx_L1_error)
       __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_kmer);
       __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_kmer, ((PyObject*)__pyx_t_8));
       __Pyx_GIVEREF(__pyx_t_8);
       __pyx_t_8 = 0;
 
-      /* "subphaser/Kmer.pyx":106
+      /* "subphaser/Kmer.pyx":109
  * 		for kmer in kmers:
  * #			kmer = kmer.upper()
  * 			try: sg = d_kmers[kmer]             # <<<<<<<<<<<<<<
@@ -2461,11 +2591,11 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
         /*try:*/ {
           if (unlikely(__pyx_cur_scope->__pyx_v_d_kmers == Py_None)) {
             PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 106, __pyx_L8_error)
+            __PYX_ERR(0, 109, __pyx_L8_error)
           }
-          __pyx_t_8 = __Pyx_PyDict_GetItem(__pyx_cur_scope->__pyx_v_d_kmers, __pyx_cur_scope->__pyx_v_kmer); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 106, __pyx_L8_error)
+          __pyx_t_8 = __Pyx_PyDict_GetItem(__pyx_cur_scope->__pyx_v_d_kmers, __pyx_cur_scope->__pyx_v_kmer); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 109, __pyx_L8_error)
           __Pyx_GOTREF(__pyx_t_8);
-          if (!(likely(PyString_CheckExact(__pyx_t_8))||((__pyx_t_8) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "str", Py_TYPE(__pyx_t_8)->tp_name), 0))) __PYX_ERR(0, 106, __pyx_L8_error)
+          if (!(likely(PyString_CheckExact(__pyx_t_8))||((__pyx_t_8) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "str", Py_TYPE(__pyx_t_8)->tp_name), 0))) __PYX_ERR(0, 109, __pyx_L8_error)
           __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_sg);
           __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_sg, ((PyObject*)__pyx_t_8));
           __Pyx_GIVEREF(__pyx_t_8);
@@ -2478,7 +2608,7 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
         __pyx_L8_error:;
         __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-        /* "subphaser/Kmer.pyx":107
+        /* "subphaser/Kmer.pyx":110
  * #			kmer = kmer.upper()
  * 			try: sg = d_kmers[kmer]
  * 			except KeyError: continue             # <<<<<<<<<<<<<<
@@ -2488,7 +2618,7 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
         __pyx_t_6 = __Pyx_PyErr_ExceptionMatches(__pyx_builtin_KeyError);
         if (__pyx_t_6) {
           __Pyx_AddTraceback("subphaser.Kmer.get_subgenomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
-          if (__Pyx_GetException(&__pyx_t_8, &__pyx_t_12, &__pyx_t_13) < 0) __PYX_ERR(0, 107, __pyx_L10_except_error)
+          if (__Pyx_GetException(&__pyx_t_8, &__pyx_t_12, &__pyx_t_13) < 0) __PYX_ERR(0, 110, __pyx_L10_except_error)
           __Pyx_GOTREF(__pyx_t_8);
           __Pyx_GOTREF(__pyx_t_12);
           __Pyx_GOTREF(__pyx_t_13);
@@ -2502,7 +2632,7 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
         goto __pyx_L10_except_error;
         __pyx_L10_except_error:;
 
-        /* "subphaser/Kmer.pyx":106
+        /* "subphaser/Kmer.pyx":109
  * 		for kmer in kmers:
  * #			kmer = kmer.upper()
  * 			try: sg = d_kmers[kmer]             # <<<<<<<<<<<<<<
@@ -2523,18 +2653,18 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
         __pyx_L15_try_end:;
       }
 
-      /* "subphaser/Kmer.pyx":108
+      /* "subphaser/Kmer.pyx":111
  * 			try: sg = d_kmers[kmer]
  * 			except KeyError: continue
  * 			yield s, e, sg             # <<<<<<<<<<<<<<
  * #			lines += [(s, e, sg)]
  * #	return lines
  */
-      __pyx_t_13 = __Pyx_PyInt_From_int(__pyx_cur_scope->__pyx_v_s); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 108, __pyx_L1_error)
+      __pyx_t_13 = __Pyx_PyInt_From_int(__pyx_cur_scope->__pyx_v_s); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 111, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_13);
-      __pyx_t_12 = __Pyx_PyInt_From_int(__pyx_cur_scope->__pyx_v_e); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 108, __pyx_L1_error)
+      __pyx_t_12 = __Pyx_PyInt_From_int(__pyx_cur_scope->__pyx_v_e); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 111, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_12);
-      __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 108, __pyx_L1_error)
+      __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 111, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       __Pyx_GIVEREF(__pyx_t_13);
       PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_13);
@@ -2567,9 +2697,9 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
       __pyx_t_7 = __pyx_cur_scope->__pyx_t_4;
       __pyx_cur_scope->__pyx_t_4 = 0;
       __Pyx_XGOTREF(__pyx_t_7);
-      if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 108, __pyx_L1_error)
+      if (unlikely(!__pyx_sent_value)) __PYX_ERR(0, 111, __pyx_L1_error)
 
-      /* "subphaser/Kmer.pyx":104
+      /* "subphaser/Kmer.pyx":107
  * 		kmers = get_kmer2(seq, i, k)
  * #	for s, e, kmers in get_kmers(seq, size, k):
  * 		for kmer in kmers:             # <<<<<<<<<<<<<<
@@ -2582,7 +2712,7 @@ static PyObject *__pyx_gb_9subphaser_4Kmer_9generator1(__pyx_CoroutineObject *__
   }
   CYTHON_MAYBE_UNUSED_VAR(__pyx_cur_scope);
 
-  /* "subphaser/Kmer.pyx":93
+  /* "subphaser/Kmer.pyx":96
  * 		yield get_kmer2(seq, i, k)
  * 
  * def get_subgenomes(dict d_kmers, list seq, int k):             # <<<<<<<<<<<<<<
@@ -2882,6 +3012,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_d_kmers, __pyx_k_d_kmers, sizeof(__pyx_k_d_kmers), 0, 0, 1, 1},
   {&__pyx_n_s_e, __pyx_k_e, sizeof(__pyx_k_e), 0, 0, 1, 1},
   {&__pyx_n_s_ei, __pyx_k_ei, sizeof(__pyx_k_ei), 0, 0, 1, 1},
+  {&__pyx_n_s_get_2kmer, __pyx_k_get_2kmer, sizeof(__pyx_k_get_2kmer), 0, 0, 1, 1},
   {&__pyx_n_s_get_kmer, __pyx_k_get_kmer, sizeof(__pyx_k_get_kmer), 0, 0, 1, 1},
   {&__pyx_n_s_get_kmers, __pyx_k_get_kmers, sizeof(__pyx_k_get_kmers), 0, 0, 1, 1},
   {&__pyx_n_s_get_subgenomes, __pyx_k_get_subgenomes, sizeof(__pyx_k_get_subgenomes), 0, 0, 1, 1},
@@ -2910,8 +3041,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 90, __pyx_L1_error)
-  __pyx_builtin_KeyError = __Pyx_GetBuiltinName(__pyx_n_s_KeyError); if (!__pyx_builtin_KeyError) __PYX_ERR(0, 107, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_builtin_KeyError = __Pyx_GetBuiltinName(__pyx_n_s_KeyError); if (!__pyx_builtin_KeyError) __PYX_ERR(0, 110, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -2970,26 +3101,38 @@ static int __Pyx_InitCachedConstants(void) {
   /* "subphaser/Kmer.pyx":87
  * 	return get_kmer(seq, s, k)
  * 
+ * def get_2kmer(list seq, int s, int k):             # <<<<<<<<<<<<<<
+ * 	return get_kmer(seq, s, k)
+ * 
+ */
+  __pyx_tuple__10 = PyTuple_Pack(3, __pyx_n_s_seq, __pyx_n_s_s, __pyx_n_s_k); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 87, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__10);
+  __Pyx_GIVEREF(__pyx_tuple__10);
+  __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(3, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_subphaser_Kmer_pyx, __pyx_n_s_get_2kmer, 87, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(0, 87, __pyx_L1_error)
+
+  /* "subphaser/Kmer.pyx":90
+ * 	return get_kmer(seq, s, k)
+ * 
  * def get_kmers(list seq, int size, int k):             # <<<<<<<<<<<<<<
  * 	cdef int i
  * 	cdef list xkmers
  */
-  __pyx_tuple__10 = PyTuple_Pack(5, __pyx_n_s_seq, __pyx_n_s_size, __pyx_n_s_k, __pyx_n_s_i, __pyx_n_s_xkmers); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 87, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__10);
-  __Pyx_GIVEREF(__pyx_tuple__10);
-  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(3, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_subphaser_Kmer_pyx, __pyx_n_s_get_kmers, 87, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_tuple__12 = PyTuple_Pack(5, __pyx_n_s_seq, __pyx_n_s_size, __pyx_n_s_k, __pyx_n_s_i, __pyx_n_s_xkmers); if (unlikely(!__pyx_tuple__12)) __PYX_ERR(0, 90, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__12);
+  __Pyx_GIVEREF(__pyx_tuple__12);
+  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(3, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__12, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_subphaser_Kmer_pyx, __pyx_n_s_get_kmers, 90, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) __PYX_ERR(0, 90, __pyx_L1_error)
 
-  /* "subphaser/Kmer.pyx":93
+  /* "subphaser/Kmer.pyx":96
  * 		yield get_kmer2(seq, i, k)
  * 
  * def get_subgenomes(dict d_kmers, list seq, int k):             # <<<<<<<<<<<<<<
  * 	cdef int s,e,i,size
  * 	cdef str sg
  */
-  __pyx_tuple__11 = PyTuple_Pack(10, __pyx_n_s_d_kmers, __pyx_n_s_seq, __pyx_n_s_k, __pyx_n_s_s, __pyx_n_s_e, __pyx_n_s_i, __pyx_n_s_size, __pyx_n_s_sg, __pyx_n_s_kmers, __pyx_n_s_kmer); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(0, 93, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__11);
-  __Pyx_GIVEREF(__pyx_tuple__11);
-  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(3, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__11, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_subphaser_Kmer_pyx, __pyx_n_s_get_subgenomes, 93, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_tuple__13 = PyTuple_Pack(10, __pyx_n_s_d_kmers, __pyx_n_s_seq, __pyx_n_s_k, __pyx_n_s_s, __pyx_n_s_e, __pyx_n_s_i, __pyx_n_s_size, __pyx_n_s_sg, __pyx_n_s_kmers, __pyx_n_s_kmer); if (unlikely(!__pyx_tuple__13)) __PYX_ERR(0, 96, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__13);
+  __Pyx_GIVEREF(__pyx_tuple__13);
+  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(3, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__13, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_subphaser_Kmer_pyx, __pyx_n_s_get_subgenomes, 96, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 96, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -3043,13 +3186,13 @@ static int __Pyx_modinit_type_init_code(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_init_code", 0);
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers) < 0) __PYX_ERR(0, 87, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers) < 0) __PYX_ERR(0, 90, __pyx_L1_error)
   __pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers.tp_dictoffset && __pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers.tp_getattro == PyObject_GenericGetAttr)) {
     __pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers.tp_getattro = __Pyx_PyObject_GenericGetAttrNoDict;
   }
   __pyx_ptype_9subphaser_4Kmer___pyx_scope_struct__get_kmers = &__pyx_type_9subphaser_4Kmer___pyx_scope_struct__get_kmers;
-  if (PyType_Ready(&__pyx_type_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes) < 0) __PYX_ERR(0, 93, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes) < 0) __PYX_ERR(0, 96, __pyx_L1_error)
   __pyx_type_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes.tp_dictoffset && __pyx_type_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes.tp_getattro == PyObject_GenericGetAttr)) {
     __pyx_type_9subphaser_4Kmer___pyx_scope_struct_1_get_subgenomes.tp_getattro = __Pyx_PyObject_GenericGetAttrNoDict;
@@ -3328,25 +3471,37 @@ if (!__Pyx_RefNanny) {
   /* "subphaser/Kmer.pyx":87
  * 	return get_kmer(seq, s, k)
  * 
+ * def get_2kmer(list seq, int s, int k):             # <<<<<<<<<<<<<<
+ * 	return get_kmer(seq, s, k)
+ * 
+ */
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9subphaser_4Kmer_5get_2kmer, NULL, __pyx_n_s_subphaser_Kmer); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 87, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_2kmer, __pyx_t_1) < 0) __PYX_ERR(0, 87, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "subphaser/Kmer.pyx":90
+ * 	return get_kmer(seq, s, k)
+ * 
  * def get_kmers(list seq, int size, int k):             # <<<<<<<<<<<<<<
  * 	cdef int i
  * 	cdef list xkmers
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9subphaser_4Kmer_5get_kmers, NULL, __pyx_n_s_subphaser_Kmer); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9subphaser_4Kmer_7get_kmers, NULL, __pyx_n_s_subphaser_Kmer); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 90, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_kmers, __pyx_t_1) < 0) __PYX_ERR(0, 87, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_kmers, __pyx_t_1) < 0) __PYX_ERR(0, 90, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "subphaser/Kmer.pyx":93
+  /* "subphaser/Kmer.pyx":96
  * 		yield get_kmer2(seq, i, k)
  * 
  * def get_subgenomes(dict d_kmers, list seq, int k):             # <<<<<<<<<<<<<<
  * 	cdef int s,e,i,size
  * 	cdef str sg
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9subphaser_4Kmer_8get_subgenomes, NULL, __pyx_n_s_subphaser_Kmer); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9subphaser_4Kmer_10get_subgenomes, NULL, __pyx_n_s_subphaser_Kmer); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 96, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_subgenomes, __pyx_t_1) < 0) __PYX_ERR(0, 93, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_subgenomes, __pyx_t_1) < 0) __PYX_ERR(0, 96, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "subphaser/Kmer.pyx":1
