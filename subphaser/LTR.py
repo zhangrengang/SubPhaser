@@ -328,6 +328,8 @@ class LTRHarvestRecord(object):
 	def id(self):
 		return '{seq_id}:{start}-{end}:{lltr_e}-{rltr_s}'.format(
 			lltr_e=self.lltr_e, rltr_s=self.rltr_s, **self.__dict__)
+	def to_bed(self):
+		return [self.seq_id, self.start, self.end, self.id]
 	def __str__(self):
 		return self.id
 	def __hash__(self):

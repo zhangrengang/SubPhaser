@@ -209,7 +209,7 @@ def genome_base(genome_fasta, out_karyotype, out_gc, window_size=None, chr_mark=
 		i += 1
 	f1.close()
 	f2.close()
-def genomes_base(genome_fastas, out_karyotype):
+def genomes_base(genome_fastas, out_karyotype, d_cmap={}):
 	from Bio import SeqIO
 	colors = ['chr'+ str(chr) for chr in list(range(1, 23))+['X', 'Y']]
 	f1 = open(out_karyotype, 'w')
@@ -218,31 +218,43 @@ def genomes_base(genome_fastas, out_karyotype):
 		for rc in SeqIO.parse(open(genome_fasta), 'fasta'):
 			seq_len = len(rc.seq)
 			color = colors[i%len(colors)]
+			color = d_cmap.get(rc.id, color)
 			line1 = ['chr', '-', rechr(rc.id), rechr(rc.id), 0, seq_len, color]
 			line1 = map(str, line1)
 			print(' '.join(line1), file=f1)
 			i += 1
 	f1.close()
-def circos_plot(genomes, bedfile, wddir='circos', window_size=100000):
-	from vualize_akchr import colors_rgb
-	from .RunCmdsMP import run_cmd
-	from .small_tools import mkdirs
-	datadir = '{}/data'.format(wddir)
-	mkdirs(datadir)
-	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
-	genomes_base(genomes, karyotype_file)
-	outpre = '{}/subgenome'.format(datadir)
-	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)
-	conf_file = datadir = '{}/histogram.conf'.format(wddir)
-	fout = open(conf_file, 'w')
-	fout.write('<plots>\n\n')
-	start = 0.99
-	step = 0.5/len(d_outfiles)
-	for i, (key, datafile) in enumerate(sorted(d_outfiles.items())):
-		r1, r0 = start, start-step
-		color = colors_rgb[i]
-		circle = '''<plot>
-type        = line
+
+def out_sg_lines(sg_lines, datadir, ratio_col=6, enrich_col=7):
+	ratio_file = '{}/sg_ratio.txt'.format(datadir)
+	enrich_file = '{}/sg_enrich.txt'.format(datadir)
+	fr = open(ratio_file, 'w')
+	fe = open(enrich_file, 'w')
+	for line in sg_lines:
+		chrom, start, end = line[:3]
+		ratio = line[ratio_col]
+		enrich = line[enrich_col]
+		for f, dat in zip((fr, fe), (ratio, enrich)):
+			line = [chrom, start, end, dat]
+			line = map(str, line)
+			f.write('\t'.join(line) + '\n')
+	fr.close()
+	fe.close()
+	return ratio_file, enrich_file
+def fmt_color(sgs, color_set, white='white'):
+	if len(sgs) > len(color_set):
+		color_set = color_set * (len(sgs)//len(color_set) + 1)
+	colors, d_cmap = [], {}
+	for i, sg in enumerate(sgs):
+		cname = str(sg)
+		d_cmap[cname] = color_set[i]
+		colors += [cname]
+	colors += [white]
+#	d_cmap[white] = white
+	return colors, d_cmap
+
+CIRCLE = '''<plot>
+type        = {type}
 file        = {datafile}
 r1          = {r1}r
 r0          = {r0}r
@@ -261,18 +273,97 @@ position  = 0
 </axis>
 </axes>
 
-</plot>\n\n'''.format(datafile=datafile, r1=r1, r0=r0, color=color)
+</plot>\n\n'''
+
+def circos_plot(genomes, wddir='circos', bedfile='',  
+		sg_lines=[], d_sg={}, ltr_lines=[], window_size=100000):
+	from .colors import colors_rgb
+	from .RunCmdsMP import run_cmd
+	from .small_tools import mkdirs
+	sgs = sorted(set(d_sg.values()))
+	if len(sgs) > len(colors_rgb):
+		colors_rgb = colors_rgb * (len(sgs)//len(colors_rgb) + 1)
+	colors, d_cmap = fmt_color(sgs, colors_rgb)
+	datadir = '{}/data'.format(wddir)
+	mkdirs(datadir)
+	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
+	genomes_base(genomes, karyotype_file, d_cmap=d_sg)
+	outpre = '{}/subgenome'.format(datadir)
+
+	# LTR
+	ltr_file = '{}/ltr_density.txt'.format(datadir)
+	bed_density(ltr_lines, ltr_file, window_size=window_size)
+	# colors
+	conf_file = '{}/colors.conf'.format(wddir)
+	with open(conf_file, 'w') as f:
+		f.write('<colors>\n\n')
+		for name, color in sorted(d_cmap.items()):
+			f.write('{} = {}\n'.format(name, color))
+		f.write('</colors>\n')
+	# bedfile, split by keys
+	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)	# SG density
+	conf_file = '{}/histogram.conf'.format(wddir)
+	fout = open(conf_file, 'w')
+	fout.write('<plots>\n\n')
+
+	n_circles = len(d_outfiles)
+	if sg_lines:
+		n_circles += 2
+	if ltr_lines :
+		n_circles += 1
+	start = 0.99
+	step = round(0.7/n_circles, 2)
+	if sg_lines:
+		# ratio and enrich
+		ratio_file, enrich_file = out_sg_lines(sg_lines, datadir)
+		# circle 1
+		r1, r0 = start, start-step
+		color = ','.join(colors)
+		circle = CIRCLE.format(type='histogram', datafile=enrich_file, r1=r1, r0=r0, color=color)
 		fout.write(circle)
-		start = r0
+		start = r0-0.01
+		# circle 2
+		r1, r0 = start, start-step
+		color = ','.join(colors[:-1])
+		circle = CIRCLE.format(type='histogram', datafile=ratio_file, r1=r1, r0=r0, color=color)
+		fout.write(circle)
+		start = r0-0.01
+	# circle 3 - n+2
+	for i, (key, datafile) in enumerate(sorted(d_outfiles.items())):
+		r1, r0 = start, start-step
+		color = colors_rgb[i]
+		circle = CIRCLE.format(type='histogram', datafile=datafile, r1=r1, r0=r0, color=color)
+		fout.write(circle)
+		start = r0-0.01
+
+	# circle LTR
+	if ltr_lines:
+		start = r0-0.01
+		r1, r0 = start, start-step
+		color = colors_rgb[i+1]
+		circle = CIRCLE.format(type='histogram', datafile=ltr_file, r1=r1, r0=r0, color=color)
+		fout.write(circle)
+
 	fout.write('</plots>\n\n')
 	fout.close()
+
 	cmd = 'cd {} && circos -conf ./circos.conf'.format(wddir)
 	run_cmd(cmd, log=True)
 	annofile = '{}/../circos_legend.txt'.format(wddir)
 	with open(annofile, 'w') as fout:
 		fout.write('Rings from outer to inner:\n\t1. Karyotypes\n')
+		ring = 1
+		if sg_lines:
+			for legend in ['Enriched subgenome', 'Normalized proportion of each subgenome']:
+				ring += 1
+				fout.write('\t{}. {}\n'.format(ring, legend))
 		for i, sg in enumerate(sorted(d_outfiles.keys())):
-			fout.write('\t{}. Density of {}-specific kmers\n'.format(i+2, sg))
+			ring += 1
+			fout.write('\t{}. Density of {}-specific kmers\n'.format(ring, sg))
+		if ltr_lines:
+			ring += 1
+			legend = 'Density of LTR-RTs'
+			fout.write('\t{}. {}\n'.format(ring, legend))
 		fout.write('Window size: {} bp\n'.format(window_size))
 
 def _bed_density(inBed, window_size=None, chr_col=0, start_col=1, end_col=2, based=0, 

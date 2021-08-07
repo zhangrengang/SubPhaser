@@ -7,6 +7,7 @@ from sklearn import metrics
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
 from scipy import stats
+from Bio.Seq import Seq
 from .Data import LoadData
 from .colors import colors_hex
 from .RunCmdsMP import logger, pool_func
@@ -120,7 +121,7 @@ class Cluster:
 			line = [chr, sg, self.d_bs[chr]]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
-	def output_kmers(self, fout=sys.stdout, min_pval=0.05, ncpu=4):
+	def output_kmers(self, fout=sys.stdout, min_pval=0.05, ncpu=4, method='map'):
 		d_groups = {}
 		for i, (chr,sg) in enumerate(self.d_sg.items()):
 			try: d_groups[sg] += [i]
@@ -129,7 +130,10 @@ class Cluster:
 		line = ['#kmer', 'subgenome', 'p_value']
 		print('\t'.join(line), file=fout)
 		iterable = ((kmer, array, d_groups) for kmer, array in self.d_kmers.items())
-		for kmer, max_sg, pvalue in pool_func(self._output_kmers, iterable, processors=ncpu):
+		jobs = pool_func(_output_kmers, iterable, processors=ncpu, method='map', )
+		#jobs = list(jobs)
+		i = 0
+		for kmer, max_sg, pvalue, rc_kmer in jobs:
 #		for kmer, array in self.d_kmers.items():
 #			grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
 #			sgs = sorted(d_groups.keys())
@@ -140,15 +144,20 @@ class Cluster:
 #			min_freqs = grouped[1]
 #			max_sg = sgs[0]
 #			ttest = stats.ttest_ind(max_freqs, min_freqs)
+			i += 1
+#			if i % 10000 == 0:
+#				logger.info('Processed {} kmers'.format(i))
 			if pvalue > min_pval:
 				continue
 			line = [kmer, max_sg, pvalue]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
-			kmer = tuple(kmer)
+#			kmer = tuple(kmer)
 			d_ksg[kmer] = max_sg
+			d_ksg[rc_kmer] = max_sg
 		return d_ksg
-	def _output_kmers(self, args):
+#	def _output_kmers(self, args):
+def _output_kmers( args):
 		kmer, array, d_groups = args
 		grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
 		sgs = sorted(d_groups.keys())
@@ -159,4 +168,5 @@ class Cluster:
 		min_freqs = grouped[1]
 		max_sg = sgs[0]
 		ttest = stats.ttest_ind(max_freqs, min_freqs)
-		return kmer, max_sg, ttest.pvalue
+		rc_kmer = str(Seq(kmer).reverse_complement())
+		return kmer, max_sg, ttest.pvalue, rc_kmer

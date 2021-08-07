@@ -12,12 +12,14 @@ class JellyfishDump(object):
 	def __iter__(self):
 		return self.parse()
 	def parse(self):
-#		for line in open(self.column):
-#			seq, freq = line.strip().split()
-#			yield JellyfishDumpRecord(seq=seq, freq=freq)
-		for rc in pool_func(self._parse_line, open(self.column), self.ncpu, ):
+		return self._parse1()
+	def _parse2(self):
+		for rc in pool_func(_parse_line, open(self.column), self.ncpu, ):
 			yield rc
-
+	def _parse1(self):
+		for line in open(self.column):
+			seq, freq = line.strip().split()
+			yield JellyfishDumpRecord(seq=seq, freq=freq)
 	def _parse_line(self, line):
 		seq, freq = line.strip().split()
 		return JellyfishDumpRecord(seq=seq, freq=freq)
@@ -27,8 +29,22 @@ class JellyfishDump(object):
 			if rc.seq in kmer_set:
 				d_kmer[rc.seq] = rc.freq
 		return d_kmer
+	def to_dict(self):
+		d = {}
+		for rc in self:
+			d[rc.seq] = rc.freq
+		return d
+
+def _parse_line(line):
+	seq, freq = line.strip().split()
+	return JellyfishDumpRecord(seq=seq, freq=freq)
+
+def _to_matrix(arg):
+	dumpfile = arg
+	return JellyfishDump(dumpfile).to_dict(), dumpfile
+
 class JellyfishDumps:
-	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map'):
+	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map', **kargs):
 		self.dumpfiles = dumpfiles
 		self.labels = labels
 		self.ncpu = ncpu
@@ -39,14 +55,23 @@ class JellyfishDumps:
 		d_mat = {}
 		lengths = [0] * len(self)
 #		for i, dump in enumerate(pool_func(self._to_matrix, self.dumpfiles)):
-#			for j, line in enumerate(dump):
-		for i, dumpfile in enumerate(self.dumpfiles):
+		for i, (dump,dumpfile) in enumerate(pool_func(_to_matrix, self.dumpfiles, self.ncpu)):
 			logger.info('Loading '+ dumpfile)
-			for j, line in enumerate(JellyfishDump(dumpfile, ncpu=self.ncpu,)):
-				if line.seq not in d_mat:
-					d_mat[line.seq] = [0] * len(self)
-				d_mat[line.seq][i] = line.freq	# to be optimized
+#			for j, line in enumerate(dump):
+			for j, (seq, freq) in enumerate(dump.items()):
+				if seq not in d_mat:
+					d_mat[seq] = [0]*i + [freq]
+				else:
+					arr = d_mat[seq]
+					arr += [0]*(i-len(arr)) + [freq]
+#		for i, dumpfile in enumerate(self.dumpfiles):
+#			logger.info('Loading '+ dumpfile)
+#			for j, line in enumerate(JellyfishDump(dumpfile, ncpu=self.ncpu,)):
+#				if line.seq not in d_mat:
+#					d_mat[line.seq] = [0] * len(self)
+#				d_mat[line.seq][i] = line.freq	# to be optimized
 				lengths[i] += line.freq
+			del dump
 		self.lengths = lengths
 		return d_mat
 	def _to_matrix(self, arg):
@@ -74,49 +99,6 @@ class JellyfishDumps:
 		args = ((kmer, counts, d_lens, sgs, d_targets, min_freq, max_freq, min_fold) \
 					for kmer, counts in d_mat.items())
 		i = 0
-#		for kmer, counts in d_mat.items():
-#			i += 1
-#			if i % 1000000 == 0:
-#				logger.info('Processed {} kmers'.format(i))
-##			rv_kmer = str(Seq(kmer).reverse_complement())
-##			if rv_kmer in d_mat:
-##				logger.warn(kmer+'is not canonical representation')
-#			tot = sum(counts)
-#			if tot < min_freq or tot > max_freq:
-#				continue
-#			# normalize
-#			d_counts = dict(zip(self.labels, counts))
-#			includes = []
-#			for sg in sgs:
-#				if len(sg) == 1:
-#					logger.warn('Singleton `{}` is ignored'.format(sg))
-#					continue
-#				include = False
-#				freqs = []
-#				for chrs in sg:
-#					chrs = [d_targets.get(chr, chr) for chr in chrs]
-#					if len(chrs) == 1:
-#						chr = chrs[0]
-#						count = d_counts[chr]
-#						lens = d_lens[chr]
-#						freq = count/lens
-#					else:
-#						count = [d_counts[chr] for chr in chrs] 
-#						lens = [d_lens[chr] for chr in chrs]
-#						freq = sum(count) / sum(lens)
-#					freqs += [freq]
-#				freqs = sorted(freqs, reverse=1)
-#				_max_freq = freqs[0]
-#				_min_freq = freqs[1]
-#			#	_min_freq = min(freqs)
-#			#	_max_freq = max(freqs)
-#				if 1.0 * _max_freq / (_min_freq+1e-9) >= min_fold:
-#					include = True
-#				includes += [include]
-#			if not all(includes):
-#				continue
-##			logger.info(tot)
-#			d_mat2[kmer] = [c/l for c,l in zip(counts, self.lengths)]
 		for kmer, freqs in pool_func(self._filter, args, self.ncpu, method=self.method):
 			i += 1
 			if i % 1000000 == 0:
@@ -195,10 +177,25 @@ dev.off()
 		run_cmd(cmd, log=True)
 		return outfig
 
+ints = '1234'
+bases = 'ATCG'
+d_base2int = dict(zip(bases, ints))
+d_int2base = dict(zip(ints, bases))
+def seq2int(seq):
+	as_int = [d_base2int[base] for base in seq]
+	return int(''.join(as_int))
+def int2seq(num):
+	num = str(num)
+	as_str = [d_int2base[i] for i in num]
+	return ''.join(as_str)
+
 class JellyfishDumpRecord(object):
 	def __init__(self, seq, freq):
 		self.seq = seq
 		self.freq = int(freq)
+	@property
+	def iseq(self):
+		return seq2int(self.seq)
 
 def run_jellyfish_dumps(seqfiles, ncpu=4, **kargs):
 	dumpfiles = []

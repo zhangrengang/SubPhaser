@@ -38,15 +38,15 @@ to avoid conficts among chromosome id \
 					help="Do not use default prefix labels for genome sequences as there is \
 no conficts among chromosome id [default: %(default)s]")
 	group_in.add_argument("-target", default=None, type=str, metavar='FILE',
-                    help="Target chromosomes to output; id mapping is allowed; \
+					help="Target chromosomes to output; id mapping is allowed; \
 this chromosome set is for cluster and phase \
 [default: the chromosome set as `-sg_cfgs`]")
 	group_in.add_argument("-sep", default="|", type=str, metavar='STR',
-                    help='Seperator for chromosome ID [default="%(default)s"]')
+					help='Seperator for chromosome ID [default="%(default)s"]')
 	# output
 	group_out = parser.add_argument_group('Output')
 	group_out.add_argument('-pre', '-prefix', default=None, dest='prefix', metavar='STR',
-                    help="Prefix for output [default=%(default)s]")
+					help="Prefix for output [default=%(default)s]")
 	group_out.add_argument('-o', '-outdir', default='phase-results', dest='outdir', metavar='DIR',
 					help="Output directory [default=%(default)s]")
 	group_out.add_argument('-tmpdir', default='tmp', type=str, metavar='DIR',
@@ -56,9 +56,9 @@ this chromosome set is for cluster and phase \
 	group_kmer.add_argument('-k', type=int, default=15, metavar='INT',
 					 help="Length of kmer [default=%(default)s]")
 	group_kmer.add_argument('-f', '-min_fold', type=float, default=2, metavar='FLOAT', dest='min_fold',
-                    help="Minimum fold [default=%(default)s]")
+					help="Minimum fold [default=%(default)s]")
 	group_kmer.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
-                     help="Minimum total count for each kmer; will not work \
+					 help="Minimum total count for each kmer; will not work \
 if `-min_prop` is specified [default=%(default)s]")
 	group_kmer.add_argument('-lower_count', type=int, default=3, metavar='INT',
 					 help="Don't output k-mer with count < lower-count [default=%(default)s]")
@@ -68,17 +68,17 @@ if `-min_prop` is specified [default=%(default)s]")
 					help="Maximum total count for each kmer; will not work \
 if `-max_prop` is specified [default=%(default)s]")
 	group_kmer.add_argument('-max_prop', type=float, default=None, metavar='FLOAT',
-                    help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
+					help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
 	group_kmer.add_argument('-low_mem', action="store_true", default=None,
-                    help="Low MEMory but slower [default: True if genome size > 3G, else False]")
+					help="Low MEMory but slower [default: True if genome size > 3G, else False]")
 	# cluster
 	group_clst = parser.add_argument_group('Cluster', 'Options for cluster to phase')
 	group_clst.add_argument('-replicates', type=int, default=1000, metavar='INT',
-                    help="Number of replicates for bootstrap [default=%(default)s]")
+					help="Number of replicates for bootstrap [default=%(default)s]")
 	group_clst.add_argument('-jackknife', type=float, default=80, metavar='FLOAT',
-                    help="Percent of kmers to resample for bootstrap [default=%(default)s]")
+					help="Percent of kmers to resample for bootstrap [default=%(default)s]")
 	group_clst.add_argument('-min_pval', type=float, default=0.05, metavar='FLOAT',
-                    help="Minimum P value for hypothesis test [default=%(default)s]")
+					help="Minimum P value for hypothesis test [default=%(default)s]")
 
 	group_clst.add_argument("-figfmt", default='pdf', type=str, metavar='STR',
 					choices=['pdf', 'png', 'tiff', 'jpeg', 'bmp'],
@@ -92,10 +92,14 @@ key=T,key.title=NA,density.info='density',main=NA,xlab=NA,margins=c(5,6)",
 of `gplots` package) [default="%(default)s"]')
 	# LTR
 	group_ltr = parser.add_argument_group('LTR', 'Options for LTR analyses')
+	group_ltr.add_argument('-disable_ltr', action="store_true", default=False,
+					help="Disable this step (this step is time-consuming for large genome)\
+ [default: %(default)s]")
+
 	group_ltr.add_argument("-ltr_detectors", nargs='+', metavar='PROG', 
 					default=['ltr_finder', 'ltr_harvest'], 
 					choices=['ltr_finder', 'ltr_harvest'],
-                    help="Programs to detect LTR-RTs [default=%(default)s]")
+					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
 					default='-w 2 -D 15000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.85',
 					help='Options for `ltr_finder` to identify LTR-RTs (see more with \
@@ -114,17 +118,19 @@ of `gplots` package) [default="%(default)s"]')
 
 	# circos
 	group_circ = parser.add_argument_group('Circos', 'Options for circos plot')
-	group_circ.add_argument('-window_size', type=int, default=500000, metavar='INT',
-                    help="Window size for circos plot [default: %(default)s]")
+	group_circ.add_argument('-disable_circos', action="store_true", default=False,
+					help="Disable this step [default: %(default)s]")
+	group_circ.add_argument('-window_size', type=int, default=1000000, metavar='INT',
+					help="Window size for circos plot [default: %(default)s]")
 
 	# others
 	group_other = parser.add_argument_group('Other options')
 	group_other.add_argument('-p', '-ncpu', type=int, default=NCPU, metavar='INT', dest='ncpu',
-                     help="Maximum number of processors to use [default=%(default)s]")
+					 help="Maximum number of processors to use [default=%(default)s]")
 	group_other.add_argument('-cleanup', action="store_true", default=False,
-                    help="Remove the temporary directory [default: %(default)s]")	
+					help="Remove the temporary directory [default: %(default)s]")	
 	group_other.add_argument('-overwrite', action="store_true", default=False,
-                    help="Overwrite even if check point files existed [default: %(default)s]")
+					help="Overwrite even if check point files existed [default: %(default)s]")
 	args = parser.parse_args()
 	if args.prefix is not None:
 		args.prefix = args.prefix.replace('/', '_')
@@ -185,8 +191,8 @@ class Pipeline:
 
 		# split genome
 		logger.info('Target chromosomes: {}'.format(self.chrs))
-		logger.info('Splitting genomes by chromosome')
-		ckp_file = '{}split.ok'.format(self.tmpdir)
+		logger.info('Splitting genomes by chromosome into `{}`'.format(self.tmpdir))
+		ckp_file = self.mk_ckpfile('split')
 		ckp = check_ckp(ckp_file)
 		if isinstance(ckp, list) and len(ckp) ==4 and not self.overwrite:
 			chromfiles, labels, d_targets, d_size = data = ckp
@@ -195,21 +201,23 @@ class Pipeline:
 			data = chromfiles, labels, d_targets, d_size = Seqs.split_genomes(self.genomes, self.labels, 
 					self.chrs, self.tmpdir, d_targets=d_targets, sep=self.sep)
 			mk_ckp(ckp_file, *data)
-		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
+		self.chromfiles = chromfiles
+#`		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
 		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
 			raise ValueError('Only 0 chromosome remained after filtering. Please check the inputs.')
 
-		# auto set pool method
+		# auto set pool method for multiprocessing
 		genome_size = sum(d_size.values())
 		logger.info('Genome size: {:,}'.format(genome_size))
+		self.pool_method = 'map'
+		self.chunksize = None
 		if self.low_mem is None and genome_size > 3e9:
-			pool_method = 'imap_unordered'
+			self.pool_method = 'imap_unordered'
+			self.chunksize = 100
 			logger.info('Change pool method to reduce memory')
-		else:
-			pool_method = 'map'
 
-
+		logger.info('Step: Kmer Count')
 		# jellyfish
 		logger.info('Counting kmer by jellyfish')	# multiprocessing by chromfile
 		dumpfiles = run_jellyfish_dumps(chromfiles, k=self.k, ncpu=self.ncpu, lower_count=self.lower_count,
@@ -217,9 +225,11 @@ class Pipeline:
 
 		# matrix
 		logger.info('Loading kmer matrix from jellyfish')	# multiprocessing by kmer
-		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, method=pool_method)
-		matfile = '{}kmer_k{}_q{}_f{}.mat'.format(self.outdir, self.k, self.min_freq, self.min_fold)
-		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(matfile))
+		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, 
+							method=self.pool_method, chunksize=self.chunksize)
+		self.para_prefix = '{}k{}_q{}_f{}'.format(self.outdir, self.k, self.min_freq, self.min_fold)
+		matfile = self.para_prefix + '.kmer.mat'
+		ckp_file = self.mk_ckpfile(matfile)
 		if self.overwrite or not check_ckp(ckp_file):
 			d_mat = dumps.to_matrix()	# multiprocessing by kmer
 			logger.info('{} kmers in total'.format(len(d_mat)))
@@ -236,36 +246,64 @@ class Pipeline:
 				dumps.write_matrix(d_mat, fout)
 			mk_ckp(ckp_file)
 		# heatmap	# static mechod
-		outfig = dumps.heatmap(matfile, figfmt=self.figfmt, color=self.heatmap_colors, heatmap_options=self.heatmap_options)
+		outfig = dumps.heatmap(matfile, figfmt=self.figfmt, color=self.heatmap_colors, 
+					heatmap_options=self.heatmap_options)
 		
 		# kmeans cluster
+		logger.info('Step: Cluster')
 		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG',
 				replicates=self.replicates, jackknife=self.jackknife)
-		sg_names = cluster.sg_names
-		sg_chrs = matfile + '.subgenomes'
+		d_sg = cluster.d_sg	# chrom -> SG
+		self.sg_names = cluster.sg_names
+		sg_chrs = self.para_prefix + '.subgenomes'
+		logger.info('Outputing `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)
-		logger.info('Output `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
 		# PCA
-		outfig = matfile + '.pca.' + self.figfmt
+		outfig = self.para_prefix + '.pca.' + self.figfmt
+		logger.info('Outputing PCA plot to `{}`'.format(outfig))
 		cluster.pca(outfig)
-		logger.info('Output PCA plot to `{}`'.format(outfig))
 
-		sg_kmers = matfile + '.kmers'
+		# specific kmers and location
+		sg_kmers = self.para_prefix + '.kmers'
+		logger.info('Outputing significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
 		with open(sg_kmers, 'w') as fout:	# multiprocessing by kmer
+			# kmer -> SG
 			d_kmers = cluster.output_kmers(fout, min_pval=self.min_pval, ncpu=self.ncpu)
-		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)))
-		logger.info('Output significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
+		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
 	
-		sg_map = matfile + '.sg.bed'
-		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(sg_map))
+		sg_map = self.para_prefix + '.sg.bed'
+		ckp_file = self.mk_ckpfile(sg_map)
 		if self.overwrite or not check_ckp(ckp_file):	# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
 			with open(sg_map, 'w') as fout:	# multiprocessing by chrom position
-				Seqs.map_kmer(chromfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, method=pool_method)
+				Seqs.map_kmer3(chromfiles, d_kmers, fout=fout, k=self.k, 
+					ncpu=self.ncpu, method=self.pool_method)
 			mk_ckp(ckp_file)
+		# enrich by BIN
+		bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
+		bin_enrich = self.para_prefix + '.bin.enrich'
+		with open(bin_enrich, 'w') as fout:
+			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
+					min_pval=self.min_pval)
 
+		# LTR
+		ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else []
+		# circos
+		if not self.disable_circos:
+			self.step_circos(
+				bedfile=sg_map, # chrom - coord - SG			circles 3 - n+2
+				sg_lines=sg_lines, # SG ratio and enrichment	circles 1 - 2
+				ltr_lines=ltr_bedlines, # LTR bed lines			circles n+3
+				d_sg = d_sg, # chrom -> SG, for colors
+				window_size=self.window_size)
 
+		self.step_final()
+
+	def mk_ckpfile(self, file):
+		return '{}{}.ok'.format(self.tmpdir, os.path.basename(file))
+
+	def step_ltr(self, d_kmers):
 		# LTR
 		logger.info('Step: LTR')
 		tmpdir = '{}LTR'.format(self.tmpdir)
@@ -276,32 +314,33 @@ class Pipeline:
 				job_args={'mode': 'local', 'retry': 3, 'cont': 1,  'tc_tasks': self.threads},
 				tesorter_options=self.tesorter_options, mu=self.mu,)
 		# multiprocessing by chromfile
-		ltrs, ltrfiles = LTRpipelines(chromfiles, tmpdir=tmpdir, only_ltr=True, ncpu=self.ncpu, **kargs).run()
-		ltr_map = matfile + '.ltr.bed'
-		ckp_file = '{}{}.ok'.format(self.tmpdir, os.path.basename(ltr_map))
-		if True:
+		ltrs, ltrfiles = LTRpipelines(self.chromfiles, tmpdir=tmpdir, 
+					only_ltr=True, ncpu=self.ncpu, **kargs).run()
+		ltr_map = self.para_prefix + '.ltr.bed'
+		ckp_file = self.mk_ckpfile(ltr_map)
+		if self.overwrite or not check_ckp(ckp_file):
+#		if True:
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
-			with open(ltr_map, 'w') as fout:
-				lines = Seqs.map_kmer(ltrfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu)
+			with open(ltr_map, 'w') as fout:	# multiprocessing by LTR
+				Seqs.map_kmer3(ltrfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
+								chunk=False, log=False, method=self.pool_method, chunksize=self.chunksize)
+			mk_ckp(ckp_file)
 
-		# enrich SG
-		bins, counts = Circos.counts2matrix(lines, keys=sg_names, keycol=3, window_size=100000000)
-		ltr_enrich = matfile + '.ltr.enrich'
+		# enrich SG by LTR
+		bins, counts = Circos.counts2matrix(ltr_map, keys=self.sg_names, keycol=3, window_size=100000000)
+		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
-			d_enriched = Stats.enrich_ltr(fout, counts, colnames=sg_names, rownames=bins, 
+			d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
 					min_pval=self.min_pval)
 		# plot insert age
-		prefix = matfile + '.ltr.insert'
+		prefix = self.para_prefix + '.ltr.insert'
 		LTR.plot_insert_age(ltrs, d_enriched, prefix, mu=self.mu, figfmt=self.figfmt)
 
-		# enrich by BIN
-		bins, counts = Circos.counts2matrix(sg_map, keys=sg_names, keycol=3, window_size=self.window_size)
-		bin_enrich = matfile + '.bin.enrich'
-		with open(bin_enrich, 'w') as fout:
-			d_enriched = Stats.enrich_bin(fout, counts, colnames=sg_names, rownames=bins, 
-					min_pval=self.min_pval)
+		# ltr bed
+		ltr_bedlines = [ltr.to_bed() for ltr in ltrs]
+		return ltr_bedlines
 
-
+	def step_circos(self, *args, **kargs):
 		# circos
 		circos_dir = bindir+'/circos'
 		wkdir = self._outdir+'/circos'
@@ -311,8 +350,9 @@ class Pipeline:
 			shutil.copytree(circos_dir, wkdir)
 		except FileExistsError:
 			pass
-		circos_plot(chromfiles, sg_map, wkdir, window_size=self.window_size)		
-		
+		Circos.circos_plot(self.chromfiles, wkdir, *args, **kargs)
+
+	def step_final(self):
 		# cleanup
 		if self.cleanup:
 			rmdirs(self.tmpdir)
