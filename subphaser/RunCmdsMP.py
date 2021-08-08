@@ -309,8 +309,11 @@ imap: True for imap'''
 	#jobs = [pool.imap(func, add_args(value,args),) for value in lst]
 	for returned in pool_map(func, iterable, **kargs):
 		yield returned
+	logger.info('Closing Pool')
 	pool.close()
+	logger.info('Joining Pool')
 	pool.join()
+
 def pool_run(cmd_list, processors=8):
 	try: processors = int(processors)
 	except (TypeError,ValueError):

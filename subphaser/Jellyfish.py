@@ -1,4 +1,5 @@
 import sys,os
+from collections import OrderedDict
 import numpy as np
 from Bio.Seq import Seq
 from xopen import xopen as open
@@ -38,39 +39,111 @@ class JellyfishDump(object):
 def _parse_line(line):
 	seq, freq = line.strip().split()
 	return JellyfishDumpRecord(seq=seq, freq=freq)
+def _to_matrix2(arg):
+	dumpfile = arg
+	seqs, freqs = [], []
+	tot = 0
+	for rc in JellyfishDump(dumpfile):
+		seqs += [rc.seq]
+		freqs += [rc.freq]
+		tot += rc.freq
+	return seqs, freqs, dumpfile, tot
+	
+def _insert_freq(arg):
+	generator, dumpfile, d_mat, i = arg
+	for seq, freq in generator:
+		d_mat[seq][i] = freq
+	return dumpfile
+def _insert_freq2(arg):
+	(seq, freq), d_mat, i = arg
+	d_mat[seq][i] = freq
 
 def _to_matrix(arg):
 	dumpfile = arg
-	return JellyfishDump(dumpfile).to_dict(), dumpfile
+	dump = [(rc.seq, rc.freq) for rc in JellyfishDump(dumpfile)]
+	return dump, dumpfile
 
 class JellyfishDumps:
-	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map', **kargs):
+	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map', chunksize=None, **kargs):
 		self.dumpfiles = dumpfiles
 		self.labels = labels
 		self.ncpu = ncpu
 		self.method = method
+		self.chunksize = chunksize
 	def __len__(self):
 		return len(self.dumpfiles)
 	def to_matrix(self):
+		ncol = len(self)
+		lengths = [0] * ncol
+		d_idx = dict(zip(self.dumpfiles, range(ncol)))
+		d_mat = {}
+		# args = []
+		dumps = pool_func(_to_matrix2, self.dumpfiles, self.ncpu)
+		for seqs, freqs, dumpfile, tot in dumps:
+			i = d_idx[dumpfile]
+			lengths[i] = tot
+			logger.info('Loading '+ dumpfile)
+			for seq, freq in zip(seqs, freqs):
+				if seq not in d_mat:
+					d_mat[seq] = [0] * ncol
+				d_mat[seq][i] = freq
+				# if seq not in d_mat:
+					# if i == 0:
+						# d_mat[seq] = [freq]
+					# else:
+						# d_mat[seq] = [0]*i + [freq]
+				# else:
+					# arr = d_mat[seq]
+					# diff = i-len(arr)
+					# if diff == 0:
+						# arr += [freq]
+					# else:
+						# arr += [0]*diff + [freq]
+			# logger.info('Inserting '+ dumpfile)
+			#args += [(zip(seqs, freqs), dumpfile, d_mat, i)]
+			# args = ((sf, d_mat, i) for sf in zip(seqs, freqs))
+			# for _ in pool_func(_insert_freq2, args, self.ncpu):
+				# continue
+			del seqs, freqs
+		#print(lengths)
+		# args = ((dump, d_mat, i) for dump in dumps)
+		
+		# for dumpfile in pool_func(_insert_freq, args, self.ncpu):
+			# logger.info('Inserting '+ dumpfile)
+			# # lengths[d_idx[dumpfile]] = tot
+		#print(d_mat['CATTAATACTATGGA'])
+		# del dumps
+		self.lengths = lengths
+		return d_mat
+
+	def to_matrixi0(self):
 		d_mat = {}
 		lengths = [0] * len(self)
 #		for i, dump in enumerate(pool_func(self._to_matrix, self.dumpfiles)):
 		for i, (dump,dumpfile) in enumerate(pool_func(_to_matrix, self.dumpfiles, self.ncpu)):
 			logger.info('Loading '+ dumpfile)
 #			for j, line in enumerate(dump):
-			for j, (seq, freq) in enumerate(dump.items()):
+			for j, (seq, freq) in enumerate(dump):
 				if seq not in d_mat:
-					d_mat[seq] = [0]*i + [freq]
+					if i == 0:
+						d_mat[seq] = [freq]
+					else:
+						d_mat[seq] = [0]*i + [freq]
 				else:
 					arr = d_mat[seq]
-					arr += [0]*(i-len(arr)) + [freq]
+					diff = i-len(arr)
+					if diff == 0:
+						arr += [freq]
+					else:
+						arr += [0]*diff + [freq]
 #		for i, dumpfile in enumerate(self.dumpfiles):
 #			logger.info('Loading '+ dumpfile)
 #			for j, line in enumerate(JellyfishDump(dumpfile, ncpu=self.ncpu,)):
 #				if line.seq not in d_mat:
 #					d_mat[line.seq] = [0] * len(self)
 #				d_mat[line.seq][i] = line.freq	# to be optimized
-				lengths[i] += line.freq
+#				lengths[i] += line.freq
+				lengths[i] += freq
 			del dump
 		self.lengths = lengths
 		return d_mat
@@ -95,52 +168,19 @@ class JellyfishDumps:
 			raise ValueError('`min_freq` ({}) should be lower than `max_freq` ({})'.format(min_freq, max_freq))
 
 		d_mat2 = {}
-		d_lens = dict(zip(self.labels, self.lengths))
+		d_lens = OrderedDict(zip(self.labels, self.lengths))
 		args = ((kmer, counts, d_lens, sgs, d_targets, min_freq, max_freq, min_fold) \
 					for kmer, counts in d_mat.items())
 		i = 0
-		for kmer, freqs in pool_func(self._filter, args, self.ncpu, method=self.method):
+		for kmer, freqs in pool_func(_filter_kmer, args, self.ncpu, 
+					method=self.method, chunksize=self.chunksize):
 			i += 1
 			if i % 1000000 == 0:
 				logger.info('Processed {} kmers'.format(i))
 			if freqs:
 				d_mat2[kmer] = freqs
 		return d_mat2
-	def _filter(self, arg):
-		kmer, counts, d_lens, sgs, d_targets, min_freq, max_freq, min_fold = arg
-		tot = sum(counts)
-		if tot < min_freq or tot > max_freq:
-			return kmer, False
-		# normalize
-		d_counts = dict(zip(self.labels, counts))
-		includes = []
-		for sg in sgs:
-			if len(sg) == 1:
-				logger.warn('Singleton `{}` is ignored'.format(sg))
-				continue
-			include = False
-			freqs = []
-			for chrs in sg:
-				chrs = [d_targets.get(chr, chr) for chr in chrs]
-				if len(chrs) == 1:
-					chr = chrs[0]
-					count = d_counts[chr]
-					lens = d_lens[chr]
-					freq = count/lens
-				else:
-					count = [d_counts[chr] for chr in chrs]
-					lens = [d_lens[chr] for chr in chrs]
-					freq = sum(count) / sum(lens)
-				freqs += [freq]
-			freqs = sorted(freqs, reverse=1)
-			_max_freq = freqs[0]
-			_min_freq = freqs[1]
-			if 1.0 * _max_freq / (_min_freq+1e-9) >= min_fold:
-				include = True
-			includes += [include]
-		if not all(includes):
-			return kmer, False
-		return kmer, [c/l for c,l in zip(counts, self.lengths)]
+
 	
 	def write_matrix(self, d_mat, fout):
 		fout.write( '\t'.join(['kmer'] + self.labels) + '\n')
@@ -176,7 +216,47 @@ dev.off()
 		cmd = 'Rscript ' + rsrc_file
 		run_cmd(cmd, log=True)
 		return outfig
-
+def _filter_kmer(arg):
+	(kmer, counts, d_lens, sgs, d_targets, 
+		min_freq, max_freq, min_fold) = arg
+	labels = d_lens.keys()
+	lengths = d_lens.values()
+	tot = sum(counts)
+	if tot < min_freq or tot > max_freq:
+		return kmer, False
+	# normalize
+	d_counts = dict(zip(labels, counts))
+	includes = []
+	for sg in sgs:
+		if len(sg) == 1:
+			logger.warn('Singleton `{}` is ignored'.format(sg))
+			continue
+		include = False
+		freqs = []
+		for chrs in sg:
+			chrs = [d_targets.get(chr, chr) for chr in chrs]
+			if len(chrs) == 1:
+				chr = chrs[0]
+				count = d_counts[chr]
+				lens = d_lens[chr]
+				freq = count/lens
+			else:
+				count = [d_counts[chr] for chr in chrs]
+				lens = [d_lens[chr] for chr in chrs]
+				freq = sum(count) / sum(lens)
+			freqs += [freq]
+		freqs = sorted(freqs, reverse=1)
+		_max_freq = freqs[0]
+		_min_freq = freqs[1]
+		if 1.0 * _max_freq / (_min_freq+1e-9) >= min_fold:
+			include = True
+		includes += [include]
+	if not all(includes):
+		return kmer, False
+	return kmer, [c/l for c,l in zip(counts, lengths)]
+		
+		
+		
 ints = '1234'
 bases = 'ATCG'
 d_base2int = dict(zip(bases, ints))

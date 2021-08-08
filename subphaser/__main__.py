@@ -231,10 +231,10 @@ class Pipeline:
 		matfile = self.para_prefix + '.kmer.mat'
 		ckp_file = self.mk_ckpfile(matfile)
 		if self.overwrite or not check_ckp(ckp_file):
-			d_mat = dumps.to_matrix()	# multiprocessing by kmer
+			d_mat = dumps.to_matrix()	# multiprocessing by chrom
 			logger.info('{} kmers in total'.format(len(d_mat)))
 			lengths = dumps.lengths
-			logger.info('Filtering')
+			logger.info('Filtering')	# multiprocessing by kmer
 			d_mat = dumps.filter(d_mat, lengths, self.sgs, d_targets=d_targets, 
 					min_fold=self.min_fold, 
 					min_freq=self.min_freq, max_freq=self.max_freq,
@@ -258,7 +258,7 @@ class Pipeline:
 		sg_chrs = self.para_prefix + '.subgenomes'
 		logger.info('Outputing `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
 		with open(sg_chrs, 'w') as fout:
-			cluster.output_subgenomes(fout)
+			cluster.output_subgenomes(fout)  # multiprocessing by kmer
 		# PCA
 		outfig = self.para_prefix + '.pca.' + self.figfmt
 		logger.info('Outputing PCA plot to `{}`'.format(outfig))
@@ -276,9 +276,10 @@ class Pipeline:
 		ckp_file = self.mk_ckpfile(sg_map)
 		if self.overwrite or not check_ckp(ckp_file):	# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
-			with open(sg_map, 'w') as fout:	# multiprocessing by chrom position
+			chunksize = None if self.pool_method == 'map' else 10
+			with open(sg_map, 'w') as fout:	# multiprocessing by chrom chunk
 				Seqs.map_kmer3(chromfiles, d_kmers, fout=fout, k=self.k, 
-					ncpu=self.ncpu, method=self.pool_method)
+					ncpu=self.ncpu, method=self.pool_method, chunksize=chunksize)
 			mk_ckp(ckp_file)
 		# enrich by BIN
 		bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
