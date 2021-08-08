@@ -78,7 +78,7 @@ class JellyfishDumps:
 		d_idx = dict(zip(self.dumpfiles, range(ncol)))
 		d_mat = {}
 		# args = []
-		dumps = pool_func(_to_matrix2, self.dumpfiles, self.ncpu)
+		dumps = pool_func(_to_matrix2, self.dumpfiles, self.ncpu, method=self.method)
 		for seqs, freqs, dumpfile, tot in dumps:
 			i = d_idx[dumpfile]
 			lengths[i] = tot

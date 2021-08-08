@@ -255,7 +255,7 @@ class Pipeline:
 				replicates=self.replicates, jackknife=self.jackknife)
 		d_sg = cluster.d_sg	# chrom -> SG
 		self.sg_names = cluster.sg_names
-		sg_chrs = self.para_prefix + '.subgenomes'
+		sg_chrs = self.para_prefix + '.chrom-subgenome.tsv'
 		logger.info('Outputing `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)  # multiprocessing by kmer
@@ -265,14 +265,14 @@ class Pipeline:
 		cluster.pca(outfig)
 
 		# specific kmers and location
-		sg_kmers = self.para_prefix + '.kmers'
+		sg_kmers = self.para_prefix + '.sig.kmer-subgenome.tsv'
 		logger.info('Outputing significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
 		with open(sg_kmers, 'w') as fout:	# multiprocessing by kmer
 			# kmer -> SG
 			d_kmers = cluster.output_kmers(fout, min_pval=self.min_pval, ncpu=self.ncpu)
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
 	
-		sg_map = self.para_prefix + '.sg.bed'
+		sg_map = self.para_prefix + '.subgenome.bed'
 		ckp_file = self.mk_ckpfile(sg_map)
 		if self.overwrite or not check_ckp(ckp_file):	# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
@@ -282,6 +282,7 @@ class Pipeline:
 					ncpu=self.ncpu, method=self.pool_method, chunksize=chunksize)
 			mk_ckp(ckp_file)
 		# enrich by BIN
+		logger.info('Enriching subgenome by chromosome window')
 		bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
 		bin_enrich = self.para_prefix + '.bin.enrich'
 		with open(bin_enrich, 'w') as fout:
