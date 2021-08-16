@@ -367,6 +367,7 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 radius    = {}r
 crest     = 0.25
 ribbon    = yes
+twist     = yes
 flat      = yes
 thickness = 1
 color     = 255,0,0,0.5
@@ -380,13 +381,14 @@ bezier_radius_purity = 1\n'''.format(start))
 file       = {}
 </link>
 '''.format(linkfile))
-
+	
 	#fout.write('</links>')
+	fout.close()
 	
 	# plot
 	cmd = 'cd {} && circos -conf ./circos.conf'.format(wddir)
 	exit = run_cmd(cmd, log=True)
-	print(exit)
+	#print(exit)
 	annofile = '{}/../circos_legend.txt'.format(wddir)
 	with open(annofile, 'w') as fout:
 		fout.write('Rings from outer to inner:\n\t1. Karyotypes\n')

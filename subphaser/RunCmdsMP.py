@@ -311,8 +311,8 @@ def default_processors(actual=None):
 		return available_cpus
 def pp_run(cmd_list, processors='autodetect'):
 #	'''use multiprocessing instead of pp'''
-#	try: return pool_run(cmd_list, processors)
-#	except: pass	# AssertionError: daemonic processes are not allowed to have children
+	try: return pool_run(cmd_list, processors)
+	except: pass	# AssertionError: daemonic processes are not allowed to have children
 								# Nest of Pool
 	if processors is None:
 		processors = 'autodetect'
@@ -320,6 +320,7 @@ def pp_run(cmd_list, processors='autodetect'):
 	job_server = pp.Server(processors, ppservers=ppservers)
 	jobs = [job_server.submit(run_cmd, (cmd,), (), ('subprocess',)) for cmd in cmd_list]
 	return [job() for job in jobs]
+
 def pp_func(func, lst, args=(), funcs=(), libs=(), processors='autodetect'):
 	ppservers = ()
 	job_server = pp.Server(processors, ppservers=ppservers)

@@ -11,7 +11,7 @@ from . import Seqs
 from .Jellyfish import run_jellyfish_dumps, JellyfishDumps
 from .Cluster import Cluster
 from . import LTR
-from .LTR import LTRpipelines
+from .LTR import LTRpipeline
 from . import Stats
 from . import Circos
 from . import Blocks
@@ -134,13 +134,13 @@ for estimating age of LTR insertion \
 	group_circ.add_argument('-disable_blocks', action="store_true", default=False,
 					help="Disable to identify homologous blocks [default=%(default)s]")
 	group_circ.add_argument("-aligner", metavar='PROG', 
-					default='miniamp2', 
-					choices=['miniamp2', 'unimap'],
+					default='minimap2', 
+					choices=['minimap2', 'unimap'],
 					help="Programs to identify homologous blocks [default=%(default)s]")
 	group_circ.add_argument("-aligner_options", metavar='STR',
 					default='-x asm20',
 					help='Options for `-aligner` to align chromosome sequences [default="%(default)s"]')
-	group_circ.add_argument('-min_block', type=int, default=10000, metavar='INT',
+	group_circ.add_argument('-min_block', type=int, default=20000, metavar='INT',
 					help="Minimum block size to show [default=%(default)s]")
 
 	# others
@@ -253,7 +253,7 @@ class Pipeline:
 			self.chunksize = 100
 			logger.info('Change pool method to reduce memory')
 
-		logger.info('Step: Kmer Count')
+		logger.info('###Step: Kmer Count')
 		# jellyfish
 		logger.info('Counting kmer by jellyfish')	# multiprocessing by chromfile
 		dumpfiles = run_jellyfish_dumps(chromfiles, k=self.k, ncpu=self.ncpu, lower_count=self.lower_count,
@@ -270,8 +270,9 @@ class Pipeline:
 			d_mat = dumps.to_matrix()	# multiprocessing by chrom
 			logger.info('{} kmers in total'.format(len(d_mat)))
 			lengths = dumps.lengths
-			logger.info('Filtering')	# multiprocessing by kmer
-			d_mat = dumps.filter(d_mat, lengths, self.sgs, #d_targets=d_targets, 
+			logger.info('Filtering differential kmers')	# multiprocessing by kmer
+			histfig = self.para_prefix + '.kmer_freq.' + self.figfmt
+			d_mat = dumps.filter(d_mat, lengths, self.sgs, outfig=histfig, #d_targets=d_targets, 
 					min_fold=self.min_fold, 
 					min_freq=self.min_freq, max_freq=self.max_freq,
 					min_prop=self.min_prop, max_prop=self.max_prop)
@@ -286,7 +287,7 @@ class Pipeline:
 					heatmap_options=self.heatmap_options)
 		
 		# kmeans cluster
-		logger.info('Step: Cluster')
+		logger.info('###Step: Cluster')
 		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG',
 				replicates=self.replicates, jackknife=self.jackknife)
 		d_sg = cluster.d_sg	# chrom -> SG
@@ -307,7 +308,9 @@ class Pipeline:
 			# kmer -> SG
 			d_kmers = cluster.output_kmers(fout, min_pval=self.min_pval, ncpu=self.ncpu)
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
-	
+		for sg, count in Counter(d_kmers.values()).items():
+			logger.info('\t{} {}-specific kmers'.format(count//2, sg))
+		
 		sg_map = self.para_prefix + '.subgenome.bed'
 		ckp_file = self.mk_ckpfile(sg_map)
 		if self.overwrite or not check_ckp(ckp_file):	# SG id should be stable
@@ -345,24 +348,25 @@ class Pipeline:
 
 	def step_ltr(self, d_kmers):
 		# LTR
-		logger.info('Step: LTR')
-		tmpdir = '{}LTR/'.format(self.tmpdir)
-		if '-p' not in self.tesorter_options:
-			self.tesorter_options += ' -p {}'.format(self.threads)
+		logger.info('###Step: LTR')
+		tmpdir = '{}LTR'.format(self.tmpdir)
+		if ' -p ' not in self.tesorter_options:
+			self.tesorter_options += ' -p {}'.format(self.ncpu)
 		kargs = dict(progs=self.ltr_detectors, 
 				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
-				job_args={'mode': 'local', 'retry': 3, 'cont': 1,  'tc_tasks': self.threads},
+				job_args={'mode': 'local', 'retry': 3, 'cont': 1,  'tc_tasks': self.ncpu},
 				tesorter_options=self.tesorter_options, mu=self.mu,)
 		# multiprocessing by chromfile
-		ltrs, ltrfiles = LTRpipelines(self.chromfiles, tmpdir=tmpdir, 
-					only_ltr=True, ncpu=self.ncpu, **kargs).run()
+		ltrs, ltrfile = LTRpipeline(self.chromfiles, tmpdir=tmpdir, 
+					all_ltr=self.all_ltr, intact_ltr=self.intact_ltr,
+					ncpu=self.ncpu, **kargs).run()
 		ltr_map = self.para_prefix + '.ltr.bed'
 		ckp_file = self.mk_ckpfile(ltr_map)
 		if self.overwrite or not check_ckp(ckp_file):
 #		if True:
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
 			with open(ltr_map, 'w') as fout:	# multiprocessing by LTR
-				Seqs.map_kmer3(ltrfiles, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
+				Seqs.map_kmer3([ltrfile], d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
 								chunk=False, log=False, method=self.pool_method, chunksize=self.chunksize)
 			mk_ckp(ckp_file)
 
@@ -382,6 +386,7 @@ class Pipeline:
 		return ltr_bedlines, enrich_ltr_bedlines
 
 	def step_circos(self, *args, **kargs):
+		logger.info('###Step: Circos')
 		# blocks
 		if not self.disable_blocks:
 			pafs = self.step_blocks()
@@ -406,8 +411,9 @@ class Pipeline:
 		thread = int(self.ncpu // ncpu)
 		
 		mkdirs(outdir)
-		pafs = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, ncpu=ncpu, thread=thread, 
-						opts=self.aligner_options)
+		pafs = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,
+						ncpu=ncpu, thread=thread, opts=self.aligner_options)
+						
 		return pafs
 	
 	def step_final(self):

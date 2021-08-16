@@ -1,4 +1,4 @@
 r-base
-gplots
-ggplot2
-ggtree
+r-gplots
+r-ggplot2
+bioconductor-ggtree

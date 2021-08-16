@@ -39,15 +39,16 @@ class JellyfishDump(object):
 def _parse_line(line):
 	seq, freq = line.strip().split()
 	return JellyfishDumpRecord(seq=seq, freq=freq)
-# def _to_matrix2(arg):
-	# dumpfile = arg
-	# seqs, freqs = [], []
-	# tot = 0
-	# for rc in JellyfishDump(dumpfile):
-		# seqs += [rc.seq]
-		# freqs += [rc.freq]
-		# tot += rc.freq
-	# return seqs, freqs, dumpfile, tot
+
+def _to_matrix2(arg):
+	dumpfile = arg
+	seqs, freqs = [], []
+	tot = 0
+	for rc in JellyfishDump(dumpfile):
+		seqs += [rc.seq]
+		freqs += [rc.freq]
+		tot += rc.freq
+	return seqs, freqs, dumpfile, tot
 	
 # def _insert_freq(arg):
 	# generator, dumpfile, d_mat, i = arg
@@ -120,10 +121,10 @@ class JellyfishDumps:
 		logger.info('Loading '+ dumpfile)
 		return JellyfishDump(dumpfile)
 
-	def filter(self, d_mat, lengths, sgs,
+	def filter(self, d_mat, lengths, sgs, outfig=None, 
 				min_freq=200, max_freq=10000, min_fold=2,
 				min_prop=None, max_prop=None):
-		logger.info([min_freq, max_freq, min_fold])
+		#logger.info([min_freq, max_freq, min_fold])
 		#logger.info(sgs)
 		tot_lens = sum(self.lengths)
 		if min_prop is not None:
@@ -137,16 +138,24 @@ class JellyfishDumps:
 
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
-		args = ((kmer, counts, d_lens, sgs, min_freq, max_freq, min_fold) \
+		args = ((kmer, counts, d_lens, sgs, outfig, min_freq, max_freq, min_fold) \
 					for kmer, counts in d_mat.items())
 		i = 0
-		for kmer, freqs in pool_func(_filter_kmer, args, self.ncpu, 
+		tot_freqs = []
+		for kmer, freqs, tot_freq in pool_func(_filter_kmer, args, self.ncpu, 
 					method=self.method, chunksize=self.chunksize):
 			i += 1
 			if i % 1000000 == 0:
 				logger.info('Processed {} kmers'.format(i))
 			if freqs:
 				d_mat2[kmer] = freqs
+			if tot_freq:
+				tot_freqs += [tot_freq]
+		
+		# plot
+		if outfig is not None:
+			logger.info('plot ' + outfig)
+			plot_histogram(tot_freqs, outfig)
 		return d_mat2
 
 	
@@ -185,13 +194,13 @@ dev.off()
 		return outfig
 		
 def _filter_kmer(arg):
-	(kmer, counts, d_lens, sgs, 
+	(kmer, counts, d_lens, sgs, outfig, 
 		min_freq, max_freq, min_fold) = arg
 	labels = d_lens.keys()
 	lengths = d_lens.values()
 	tot = sum(counts)
-	if tot < min_freq or tot > max_freq:
-		return kmer, False
+	if not outfig and (tot < min_freq or tot > max_freq):
+		return kmer, False, None
 	# normalize
 	d_counts = dict(zip(labels, counts))
 	includes = []
@@ -219,10 +228,23 @@ def _filter_kmer(arg):
 			include = True
 		includes += [include]
 	if not all(includes):
-		return kmer, False
-	return kmer, [c/l for c,l in zip(counts, lengths)]
+		return kmer, False, None
+	if outfig and (tot < min_freq or tot > max_freq):
+		return kmer, False, tot
+	return kmer, [c/l for c,l in zip(counts, lengths)], tot
 		
-		
+def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylabel='Count'):
+	from matplotlib import pyplot as plt
+	_min, _max = 0, max(data)
+	nbins = int((_max-_min)/step)
+	n,bins,patches = plt.hist(data, bins=nbins)
+	xlim = np.percentile(data, xlim)
+	plt.xlim(_min, xlim)
+#	plt.semilogy()
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.savefig(outfig)
+	
 		
 ints = '1234'
 bases = 'ATCG'

@@ -203,29 +203,36 @@ def split_fastx_by_chunk_num(inFastx, prefix, chunk_num, seqfmt, suffix):
 		chunk_id += 1
 		exec('f%s.close()' % (chunk_id, ))
 	return (i, chunk_num, i/chunk_num, outfiles)
-def cut_seqs(inSeq, outSeq, window_size=500000, window_ovl=100000, seqfmt='fasta'):
-	for rc in SeqIO.parse(inSeq, seqfmt):
-		seq_len = len(rc.seq)
-		for s in range(0, seq_len+1, window_size):
-			e = s + window_size + window_ovl
-			if e > seq_len:
-				e = seq_len
-#				if e-s < window_size/10:
-#					s = max(0, s-window_size/10)
-			sseq = rc.seq[s:e]
-			sid = '%s:%s-%s' % (rc.id, s+1, e)
-			sid += ' length=%s' % len(sseq)
-			print('>%s\n%s' % (sid, sseq), file=outSeq)
-			if e == seq_len:
-				continue
+def cut_seqs(inSeqs, outSeq, window_size=500000, window_ovl=100000, seqfmt='fasta'):
+	if isinstance(inSeqs, str):
+		inSeqs = [inSeqs]
+	for inSeq in inSeqs:
+		for rc in SeqIO.parse(inSeq, seqfmt):
+			seq_len = len(rc.seq)
+			for s in range(0, seq_len+1, window_size):
+				e = s + window_size + window_ovl
+				if e > seq_len:
+					e = seq_len
+	#				if e-s < window_size/10:
+	#					s = max(0, s-window_size/10)
+				sseq = rc.seq[s:e]
+				sid = '%s:%s-%s' % (rc.id, s+1, e)
+				sid += ' length=%s' % len(sseq)
+				print('>%s\n%s' % (sid, sseq), file=outSeq)
+				if e == seq_len:
+					continue
 
 def bin_split_fastx_by_chunk_num(inFastx, prefix, chunk_num, seqfmt, suffix, window_size=1e6, window_ovl=1e5, tmpdir='/tmp'):
-	from tempfile import NamedTemporaryFile
+#	from tempfile import NamedTemporaryFile
+	import uuid
+	uid = uuid.uuid1()
+
 	window_size, window_ovl = int(window_size) ,int(window_ovl)
-	#cutSeq = '{}/cut.{}'.format(tmpdir, seqfmt)
-	with NamedTemporaryFile('w+t', delete=False) as f:
+	cutSeq = '{}/cut.{}.{}'.format(tmpdir, uid, seqfmt)
+#	with NamedTemporaryFile('w+t', delete=False) as f:
+	with open(cutSeq, 'w') as f:
 		cut_seqs(inFastx, f, window_size=window_size, window_ovl=window_ovl, seqfmt=seqfmt)
-		cutSeq = f.name
+#		cutSeq = f.name
 	_return = split_fastx_by_size(cutSeq, prefix, chunk_num, seqfmt, suffix)
 	os.remove(cutSeq)
 	return _return

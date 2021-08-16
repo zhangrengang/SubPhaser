@@ -1,0 +1,7 @@
+name: SubPhaser
+channels:
+  - bioconda
+  - defaults
+  - conda-forge
+dependencies:
+

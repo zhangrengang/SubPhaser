@@ -1,5 +1,6 @@
 import sys, re, os
 import math
+import itertools
 from collections import OrderedDict
 from Bio import SeqIO
 from TEsorter.app import CommonClassifications
@@ -28,20 +29,8 @@ options = {
 -maxlenltr 7000 -mintsd 4 -maxtsd 6 ', # -motif TGCA -motifmis 1
 }
 
-def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin=20e6, 
-			tmpdir='/io/tmp/share', unique=True, window_size=10e6, window_ovl=1e5,
-			job_args=job_args, options=options):
-	if unique:	# unique dir
-		tmpdir = '{}/ltr_{}'.format(tmpdir, os.getpid())
-	mkdirs(tmpdir)
-	d_len = OrderedDict((rc.id, len(rc.seq)) for rc in SeqIO.parse(inSeq, 'fasta'))
-	# binning
-	seq_len = sum(d_len.values())
-	nbins = int(seq_len/per_bin + 1)
-	prefix = '{}/{}'.format(tmpdir, os.path.basename(inSeq))
-	*_, chunk_files = bin_split_fastx_by_chunk_num(
-		inSeq, prefix=prefix, chunk_num=nbins, window_size=window_size, window_ovl=window_ovl, seqfmt='fasta', suffix='')
-
+def detect_ltr_pp(chunk_files, prefix, 
+		progs=['ltr_finder', 'ltr_harvest'], job_args=job_args, options=options ):
 	# pp runing
 	cmds = []
 	d_outputs = {}
@@ -55,24 +44,44 @@ def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin
 			outputs.append(output)
 		d_outputs[prog] = outputs
 
-	cmd_file = '{}.ltr_denovo.sh'.format(prefix)
+	cmd_file = '{}ltr_denovo.sh'.format(prefix)
 	run_job(cmd_file, cmds, **job_args)
+	return d_outputs
 
-	print('''# LTR_pp {}
-# Note: overlap between two LTRs is resolved by removing the shorter one
-#start end len lLTR_str lLTR_end lLTR_len rLTR_str rLTR_end rLTR_len similarity seqid chr direction TSD lTSD rTSD motif superfamily family age(ya)
-# LTR_FINDER args=$finder_para
-# predictions are reported in the following way
-# s(ret) e(ret) l(ret) s(lLTR) e(lLTR) l(lLTR) s(rLTR) e(rLTR) l(rLTR) sim(LTRs) seq-nr chr
-# where:
-# s = starting position
-# e = ending position
-# l = length
-# ret = LTR-retrotransposon
-# lLTR = left LTR
-# rLTR = right LTR
-# sim = similarity
-# seq-nr = sequence order'''.format(inSeq), file=harvest_out)
+def chunk_fastas(inSeqs, d_len, per_bin=20e6, tmpdir='/io/tmp/share',
+			unique=True, window_size=10e6, window_ovl=1e5):
+	if unique:	# unique dir
+		tmpdir = '{}/ltr_{}'.format(tmpdir, os.getpid())
+	mkdirs(tmpdir)
+	# tmpdir0 = tmpdir
+	# xchunk_files = []
+	# d_lens = {}
+	# d_chunks = {}
+	# for inSeq in inSeqs:
+		# tmpdir = '{}/{}'.format(tmpdir, os.path.basename(inSeq))
+		# d_len = OrderedDict((rc.id, len(rc.seq)) for rc in SeqIO.parse(inSeq, 'fasta'))
+		# d_lens.update(d_len)
+	# binning
+	seq_len = sum(d_len.values())
+	nbins = int(seq_len/per_bin + 1)
+		# prefix = '{}/{}'.format(tmpdir, os.path.basename(inSeq))
+	prefix = '{}/'.format(tmpdir, )
+	*_, chunk_files = bin_split_fastx_by_chunk_num(
+			inSeqs, prefix=prefix, chunk_num=nbins, window_size=window_size, window_ovl=window_ovl, 
+			seqfmt='fasta', suffix='')
+		# xchunk_files += chunk_files
+		# d_chunks[inSeq] = chunk_files
+	return chunk_files
+
+def detect_ltr(inSeqs, harvest_out, d_len, progs=['ltr_finder', 'ltr_harvest'],  
+		job_args=job_args, options=options, 
+		tmpdir='/io/tmp/share', per_bin=20e6, 
+		unique=True, window_size=10e6, window_ovl=1e5, **kargs):
+	chunk_files = chunk_fastas(inSeqs, d_len, per_bin=per_bin, 
+			tmpdir=tmpdir, unique=unique, window_size=window_size, window_ovl=window_ovl)
+	prefix = tmpdir +'/'
+	d_outputs = detect_ltr_pp(chunk_files, prefix, progs=progs, job_args=job_args, options=options)
+
 	d_idmap = {raw_id: i for i, raw_id in enumerate(d_len.keys())}
 	lines = []
 	parsers = {
@@ -96,11 +105,27 @@ def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin
 				d_ltrs[raw_id] += [rc]
 
 	# merge, remove overlaps and output
+	print('''# LTR_pp
+# Note: overlap between two LTRs is resolved by removing the partial one and the shorter one
+#start end len lLTR_str lLTR_end lLTR_len rLTR_str rLTR_end rLTR_len similarity seqid chr direction TSD lTSD rTSD motif superfamily family age(ya)
+# LTR_FINDER args=$finder_para
+# predictions are reported in the following way
+# s(ret) e(ret) l(ret) s(lLTR) e(lLTR) l(lLTR) s(rLTR) e(rLTR) l(rLTR) sim(LTRs) seq-nr chr
+# where:
+# s = starting position
+# e = ending position
+# l = length
+# ret = LTR-retrotransposon
+# lLTR = left LTR
+# rLTR = right LTR
+# sim = similarity
+# seq-nr = sequence order''', file=harvest_out)
+
 	all_ltrs = []
 	for chrom in d_len.keys():
 		ltrs = d_ltrs[chrom]
 		if len(progs) > 1:
-			ltrs = resolve_overlaps(ltrs)
+			ltrs = resolve_overlaps(ltrs, max_ovl=95)	#relaxed
 		all_ltrs += ltrs
 		for rc in ltrs:
 			line = tuple(rc.harvest_output())
@@ -111,40 +136,6 @@ def detect_ltr(inSeq, harvest_out, progs=['ltr_finder', 'ltr_harvest'],  per_bin
 
 	#rmdirs(tmpdir)
 	return all_ltrs
-
-def resolve_overlaps(ltrs, max_ovl=10):
-	last_ltr = None
-	discards = []
-	ie, io = 0, 0
-	for ltr in sorted(ltrs, key=lambda x:x.start):
-		discard = None
-	#	print(last_ltr, ltr)
-		if last_ltr:
-			if ltr == last_ltr:	# equal
-				ie += 1
-				discard = ltr
-				last_ltr.source += ltr.source
-			elif ltr.overlap(last_ltr) > max_ovl: # overlaps
-				io += 1
-				if ltr.element_len > last_ltr.element_len:
-					discard = last_ltr
-					ltr.source += last_ltr.source
-				else:
-					last_ltr.source += ltr.source
-					discard = ltr
-			else:	# no overlap or too short overlap
-				last_ltr = ltr
-				continue
-			discards += [discard]
-#			if last_ltr.source != ltr.source:
-#				print(last_ltr, ltr, ltr.overlap(last_ltr))
-#		else:
-#			last_ltr = ltr
-#		if not discard or discard == last_ltr:
-		if not last_ltr or discard != ltr:
-			last_ltr = ltr
-	logger.info('Discard {} equal and {} overlapped; {} in total'.format(ie, io, ie+io))
-	return sorted(set(ltrs) - set(discards), key=lambda x:x.start)
 
 class LTRpipelines:
 	def __init__(self, genomes, ncpu=8, tmpdir='tmp', **kargs):
@@ -160,8 +151,160 @@ class LTRpipelines:
 			seqs += [_seqs]
 		return ltrs, seqs
 	def _run(self, genome):
-#		tmpdir = '{}/{}'.format(self.tmpdir, os.path.basename(genome))
 		return LTRpipeline(genome, tmpdir=self.tmpdir, **self.kargs).run()
+		
+class LTRpipeline:
+	def __init__(self, genomes, tmpdir='./tmp', mu=7e-9, tesorter_options='', 
+			all_ltr=False, intact=False, only_ltr=True, **kargs):
+		'''all_ltr: use all LTR identified by LTR detectors
+only_ltr: use LTR as classified by TEsorter
+intact: only use completed LTR as classified by TEsorter'''
+		self.genomes = genomes
+		self.tmpdir = tmpdir
+		self.tesorter_options = tesorter_options
+		self.all_ltr = all_ltr
+		self.intact = False if only_ltr else intact 
+		self.only_ltr = only_ltr	# only LTR classified by tesorter
+		self.mu = mu
+		self.kargs = kargs
+	def run(self):
+		mkdirs(self.tmpdir)
+		self.d_seqs = OrderedDict((rc.id, rc.seq) for genome in self.genomes \
+									 for rc in SeqIO.parse(genome, 'fasta'))
+		self.d_len = OrderedDict((id, len(seq)) for id, seq in self.d_seqs.items())
+		self.prefix = '{}'.format(self.tmpdir, )
+		ltr_out = self.prefix +'.scn'
+		ckp = ltr_out + '.ok'
+		if check_ckp(ckp):
+			ltrs = list(LTRHarvest(ltr_out))
+		else:
+			with open(ltr_out, 'w') as fout:
+				ltrs = self.identify(fout)
+			mk_ckp(ckp)
+		int_seqs = self.prefix + '.INT.fa'
+		with open(int_seqs, 'w') as fout:
+			self.get_int_seqs(ltrs, fout)
+		d_class = self.classfify(int_seqs)
+
+			
+		filtered_ltrs = []
+		for ltr in ltrs:
+			cls = d_class.get(ltr.id, )
+			if cls:
+				ltr.__dict__.update(cls.__dict__)
+			if self.all_ltr:	# no filter
+				ltr.age = ltr.estimate_age(mu=self.mu)
+				filtered_ltrs += [ltr]
+				continue
+			if not cls:	# filter by classification
+				continue
+			if self.only_ltr and cls.order != 'LTR':
+				continue
+			elif self.intact and cls.completed != 'yes':
+				continue
+			ltr.age = ltr.estimate_age(mu=self.mu)
+			filtered_ltrs += [ltr]
+		i, j = len(ltrs), len(filtered_ltrs)
+	#	logger.info('After filter, {} / {} ({:.1f}%)LTRs retained'.format(j, i, 1e2*j/i))
+		
+		ltrs = group_resolve_overlaps(filtered_ltrs)
+		j = len(ltrs)
+		logger.info('After filter, {} / {} ({:.1f}%)LTRs retained'.format(j, i, 1e2*j/i))
+		ltr_seqs = self.prefix + '.filtered.LTR.fa' 
+		with open(ltr_seqs, 'w') as fout:
+			self.get_full_seqs(ltrs, fout)
+		return ltrs, ltr_seqs
+
+
+	def identify(self, fout):
+		return detect_ltr(self.genomes, fout, self.d_len, tmpdir=self.prefix, unique=False, **self.kargs)
+
+	def classfify(self, inseq):
+		ckp = self.prefix + '.tesort.ok'
+		if check_ckp(ckp):
+			pass
+		else:
+			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > \
+{seqfile}.tesort.log'.format(
+					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
+			if self.intact:
+				cmd += ' -dp2'
+			run_cmd(cmd, log=True)
+			mk_ckp(ckp)
+		clsfile = '{seqfile}.cls.tsv'.format(seqfile=inseq)
+		d_class = {}
+		for classification in CommonClassifications(clsfile):
+			d_class[classification.id] = classification
+		return d_class
+
+	def get_seqs(self, ltrs, fout, method='get_full_seq'):
+		d_seqs = self.d_seqs
+		for ltr in ltrs:
+			seq = getattr(ltr, method)(d_seqs=d_seqs)
+			fout.write('>{}\n{}\n'.format(ltr.id, seq))
+	def get_int_seqs(self, ltrs, fout):
+		return self.get_seqs(ltrs, fout, method='get_int_seq')
+	def get_full_seqs(self, ltrs, fout):
+		return self.get_seqs(ltrs, fout, method='get_full_seq')
+
+def group_resolve_overlaps(ltrs):
+	'''assume multiple chromsomes'''
+	resolved_ltrs = []
+	for chrom, items in itertools.groupby(ltrs, key=lambda x:x.seq_id):
+		resolved_ltrs += resolve_overlaps(list(items))
+	return resolved_ltrs
+
+def resolve_overlaps(ltrs, max_ovl=10):
+	'''assume only one chromsome'''
+	last_ltr = None
+	discards = []
+	ie, io = 0, 0
+	for ltr in sorted(ltrs, key=lambda x:x.start):
+		discard = None
+	#	print(last_ltr, ltr)
+		if last_ltr:
+			both_completed = is_completed(ltr) and is_completed(last_ltr)
+			both_uncompleted = not (is_completed(ltr) or is_completed(last_ltr))
+			 
+			if ltr == last_ltr:	# equal
+				ie += 1
+				ltr_pair = [last_ltr, ltr]	# retain, discard
+			elif both_completed or both_uncompleted:
+				if ltr.overlap(last_ltr) > max_ovl: # overlaps
+					io += 1
+					if ltr.element_len > last_ltr.element_len:
+						ltr_pair = [ltr, last_ltr]
+					else:
+						ltr_pair = [last_ltr, ltr]
+				else:	# no overlap or too short overlap
+					last_ltr = ltr
+					continue
+			else:
+				if ltr.overlap(last_ltr) > max_ovl:
+					io += 1
+					if is_completed(ltr):	# completed is prior
+						ltr_pair = [ltr, last_ltr]
+					else: # is_completed(last_ltr)
+						ltr_pair = [last_ltr, ltr]
+				else:	# no overlap or too short overlap
+					last_ltr = ltr
+					continue
+			
+			retain, discard = ltr_pair
+			try:
+				retain.source += discard.source
+			except AttributeError:
+				pass
+			discards += [discard]
+
+		if not last_ltr or discard != ltr:
+			last_ltr = ltr
+	logger.info('Discard {} equal and {} overlapped LTRs; {} in total'.format(ie, io, ie+io))
+	return sorted(set(ltrs) - set(discards), key=lambda x:x.start)
+
+def is_completed(ltr):
+	completed = getattr(ltr, 'completed', None)
+	return True if completed == 'yes' else False
 
 def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
 	datfile = prefix + '.data'
@@ -192,89 +335,7 @@ ggsave('{outfig}', p, width=12, height=7)
 	run_cmd(cmd, log=True)
 	return enriched_ltrs
 
-class LTRpipeline:
-	def __init__(self, genome, tmpdir='./tmp', mu=7e-9, tesorter_options='', 
-			all_ltr=False, intact=False, only_ltr=True, **kargs):
-		'''all_ltr: use all LTR identified by LTR detectors
-only_ltr: use LTR as classified by TEsorter
-intact: only use completed LTR as classified by TEsorter'''
-		self.genome = genome
-		self.tmpdir = tmpdir
-		self.tesorter_options = tesorter_options
-		self.all_ltr = all_ltr
-		self.intact = False if only_ltr else intact 
-		self.only_ltr = only_ltr	# only LTR classified by tesorter
-		self.mu = mu
-		self.kargs = kargs
-	def run(self):
-		mkdirs(self.tmpdir)
-		self.prefix = '{}/{}'.format(self.tmpdir, os.path.basename(self.genome))
-		ltr_out = self.prefix +'.scn'
-		ckp = ltr_out + '.ok'
-		if check_ckp(ckp):
-			ltrs = list(LTRHarvest(ltr_out))
-		else:
-			with open(ltr_out, 'w') as fout:
-				ltrs = self.identify(fout)
-			mk_ckp(ckp)
-		int_seqs = self.prefix + '.INT.fa'
-		with open(int_seqs, 'w') as fout:
-			self.get_int_seqs(ltrs, fout)
-		d_class = self.classfify(int_seqs)
 
-			
-		filtered_ltrs = []
-		for ltr in ltrs:
-			if self.all_ltr:	# no filter
-				ltr.age = ltr.estimate_age(mu=self.mu)
-				
-				filtered_ltrs += [ltr]
-				continue
-			if ltr.id not in d_class:	# filter by classification
-				continue
-			cls = d_class[ltr.id]
-			if self.only_ltr and cls.order != 'LTR':
-				continue
-			elif self.intact and cls.completed != 'yes':
-				continue
-			ltr.superfamily = cls.superfamily
-			ltr.age = ltr.estimate_age(mu=self.mu)
-			filtered_ltrs += [ltr]
-		ltrs = filtered_ltrs
-		ltr_seqs = self.prefix + '.LTR.fa' 
-		with open(ltr_seqs, 'w') as fout:
-			self.get_full_seqs(ltrs, fout)
-		return ltrs, ltr_seqs
-
-	def identify(self, fout):
-		return detect_ltr(self.genome, fout, tmpdir=self.prefix, unique=False, **self.kargs)
-	def classfify(self, inseq):
-		ckp = self.prefix + '.tesort.ok'
-		if check_ckp(ckp):
-			pass
-		else:
-			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > \
-{seqfile}.tesort.log'.format(
-					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
-			if self.intact:
-				cmd += ' -dp2'
-			run_cmd(cmd, log=True)
-			mk_ckp(ckp)
-		clsfile = '{seqfile}.cls.tsv'.format(seqfile=inseq)
-		d_class = {}
-		for classification in CommonClassifications(clsfile):
-			d_class[classification.id] = classification
-		return d_class
-
-	def get_seqs(self, ltrs, fout, method='get_full_seq'):
-		d_seqs = {rc.id: rc.seq for rc in SeqIO.parse(self.genome, 'fasta')}
-		for ltr in ltrs:
-			seq = getattr(ltr, method)(d_seqs=d_seqs)
-			fout.write('>{}\n{}\n'.format(ltr.id, seq))
-	def get_int_seqs(self, ltrs, fout):
-		return self.get_seqs(ltrs, fout, method='get_int_seq')
-	def get_full_seqs(self, ltrs, fout):
-		return self.get_seqs(ltrs, fout, method='get_full_seq')
 
 class LTRHarvest():
 	def __init__(self, harvest_out, harvest_in=None):
