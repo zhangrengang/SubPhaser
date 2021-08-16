@@ -3,8 +3,8 @@ import copy
 from Bio import SeqIO
 from Bio.Seq import Seq
 from xopen import xopen as open
-from . import Kmer
-from .Kmer import get_subgenomes
+# from . import Kmer
+# from .Kmer import get_subgenomes
 from .RunCmdsMP import logger, pp_func, pool_func
 
 def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
@@ -30,9 +30,16 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 	d_size = {}
 	for genome, prefix in zip(genomes, prefixes):
 		for rc in SeqIO.parse(open(genome), 'fasta'):
-			rc.id = '{}{}'.format(prefix, rc.id)
-			if d_targets and rc.id not in d_targets:
-				continue
+			old_id, new_id = rc.id, '{}{}'.format(prefix, rc.id)
+#			rc.id = '{}{}'.format(prefix, rc.id)
+			if d_targets:
+				if new_id in d_targets:
+					rc.id = new_id
+				elif old_id in d_targets:
+					pass
+				else:
+					continue
+			
 			rc.id = d_targets[rc.id]
 			outfa = '{}{}.fasta'.format(outdir, rc.id)
 			with open(outfa, 'w') as fout:
@@ -42,65 +49,65 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 			d_size[rc.id] = len(rc.seq)
 	return outfas, labels, d_targets2, d_size
 
-def map_kmer_each(args):
-	rc, d_kmers, k = args
-	seq = list(rc.seq.upper())
-	lines = []
-	for s,e,sg in get_subgenomes(d_kmers, seq, k):
-#		line = [rc.id, s, e, sg]
-		line = [s, sg]
-	#	line = list(map(str, line))
-		lines += [line]
-	return rc.id, lines
-def map_kmer_each2(rc, d_kmers, k, ncpu=4):
-	seq = list(rc.seq.upper())
-	iterable = ((seq, i, k, d_kmers) for i in range(len(seq)))
-	jobs = pool_func(_get_2kmer, iterable, processors=ncpu, )
-	for kmers in jobs:
-		for kmer in kmers:
-			line = (rc.id,) + kmer
-			line = list(map(str, line))
-			yield line
-def _get_2kmer(args):
-	seq, i, k, d_kmers = args
-	s,e = i, i+k
-	kmers = Kmer.get_2kmer(seq, i, k)
-	res = []
-	for kmer in kmers:
-		try: sg = d_kmers[kmer]
-		except KeyError: continue
-		res += [( s, e, sg)]
-	return res
-def map_kmer(chromfiles, d_kmers, fout=sys.stdout, k=None, ncpu='autodetect', method='map'):
-	if k is None:
-		k = len(list(d_kmers.keys())[0])
-	iterable = ((rc, d_kmers, k) for chromfile in chromfiles for rc in SeqIO.parse(open(chromfile), 'fasta'))
-	xlines = []	
-	for (rc, d_kmers, k) in iterable:
-		j = 0
-		for line in map_kmer_each2(rc, d_kmers, k, ncpu=ncpu):
-			print('\t'.join(line), file=fout)
-			j += 1
-			xlines += [line]
-		logger.info('Mapped {} kmers to {}'.format(j, rc.id))
-	return xlines
-def map_kmer2(chromfiles, d_kmers, fout=sys.stdout, k=None, ncpu='autodetect', method='map'):
-	if k is None:
-		k = len(list(d_kmers.keys())[0])
-	iterable = ((rc, d_kmers, k) for chromfile in chromfiles for rc in SeqIO.parse(open(chromfile), 'fasta'))
-	jobs = pool_func(map_kmer_each, iterable, processors=ncpu, method=method)
-	xlines = []
-	for job in jobs:
-		id, lines = job
-		j = 0
-#		for line in lines:
-		for s, sg in lines:
-			line = [id, s, s+k, sg]
-			line = list(map(str, line))
-			print('\t'.join(line), file=fout)
-			j += 1
-			xlines += [line]
-	return xlines
+# def map_kmer_each(args):
+	# rc, d_kmers, k = args
+	# seq = list(rc.seq.upper())
+	# lines = []
+	# for s,e,sg in get_subgenomes(d_kmers, seq, k):
+# #		line = [rc.id, s, e, sg]
+		# line = [s, sg]
+	# #	line = list(map(str, line))
+		# lines += [line]
+	# return rc.id, lines
+# def map_kmer_each2(rc, d_kmers, k, ncpu=4):
+	# seq = list(rc.seq.upper())
+	# iterable = ((seq, i, k, d_kmers) for i in range(len(seq)))
+	# jobs = pool_func(_get_2kmer, iterable, processors=ncpu, )
+	# for kmers in jobs:
+		# for kmer in kmers:
+			# line = (rc.id,) + kmer
+			# line = list(map(str, line))
+			# yield line
+# def _get_2kmer(args):
+	# seq, i, k, d_kmers = args
+	# s,e = i, i+k
+	# kmers = Kmer.get_2kmer(seq, i, k)
+	# res = []
+	# for kmer in kmers:
+		# try: sg = d_kmers[kmer]
+		# except KeyError: continue
+		# res += [( s, e, sg)]
+	# return res
+# def map_kmer(chromfiles, d_kmers, fout=sys.stdout, k=None, ncpu='autodetect', method='map'):
+	# if k is None:
+		# k = len(list(d_kmers.keys())[0])
+	# iterable = ((rc, d_kmers, k) for chromfile in chromfiles for rc in SeqIO.parse(open(chromfile), 'fasta'))
+	# xlines = []	
+	# for (rc, d_kmers, k) in iterable:
+		# j = 0
+		# for line in map_kmer_each2(rc, d_kmers, k, ncpu=ncpu):
+			# print('\t'.join(line), file=fout)
+			# j += 1
+			# xlines += [line]
+		# logger.info('Mapped {} kmers to {}'.format(j, rc.id))
+	# return xlines
+# def map_kmer2(chromfiles, d_kmers, fout=sys.stdout, k=None, ncpu='autodetect', method='map'):
+	# if k is None:
+		# k = len(list(d_kmers.keys())[0])
+	# iterable = ((rc, d_kmers, k) for chromfile in chromfiles for rc in SeqIO.parse(open(chromfile), 'fasta'))
+	# jobs = pool_func(map_kmer_each, iterable, processors=ncpu, method=method)
+	# xlines = []
+	# for job in jobs:
+		# id, lines = job
+		# j = 0
+# #		for line in lines:
+		# for s, sg in lines:
+			# line = [id, s, s+k, sg]
+			# line = list(map(str, line))
+			# print('\t'.join(line), file=fout)
+			# j += 1
+			# xlines += [line]
+	# return xlines
 
 def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6, 
 		ncpu='autodetect', method='map', log=True, chunk=True, chunksize=None):

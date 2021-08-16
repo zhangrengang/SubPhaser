@@ -9,7 +9,9 @@ from io import IOBase
 import subprocess
 from optparse import OptionParser
 import logging
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s -%(levelname)s- %(message)s')
+logging.basicConfig(level = logging.INFO,
+			format='%(asctime)s [%(levelname)s] %(message)s', 
+			datefmt='%y-%m-%d %H:%M:%S',)
 logger = LOGGER = logging.getLogger(__name__)
 
 import multiprocessing
@@ -214,15 +216,41 @@ def run_tasks(cmd_list, tc_tasks=None, mode='grid', grid_opts='', cpu=1, mem='1g
 def avail_cpu(cpu):
 	cpu_count = multiprocessing.cpu_count()
 	return max(1, int(1.0*cpu_count/cpu))
-def avail_mem(mem):
+	
+d_mem = {'':1e1, 'k':1e3, 'm':1e6, 'g':1e9, 't':1e12}
+def avail_mem(mem, max_mem=None):
+	if max_mem is None:
+		import psutil
+		memory = psutil.virtual_memory()
+		max_mem = memory.available
+	else:
+		max_mem = mem2float(max_mem)
+	mem = mem2float(mem)
+	return max(1, int(1.0*max_mem//mem))
+def limit_memory(mem, max_mem):
+	logger.info('Limit memory {} per process with total memory {}'.format(
+		float2mem(mem), float2mem(max_mem)))
+	return avail_mem(mem, max_mem)
+
+def available_memory():
 	import psutil
 	memory = psutil.virtual_memory()
 	mem_free = memory.available
-	mem = mem2float(mem)
-	return max(1, int(1.0*mem_free/mem))
+	return float2mem(mem_free)
+
+def float2mem(mem):
+	if isinstance(mem, str):
+		try: mem = float(mem)
+		except ValueError: return mem
+		
+	for k, v in sorted(d_mem.items(), key=lambda x:x[1], reverse=1):
+		if mem > v:
+			return '{:.1f}{}'.format(mem/v, k.upper())
+
 def mem2float(mem):
+	if isinstance(mem, (int, float)):
+		return mem
 	import re
-	d_mem = {'':1e1, 'k':1e3, 'm':1e6, 'g':1e9, 't':1e12}
 	try:
 		num, unit = re.compile(r'(\d+\.?\d*)([kmgt]?)', re.I).match(mem).groups()
 		return float(num) * d_mem[unit.lower()]
@@ -252,11 +280,12 @@ def file2list(cmd_file, sep="\n"):
 			cmd_list = f.read().split(sep)
 	return [cmd for cmd in cmd_list if cmd.strip()]
 
-def run_cmd(cmd, logger=None, log=False):
+def run_cmd(cmd, log=False, logger=None, ):
 	if log and logger is None:
 		logger = LOGGER
 	if logger is not None:
 		logger.info('run CMD: `{}`'.format(cmd))
+#	print(cmd)
 	job = subprocess.Popen(cmd,stdout=subprocess.PIPE,\
 							stderr=subprocess.PIPE,shell=True)
 	output = job.communicate()
@@ -265,6 +294,10 @@ def run_cmd(cmd, logger=None, log=False):
 		 logger.warn("exit code {} for CMD `{}`: ".format(status, cmd))
 		 logger.warn('\n###STDOUT:{0}\n###STDERR:{1}'.format(*output))
 	return output + (status,)
+
+def _run_cmd(arg):
+	cmd, log, logger = arg
+	return run_cmd(cmd, log, logger)
 
 def default_processors(actual=None):
 	from multiprocessing import cpu_count
@@ -311,14 +344,15 @@ imap: True for imap'''
 		yield returned
 	logger.info('Closing Pool')
 	pool.close()
-	logger.info('Joining Pool')
+#	logger.info('Joining Pool')
 	pool.join()
 
-def pool_run(cmd_list, processors=8):
+def pool_run(cmd_list, processors=8, log=True, logger=None, **kargs):
 	try: processors = int(processors)
 	except (TypeError,ValueError):
 		processors = multiprocessing.cpu_count()
-	return pool_func(run_cmd, cmd_list, processors=processors)
+	iterable = ((cmd, log, logger) for cmd in cmd_list)
+	return [ returned for returned in pool_func(_run_cmd, iterable, processors=processors, **kargs) ]
 
 def add_args(value, args):
 	if isinstance(value, tuple):

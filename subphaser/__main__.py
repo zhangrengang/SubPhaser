@@ -1,4 +1,5 @@
 import sys,os
+import copy
 import argparse
 import shutil
 import json
@@ -13,12 +14,13 @@ from . import LTR
 from .LTR import LTRpipelines
 from . import Stats
 from . import Circos
-from .Circos import circos_plot
+from . import Blocks
 from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
-from .RunCmdsMP import logger
+from .RunCmdsMP import logger, available_memory, limit_memory
 
 bindir = os.path.dirname(os.path.realpath(__file__))
 NCPU = multiprocessing.cpu_count()
+MEM = available_memory()
 
 def makeArgparse():
 	parser = argparse.ArgumentParser( \
@@ -40,7 +42,7 @@ no conficts among chromosome id [default: %(default)s]")
 	group_in.add_argument("-target", default=None, type=str, metavar='FILE',
 					help="Target chromosomes to output; id mapping is allowed; \
 this chromosome set is for cluster and phase \
-[default: the chromosome set as `-sg_cfgs`]")
+[default: same chromosome set as `-sg_cfgs`]")
 	group_in.add_argument("-sep", default="|", type=str, metavar='STR',
 					help='Seperator for chromosome ID [default="%(default)s"]')
 	# output
@@ -94,7 +96,7 @@ of `gplots` package) [default="%(default)s"]')
 	group_ltr = parser.add_argument_group('LTR', 'Options for LTR analyses')
 	group_ltr.add_argument('-disable_ltr', action="store_true", default=False,
 					help="Disable this step (this step is time-consuming for large genome)\
- [default: %(default)s]")
+ [default=%(default)s]")
 
 	group_ltr.add_argument("-ltr_detectors", nargs='+', metavar='PROG', 
 					default=['ltr_finder', 'ltr_harvest'], 
@@ -112,25 +114,45 @@ of `gplots` package) [default="%(default)s"]')
 	group_ltr.add_argument("-tesorter_options", metavar='STR',
 					default='-db rexdb-plant',
 					help='Options for `TEsorter` to classify LTR-RTs [default="%(default)s"]')
-	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=7e-9,
-					help='Substitution rate for estimating age of LTR insertion \
+	group_ltr.add_argument('-all_ltr', action="store_true", default=False,
+                    help="Use all LTR identified by `-ltr_detectors` \
+[default: only use LTR as classified by `TEsorter`]")
+	group_ltr.add_argument('-intact_ltr', action="store_true", default=False,
+                    help="Use completed LTR as classified by `TEsorter` \
+[default: same as `-all_ltr`]")
+	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
+					help='Substitution rate in the intergenic region, \
+for estimating age of LTR insertion \
 [default=%(default)s]')
 
 	# circos
 	group_circ = parser.add_argument_group('Circos', 'Options for circos plot')
 	group_circ.add_argument('-disable_circos', action="store_true", default=False,
-					help="Disable this step [default: %(default)s]")
+					help="Disable this step [default=%(default)s]")
 	group_circ.add_argument('-window_size', type=int, default=1000000, metavar='INT',
-					help="Window size for circos plot [default: %(default)s]")
+					help="Window size for circos plot [default=%(default)s]")
+	group_circ.add_argument('-disable_blocks', action="store_true", default=False,
+					help="Disable to identify homologous blocks [default=%(default)s]")
+	group_circ.add_argument("-aligner", metavar='PROG', 
+					default='miniamp2', 
+					choices=['miniamp2', 'unimap'],
+					help="Programs to identify homologous blocks [default=%(default)s]")
+	group_circ.add_argument("-aligner_options", metavar='STR',
+					default='-x asm20',
+					help='Options for `-aligner` to align chromosome sequences [default="%(default)s"]')
+	group_circ.add_argument('-min_block', type=int, default=10000, metavar='INT',
+					help="Minimum block size to show [default=%(default)s]")
 
 	# others
 	group_other = parser.add_argument_group('Other options')
 	group_other.add_argument('-p', '-ncpu', type=int, default=NCPU, metavar='INT', dest='ncpu',
 					 help="Maximum number of processors to use [default=%(default)s]")
+	group_other.add_argument('-max_memory', type=str, default=MEM, metavar='MEM', 
+					 help="Maximum memory to use where limiting can be enabled. [default=%(default)s]")
 	group_other.add_argument('-cleanup', action="store_true", default=False,
-					help="Remove the temporary directory [default: %(default)s]")	
+					help="Remove the temporary directory [default=%(default)s]")	
 	group_other.add_argument('-overwrite', action="store_true", default=False,
-					help="Overwrite even if check point files existed [default: %(default)s]")
+					help="Overwrite even if check point files existed [default=%(default)s]")
 	args = parser.parse_args()
 	if args.prefix is not None:
 		args.prefix = args.prefix.replace('/', '_')
@@ -168,11 +190,18 @@ class Pipeline:
 		# re-labels
 		if self.no_label:
 			self.labels = [''] * (len(genomes))
-
 		self.kargs = kargs
 		# thread for pre process, i.e. jellyfish
 		self.threads = max(1, self.ncpu//len(set(self.chrs)))
 
+	def update_sgs(self, sgs, d_targets):
+		sgs = copy.deepcopy(sgs)
+		for sg in sgs:
+			for i, chrs in enumerate(sg):
+				chrs = [d_targets.get(chr, chr) for chr in chrs]
+				sg[i] = chrs
+		return sgs
+	
 	def run(self):
 		# check 
 		check_duplicates(self.genomes)
@@ -201,7 +230,14 @@ class Pipeline:
 			data = chromfiles, labels, d_targets, d_size = Seqs.split_genomes(self.genomes, self.labels, 
 					self.chrs, self.tmpdir, d_targets=d_targets, sep=self.sep)
 			mk_ckp(ckp_file, *data)
+		print(data)
 		self.chromfiles = chromfiles
+		# update
+		self.labels = labels
+		self.sgs = self.update_sgs(self.sgs, d_targets)
+		self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
+		self.d_size =  d_size
+		print(self.sgs)
 #`		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
 		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
@@ -235,7 +271,7 @@ class Pipeline:
 			logger.info('{} kmers in total'.format(len(d_mat)))
 			lengths = dumps.lengths
 			logger.info('Filtering')	# multiprocessing by kmer
-			d_mat = dumps.filter(d_mat, lengths, self.sgs, d_targets=d_targets, 
+			d_mat = dumps.filter(d_mat, lengths, self.sgs, #d_targets=d_targets, 
 					min_fold=self.min_fold, 
 					min_freq=self.min_freq, max_freq=self.max_freq,
 					min_prop=self.min_prop, max_prop=self.max_prop)
@@ -290,13 +326,15 @@ class Pipeline:
 					min_pval=self.min_pval)
 
 		# LTR
-		ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else []
+		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else ([],[])
+
 		# circos
 		if not self.disable_circos:
 			self.step_circos(
 				bedfile=sg_map, # chrom - coord - SG			circles 3 - n+2
 				sg_lines=sg_lines, # SG ratio and enrichment	circles 1 - 2
 				ltr_lines=ltr_bedlines, # LTR bed lines			circles n+3
+				enrich_ltr_bedlines=enrich_ltr_bedlines, 	#	circles n+3
 				d_sg = d_sg, # chrom -> SG, for colors
 				window_size=self.window_size)
 
@@ -308,7 +346,7 @@ class Pipeline:
 	def step_ltr(self, d_kmers):
 		# LTR
 		logger.info('Step: LTR')
-		tmpdir = '{}LTR'.format(self.tmpdir)
+		tmpdir = '{}LTR/'.format(self.tmpdir)
 		if '-p' not in self.tesorter_options:
 			self.tesorter_options += ' -p {}'.format(self.threads)
 		kargs = dict(progs=self.ltr_detectors, 
@@ -336,13 +374,19 @@ class Pipeline:
 					min_pval=self.min_pval)
 		# plot insert age
 		prefix = self.para_prefix + '.ltr.insert'
-		LTR.plot_insert_age(ltrs, d_enriched, prefix, mu=self.mu, figfmt=self.figfmt)
+		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, mu=self.mu, figfmt=self.figfmt)
 
 		# ltr bed
 		ltr_bedlines = [ltr.to_bed() for ltr in ltrs]
-		return ltr_bedlines
+		enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
+		return ltr_bedlines, enrich_ltr_bedlines
 
 	def step_circos(self, *args, **kargs):
+		# blocks
+		if not self.disable_blocks:
+			pafs = self.step_blocks()
+			kargs['pafs'] = pafs
+
 		# circos
 		circos_dir = bindir+'/circos'
 		wkdir = self._outdir+'/circos'
@@ -353,7 +397,19 @@ class Pipeline:
 		except FileExistsError:
 			pass
 		Circos.circos_plot(self.chromfiles, wkdir, *args, **kargs)
-
+	
+	def step_blocks(self):
+		outdir = '{}Blocks/'.format(self.tmpdir)
+		mem_per_cmd = max(self.d_size.values())*150
+		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
+		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))
+		thread = int(self.ncpu // ncpu)
+		
+		mkdirs(outdir)
+		pafs = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, ncpu=ncpu, thread=thread, 
+						opts=self.aligner_options)
+		return pafs
+	
 	def step_final(self):
 		# cleanup
 		if self.cleanup:
@@ -411,7 +467,7 @@ class SGConfig:
 def add_prefix(val, prefix=None, sep='|'):
 	if prefix:
 		vals = ['{}{}'.format(prefix, v) for v in val.split(sep)]
-		return ''.join(val)
+		return ''.join(vals)
 	else:
 		return val
 

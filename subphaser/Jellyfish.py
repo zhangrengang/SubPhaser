@@ -39,29 +39,29 @@ class JellyfishDump(object):
 def _parse_line(line):
 	seq, freq = line.strip().split()
 	return JellyfishDumpRecord(seq=seq, freq=freq)
-def _to_matrix2(arg):
-	dumpfile = arg
-	seqs, freqs = [], []
-	tot = 0
-	for rc in JellyfishDump(dumpfile):
-		seqs += [rc.seq]
-		freqs += [rc.freq]
-		tot += rc.freq
-	return seqs, freqs, dumpfile, tot
+# def _to_matrix2(arg):
+	# dumpfile = arg
+	# seqs, freqs = [], []
+	# tot = 0
+	# for rc in JellyfishDump(dumpfile):
+		# seqs += [rc.seq]
+		# freqs += [rc.freq]
+		# tot += rc.freq
+	# return seqs, freqs, dumpfile, tot
 	
-def _insert_freq(arg):
-	generator, dumpfile, d_mat, i = arg
-	for seq, freq in generator:
-		d_mat[seq][i] = freq
-	return dumpfile
-def _insert_freq2(arg):
-	(seq, freq), d_mat, i = arg
-	d_mat[seq][i] = freq
+# def _insert_freq(arg):
+	# generator, dumpfile, d_mat, i = arg
+	# for seq, freq in generator:
+		# d_mat[seq][i] = freq
+	# return dumpfile
+# def _insert_freq2(arg):
+	# (seq, freq), d_mat, i = arg
+	# d_mat[seq][i] = freq
 
-def _to_matrix(arg):
-	dumpfile = arg
-	dump = [(rc.seq, rc.freq) for rc in JellyfishDump(dumpfile)]
-	return dump, dumpfile
+# def _to_matrix(arg):
+	# dumpfile = arg
+	# dump = [(rc.seq, rc.freq) for rc in JellyfishDump(dumpfile)]
+	# return dump, dumpfile
 
 class JellyfishDumps:
 	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map', chunksize=None, **kargs):
@@ -87,32 +87,7 @@ class JellyfishDumps:
 				if seq not in d_mat:
 					d_mat[seq] = [0] * ncol
 				d_mat[seq][i] = freq
-				# if seq not in d_mat:
-					# if i == 0:
-						# d_mat[seq] = [freq]
-					# else:
-						# d_mat[seq] = [0]*i + [freq]
-				# else:
-					# arr = d_mat[seq]
-					# diff = i-len(arr)
-					# if diff == 0:
-						# arr += [freq]
-					# else:
-						# arr += [0]*diff + [freq]
-			# logger.info('Inserting '+ dumpfile)
-			#args += [(zip(seqs, freqs), dumpfile, d_mat, i)]
-			# args = ((sf, d_mat, i) for sf in zip(seqs, freqs))
-			# for _ in pool_func(_insert_freq2, args, self.ncpu):
-				# continue
 			del seqs, freqs
-		#print(lengths)
-		# args = ((dump, d_mat, i) for dump in dumps)
-		
-		# for dumpfile in pool_func(_insert_freq, args, self.ncpu):
-			# logger.info('Inserting '+ dumpfile)
-			# # lengths[d_idx[dumpfile]] = tot
-		#print(d_mat['CATTAATACTATGGA'])
-		# del dumps
 		self.lengths = lengths
 		return d_mat
 
@@ -136,13 +111,6 @@ class JellyfishDumps:
 						arr += [freq]
 					else:
 						arr += [0]*diff + [freq]
-#		for i, dumpfile in enumerate(self.dumpfiles):
-#			logger.info('Loading '+ dumpfile)
-#			for j, line in enumerate(JellyfishDump(dumpfile, ncpu=self.ncpu,)):
-#				if line.seq not in d_mat:
-#					d_mat[line.seq] = [0] * len(self)
-#				d_mat[line.seq][i] = line.freq	# to be optimized
-#				lengths[i] += line.freq
 				lengths[i] += freq
 			del dump
 		self.lengths = lengths
@@ -152,7 +120,7 @@ class JellyfishDumps:
 		logger.info('Loading '+ dumpfile)
 		return JellyfishDump(dumpfile)
 
-	def filter(self, d_mat, lengths, sgs, d_targets={}, 
+	def filter(self, d_mat, lengths, sgs,
 				min_freq=200, max_freq=10000, min_fold=2,
 				min_prop=None, max_prop=None):
 		logger.info([min_freq, max_freq, min_fold])
@@ -169,7 +137,7 @@ class JellyfishDumps:
 
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
-		args = ((kmer, counts, d_lens, sgs, d_targets, min_freq, max_freq, min_fold) \
+		args = ((kmer, counts, d_lens, sgs, min_freq, max_freq, min_fold) \
 					for kmer, counts in d_mat.items())
 		i = 0
 		for kmer, freqs in pool_func(_filter_kmer, args, self.ncpu, 
@@ -191,7 +159,6 @@ class JellyfishDumps:
 
 	def heatmap(self, matfile, figfmt='pdf', color=('green', 'black', 'red'), 
 			heatmap_options='scale="row", key=TRUE, density.info="density", trace="none", labRow=F, main="",xlab=""'):
-
 		if len(color) == 3:
 			color = 'colorpanel(100, low="{}", mid="{}", high="{}")'.format(*color)
 		elif len(color) == 2:
@@ -216,8 +183,9 @@ dev.off()
 		cmd = 'Rscript ' + rsrc_file
 		run_cmd(cmd, log=True)
 		return outfig
+		
 def _filter_kmer(arg):
-	(kmer, counts, d_lens, sgs, d_targets, 
+	(kmer, counts, d_lens, sgs, 
 		min_freq, max_freq, min_fold) = arg
 	labels = d_lens.keys()
 	lengths = d_lens.values()
@@ -234,7 +202,6 @@ def _filter_kmer(arg):
 		include = False
 		freqs = []
 		for chrs in sg:
-			chrs = [d_targets.get(chr, chr) for chr in chrs]
 			if len(chrs) == 1:
 				chr = chrs[0]
 				count = d_counts[chr]

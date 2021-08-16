@@ -168,10 +168,12 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
 	fout = open(datfile, 'w')
 	line = ['ltr', 'sg', 'age']
 	fout.write('\t'.join(line) + '\n')
+	enriched_ltrs = []
 	for ltr in ltrs:
 		age = ltr.estimate_age(mu=mu)
 		try: sg = d_enriched[ltr.id]
 		except KeyError: continue
+		enriched_ltrs += [ltr]
 		line = [ltr.id, sg, age]
 		line = map(str, line)
 		fout.write('\t'.join(line) + '\n')
@@ -188,13 +190,18 @@ ggsave('{outfig}', p, width=12, height=7)
 		f.write(rsrc)
 	cmd = 'Rscript ' + rsrc_file
 	run_cmd(cmd, log=True)
+	return enriched_ltrs
 
 class LTRpipeline:
-	def __init__(self, genome, tmpdir='./tmp', mu=7e-9, 
-			tesorter_options='', intact=True, only_ltr=False, **kargs):
+	def __init__(self, genome, tmpdir='./tmp', mu=7e-9, tesorter_options='', 
+			all_ltr=False, intact=False, only_ltr=True, **kargs):
+		'''all_ltr: use all LTR identified by LTR detectors
+only_ltr: use LTR as classified by TEsorter
+intact: only use completed LTR as classified by TEsorter'''
 		self.genome = genome
 		self.tmpdir = tmpdir
 		self.tesorter_options = tesorter_options
+		self.all_ltr = all_ltr
 		self.intact = False if only_ltr else intact 
 		self.only_ltr = only_ltr	# only LTR classified by tesorter
 		self.mu = mu
@@ -210,19 +217,20 @@ class LTRpipeline:
 			with open(ltr_out, 'w') as fout:
 				ltrs = self.identify(fout)
 			mk_ckp(ckp)
-		#int_seqs = '{}/INT.fasta'.format(self.tmpdir)
 		int_seqs = self.prefix + '.INT.fa'
 		with open(int_seqs, 'w') as fout:
 			self.get_int_seqs(ltrs, fout)
 		d_class = self.classfify(int_seqs)
 
+			
 		filtered_ltrs = []
 		for ltr in ltrs:
-			if ltr.id not in d_class:
-				if self.only_ltr:
-					continue
-				elif not self.intact:
-					filtered_ltrs += [ltr]
+			if self.all_ltr:	# no filter
+				ltr.age = ltr.estimate_age(mu=self.mu)
+				
+				filtered_ltrs += [ltr]
+				continue
+			if ltr.id not in d_class:	# filter by classification
 				continue
 			cls = d_class[ltr.id]
 			if self.only_ltr and cls.order != 'LTR':

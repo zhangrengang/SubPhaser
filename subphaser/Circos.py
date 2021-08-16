@@ -49,6 +49,8 @@ global d_rechr
 d_rechr = {}
 global no_trim
 no_trim = False
+# defualt colors
+defualt_colors = ['chr'+ str(chr) for chr in list(range(1, 23))+['X', 'Y']]
 
 def main(args):
 	if not os.path.exists(args.out_dir):
@@ -253,6 +255,7 @@ def fmt_color(sgs, color_set, white='white'):
 #	d_cmap[white] = white
 	return colors, d_cmap
 
+		
 CIRCLE = '''<plot>
 type        = {type}
 file        = {datafile}
@@ -275,8 +278,11 @@ position  = 0
 
 </plot>\n\n'''
 
-def circos_plot(genomes, wddir='circos', bedfile='',  
-		sg_lines=[], d_sg={}, ltr_lines=[], window_size=100000):
+def circos_plot(genomes, wddir='circos', bedfile='', 
+		sg_lines=[], d_sg={}, 
+		ltr_lines=[], enrich_ltr_bedlines=[],
+		pafs=[], min_block=10000, # blocks
+		window_size=100000):
 	from .colors import colors_rgb
 	from .RunCmdsMP import run_cmd
 	from .small_tools import mkdirs
@@ -286,13 +292,16 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	colors, d_cmap = fmt_color(sgs, colors_rgb)
 	datadir = '{}/data'.format(wddir)
 	mkdirs(datadir)
+	
+	# karyotype
 	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
 	genomes_base(genomes, karyotype_file, d_cmap=d_sg)
 	outpre = '{}/subgenome'.format(datadir)
 
-	# LTR
-	ltr_file = '{}/ltr_density.txt'.format(datadir)
-	bed_density(ltr_lines, ltr_file, window_size=window_size)
+	# bedfile, split by keys
+	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)	# SG density
+
+	
 	# colors
 	conf_file = '{}/colors.conf'.format(wddir)
 	with open(conf_file, 'w') as f:
@@ -300,8 +309,8 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 		for name, color in sorted(d_cmap.items()):
 			f.write('{} = {}\n'.format(name, color))
 		f.write('</colors>\n')
-	# bedfile, split by keys
-	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)	# SG density
+	
+	# histogram
 	conf_file = '{}/histogram.conf'.format(wddir)
 	fout = open(conf_file, 'w')
 	fout.write('<plots>\n\n')
@@ -312,7 +321,7 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	if ltr_lines :
 		n_circles += 1
 	start = 0.99
-	step = round(0.7/n_circles, 2)
+	step = round(0.6/n_circles, 2)
 	if sg_lines:
 		# ratio and enrich
 		ratio_file, enrich_file = out_sg_lines(sg_lines, datadir)
@@ -338,17 +347,46 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 
 	# circle LTR
 	if ltr_lines:
-		start = r0-0.01
+		ltr_file = '{}/ltr_density.txt'.format(datadir)
+	#	bed_density(ltr_lines, ltr_file, window_size=window_size)
+		bed_density_minus(ltr_lines,[enrich_ltr_bedlines], ltr_file, window_size=window_size)
+		start = start-0.01
 		r1, r0 = start, start-step
-		color = colors_rgb[i+1]
+		color = 'lorange,dblue' #colors_rgb[i+1]
 		circle = CIRCLE.format(type='histogram', datafile=ltr_file, r1=r1, r0=r0, color=color)
 		fout.write(circle)
-
+		start = r0-0.01
+	
 	fout.write('</plots>\n\n')
 	fout.close()
 
+	# Links
+	conf_file = '{}/link.conf'.format(wddir)
+	fout = open(conf_file, 'w')
+	fout.write('''
+radius    = {}r
+crest     = 0.25
+ribbon    = yes
+flat      = yes
+thickness = 1
+color     = 255,0,0,0.5
+bezier_radius        = 0r
+bezier_radius_purity = 1\n'''.format(start))
+
+	if pafs:
+		linkfile = '{}/block_link.txt'.format(datadir)
+		paf2blocks(pafs, linkfile, min_block=min_block)
+		fout.write('''<link>
+file       = {}
+</link>
+'''.format(linkfile))
+
+	#fout.write('</links>')
+	
+	# plot
 	cmd = 'cd {} && circos -conf ./circos.conf'.format(wddir)
-	run_cmd(cmd, log=True)
+	exit = run_cmd(cmd, log=True)
+	print(exit)
 	annofile = '{}/../circos_legend.txt'.format(wddir)
 	with open(annofile, 'w') as fout:
 		fout.write('Rings from outer to inner:\n\t1. Karyotypes\n')
@@ -364,7 +402,60 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 			ring += 1
 			legend = 'Density of LTR-RTs'
 			fout.write('\t{}. {}\n'.format(ring, legend))
-		fout.write('Window size: {} bp\n'.format(window_size))
+		if pafs:
+			ring += 1
+			legend = 'Homologous blocks'
+			fout.write('\t{}. {}\n'.format(ring, legend))
+		if pafs:
+			fout.write('Window size: {} bp\n'.format(window_size))
+
+def paf2blocks(paf_groups, linkfile, min_block=10000, colors=None):
+	from .Paf import PafParser
+	if colors is None:
+		colors = defualt_colors
+	f = open(linkfile, 'w')
+	for i, paf_group in enumerate(paf_groups):
+		blocks = []
+		for paf in paf_group:
+			for rc in PafParser(paf):
+				if not rc.is_primary:
+					continue
+				rc.size = rc.alen
+				if rc.size < min_block:
+					continue
+				blocks += [rc]
+		color = colors[i%len(colors)]
+		for rc in sorted(blocks, key=lambda x:x.size):
+			options = 'color={}'.format(color)
+			line = [rc.qid, rc.qstart, rc.qend, rc.tid, rc.tstart, rc.tend, options]
+			line = map(str, line)
+			f.write(' '.join(line) + '\n')
+	f.close()
+
+def bed_density_minus(totBed, setBeds, outfile, window_size=10000, **kargs):
+	d_count = _bed_density_minus(totBed, setBeds, window_size=window_size, **kargs)
+	write_density(d_count, outfile, window_size, trim=False)
+	
+def _bed_density_minus(totBed, setBeds, **kargs):
+	import copy
+	d_count0 = _bed_density(totBed, **kargs)
+	d_count_out = copy.deepcopy(d_count0)
+	for setBed in setBeds:
+		d_count = _bed_density(setBed, **kargs)
+		for CHR, d_bin in list(d_count_out.items()):
+			for BIN, count in list(d_bin.items()):
+				try: value = d_count[CHR][BIN]
+				except KeyError: value = 0
+				try: d_count_out[CHR][BIN].append(value)
+				except: d_count_out[CHR][BIN] = [value]
+	for CHR, d_bin in list(d_count_out.items()):
+		for BIN, count in list(d_bin.items()):
+			total = d_count0[CHR][BIN]
+			values = d_count_out[CHR][BIN]
+			last = total - sum(values)
+			values.append(last)
+			d_count_out[CHR][BIN] = ','.join(map(str, values))
+	return d_count_out
 
 def _bed_density(inBed, window_size=None, chr_col=0, start_col=1, end_col=2, based=0, 
 		by_sites=False, split_by=None):
@@ -529,7 +620,11 @@ def repeat_density(repeat_out, outfile, window_size=None,
 	if by_sites:
 		count_pos(d_count)
 	write_density(d_count, outfile, window_size)	
-def write_density(d_count, outfile, window_size):
+def write_density(d_count, outfile, window_size, trim=None):
+	if trim is None:
+		_no_trim = no_trim
+	else:
+		_no_trim = not trim
 	f = open(outfile, 'w')
 	counts = []
 	for CHR, d_bin in list(d_count.items()):
@@ -542,14 +637,14 @@ def write_density(d_count, outfile, window_size):
 					d_count[CHR][bin] = count
 					counts += [count]
 			last_BIN = BIN
-	if not no_trim:
+	if not _no_trim:
 		upper,lower = abnormal(counts)
 		print('using cutoff: upper {} and lower {}'.format(upper,lower), file=sys.stderr)
 	for CHR, d_bin in list(d_count.items()):
 		for BIN, count in sorted(d_bin.items()):
-			if not no_trim and count > upper:
+			if not _no_trim and count > upper:
 				count = min(upper*1.1, count)
-			elif not no_trim and count < lower:
+			elif not _no_trim and count < lower:
 				count = max(lower*0.9, count)
 			start = int(BIN * window_size)
 			end = start + window_size
