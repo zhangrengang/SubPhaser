@@ -265,21 +265,23 @@ min         = 0
 extend_bin  = no
 color = no
 fill_color  = {color}
-thickness   = 1p
+thickness   = 0
 orientation = out
+stroke_color     = undef
+stroke_thickness = 0
 
-<axes>
-<axis>
-color     = black
-thickness = 2
-position  = 0
-</axis>
-</axes>
+# <axes>
+# <axis>
+# color     = black
+# thickness = 2
+# position  = 0
+# </axis>
+# </axes>
 
 </plot>\n\n'''
 
 def circos_plot(genomes, wddir='circos', bedfile='', 
-		sg_lines=[], d_sg={}, 
+		sg_lines=[], d_sg={}, prefix='circos', figfmt='pdf',
 		ltr_lines=[], enrich_ltr_bedlines=[],
 		pafs=[], min_block=10000, # blocks
 		window_size=100000):
@@ -389,6 +391,19 @@ file       = {}
 	cmd = 'cd {} && circos -conf ./circos.conf'.format(wddir)
 	exit = run_cmd(cmd, log=True)
 	#print(exit)
+	
+	svgfile = '{}/circos.svg'.format(wddir)
+	fmt_svg(svgfile)
+	figfile = '{}/circos.{}'.format(wddir, figfmt)
+	if figfmt == 'pdf':
+		svg2pdf(svgfile, figfile)
+	# link file
+	dstfig = '{}.{}'.format(prefix, figfmt)
+	try: os.remove(dstfig)
+	except FileNotFoundError: pass
+	os.link(figfile, dstfig)
+	
+	# legend
 	annofile = '{}/../circos_legend.txt'.format(wddir)
 	with open(annofile, 'w') as fout:
 		fout.write('Rings from outer to inner:\n\t1. Karyotypes\n')
@@ -411,6 +426,24 @@ file       = {}
 		if pafs:
 			fout.write('Window size: {} bp\n'.format(window_size))
 
+def fmt_svg(svgfile):
+	import re
+	from .small_tools import backup_file
+	bksvgfile, svgfile = backup_file(svgfile)
+	svg = open(bksvgfile).read()
+	subsvg = re.compile(r'<tspan.*?>(\S+)<\/tspan>').sub(r'_\1', svg)
+	with open(svgfile, 'w') as fout:
+		fout.write(subsvg)
+	os.remove(bksvgfile)
+	return svgfile
+	
+def svg2pdf(svgfile, pdfile):
+	from svglib.svglib import svg2rlg
+	from reportlab.graphics import renderPDF
+	drawing = svg2rlg(svgfile)
+	renderPDF.drawToFile(drawing, pdfile)
+	
+	
 def paf2blocks(paf_groups, linkfile, min_block=10000, colors=None):
 	from .Paf import PafParser
 	if colors is None:
@@ -641,7 +674,7 @@ def write_density(d_count, outfile, window_size, trim=None):
 			last_BIN = BIN
 	if not _no_trim:
 		upper,lower = abnormal(counts)
-		print('using cutoff: upper {} and lower {}'.format(upper,lower), file=sys.stderr)
+#		print('using cutoff: upper {} and lower {}'.format(upper,lower), file=sys.stderr)
 	for CHR, d_bin in list(d_count.items()):
 		for BIN, count in sorted(d_bin.items()):
 			if not _no_trim and count > upper:

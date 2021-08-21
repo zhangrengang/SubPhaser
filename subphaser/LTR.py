@@ -2,11 +2,21 @@ import sys, re, os
 import math
 import itertools
 from collections import OrderedDict
+import numpy as np
 from Bio import SeqIO
-from TEsorter.app import CommonClassifications
+try:	# TEsorter need to be updated
+	from TEsorter.app import CommonClassifications
+except ImportError:
+	from .api.TEsorter.app import CommonClassifications
+try:
+	from TEsorter.modules.concatenate_domains import concat_domains
+except :
+	from .api.TEsorter.modules.concatenate_domains import concat_domains
+	
 from .split_records import bin_split_fastx_by_chunk_num
 from .RunCmdsMP import run_job, run_cmd, pool_func, logger
-from .small_tools import mkdirs, rmdirs, mk_ckp,check_ckp
+from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
+from .colors import colors_r
 
 job_args = {
 	'tc_tasks': 40,
@@ -137,25 +147,154 @@ def detect_ltr(inSeqs, harvest_out, d_len, progs=['ltr_finder', 'ltr_harvest'],
 	#rmdirs(tmpdir)
 	return all_ltrs
 
-class LTRpipelines:
-	def __init__(self, genomes, ncpu=8, tmpdir='tmp', **kargs):
-		self.genomes = genomes
+class LTRtree:
+	def __init__(self, ltrs, domains, domfile, prefix='ltrtree', 
+			overwrite=False, ncpu=10, 
+			categories=[('LTR', 'Copia', None), ('LTR', 'Gypsy', None)],
+			trimal_options='-automated1', iqtree_options='-mset JTT -nt AUTO'):
+		'''ltrs: enrich_ltrs (list)'''
+		self.ltrs = ltrs
+		self.domains = domains
+		self.domfile = domfile
+		self.prefix = prefix
+		self.categories = categories
+		self.trimal_options = trimal_options
+		self.iqtree_options = iqtree_options
+		self.overwrite = overwrite
 		self.ncpu = ncpu
-		self.tmpdir = tmpdir
-		self.kargs = kargs
-	def run(self):
-		ltrs = []
-		seqs = []
-		for _ltrs, _seqs in pool_func(self._run, self.genomes, self.ncpu):
-			ltrs += _ltrs
-			seqs += [_seqs]
-		return ltrs, seqs
-	def _run(self, genome):
-		return LTRpipeline(genome, tmpdir=self.tmpdir, **self.kargs).run()
+	def build(self, job_args):
+		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
+#		ltr_ids = {ltr.id for ltr in ltrs}
 		
+		nseqs = []
+		alnfiles = []
+		for key in self.categories:
+			order, superfamily, clade = key
+			key = tuple([v for v in key if v])
+			prefix = '{}.{}'.format(self.prefix, '_'.join(key))
+			alnfile = prefix + '.aln'
+			mapfile = prefix + '.map'
+			ckp_file = alnfile + '.ok'
+			ckp = check_ckp(ckp_file)
+			if ckp and isinstance(ckp, list) and not self.overwrite:
+				nseq, = ckp
+			else:
+				with open(alnfile, 'w') as fout:
+					_, d_idmap = concat_domains(self.domfile, self.domains, outSeq=fout, 
+						targets=d_ltrs, unique=True, prefix=prefix, raw=True, format_id=True,
+						order=order, superfamily=superfamily, clade=clade)
+				with open(mapfile, 'w') as f:
+					line = ['label', 'Clade', 'Subgenome']
+					f.write('\t'.join(line)+'\n')
+					for raw_id, new_id in d_idmap.items():
+						ltr = d_ltrs[raw_id]
+						clade, sg = ltr.clade, ltr.sg
+						line = [new_id, clade, sg]
+						f.write('\t'.join(line)+'\n')
+				nseq = len(d_idmap)
+				mk_ckp(ckp_file, nseq)
+			nseqs += [nseq]
+			alnfiles += [(key, alnfile, mapfile)]
+			
+		#print(nseqs)
+		# assign CPU
+		prop = [v**2 for v in nseqs]
+		tprop = sum(prop)
+		ncpus = [max(1, int(self.ncpu*v/tprop)) for v in prop]
+		#print(ncpus)
+		
+		# tree
+		d_files = {}
+		cmds = []
+		for ncpu, (key, alnfile, mapfile) in zip(ncpus, alnfiles):
+			treefile = alnfile + '.rooted.tre'
+			cmd = 'trimal -in {alnfile} {trimal_options} > {alnfile}.trimal && \
+iqtree -s {alnfile}.trimal -pre {alnfile} {iqtree_options} -nt {ncpu} -redo && \
+nw_reroot {alnfile}.treefile > {treefile}'.format(
+				alnfile=alnfile, treefile=treefile, 
+				trimal_options=self.trimal_options,
+				iqtree_options=self.iqtree_options, ncpu=ncpu)
+			
+			cmds +=[cmd]
+			d_files[key] = (treefile, mapfile)
+			
+		cmd_file = '{}.LTRtree.sh'.format(self.prefix)
+		run_job(cmd_file, cmds, **job_args)
+		return d_files
+
+	def visualize_treefile(self, treefile, mapfile, outfig, 
+			ggtree_options="branch.length='none', layout='circular'"):
+		rsrc_file = os.path.splitext(outfig)[0] + '.R'
+		rsrc = '''treefile = "{treefile}"
+mapfile = "{mapfile}"
+library(ggplot2)
+library(ggtree)
+library(treeio)
+
+map = read.table(mapfile, head=T, fill=T)
+tree <- read.tree(file = treefile)
+
+clades = sort(unique(map$Clade))
+
+grp = list()
+for (clade in clades){{
+        labels = map[which(map$Clade==clade), ]
+        labels = labels$label
+        grp[[clade]] = labels
+}}
+tree3 = groupOTU(tree, grp, 'Clade')
+map3 = data.frame(label=map$label, Subgenome=map$Subgenome)
+p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
+  theme(legend.position="right")  + geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1, color='white') +
+    scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades)
+
+# grp = list()
+# for (sg in unique(map$Subgenome)){{
+        # labels = map[which(map$Subgenome==sg), ]
+        # labels = labels$label
+        # grp[[sg]] = labels
+# }}
+
+# tree2 = groupOTU(tree, grp, 'Subgenome')
+# map2 = data.frame(label=map$label, Clade=map$Clade)
+# p = ggtree(tree2, aes(color=Subgenome), {ggtree_options} ) %<+% map2 + scale_colour_manual(values={colors}) +
+  # theme(legend.position="right")  + geom_tippoint(aes(fill=Clade), pch=21, stroke=0, color='white')
+
+# p <- ggtree(tree, {ggtree_options}) %<+% map
+# p <- p + geom_tippoint(aes(fill=Clade), pch=1, stroke =0)
+
+# p <- groupOTU(p, grp, 'Subgenome') + aes(color=Subgenome) + scale_colour_manual(values={colors}) + 
+  # theme(legend.position="right")
+ggsave("{outfig}", p)
+'''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=colors_r, 
+			ggtree_options=ggtree_options)
+		with open(rsrc_file, 'w') as f:
+			f.write(rsrc)
+		cmd = 'Rscript4 ' + rsrc_file
+		run_cmd(cmd, log=True)
+
+
+
+# class LTRpipelines:
+	# def __init__(self, genomes, ncpu=8, tmpdir='tmp', **kargs):
+		# self.genomes = genomes
+		# self.ncpu = ncpu
+		# self.tmpdir = tmpdir
+		# self.kargs = kargs
+	# def run(self):
+		# ltrs = []
+		# seqs = []
+		# for _ltrs, _seqs in pool_func(self._run, self.genomes, self.ncpu):
+			# ltrs += _ltrs
+			# seqs += [_seqs]
+		# return ltrs, seqs
+	# def _run(self, genome):
+		# return LTRpipeline(genome, tmpdir=self.tmpdir, **self.kargs).run()
+		
+
 class LTRpipeline:
 	def __init__(self, genomes, tmpdir='./tmp', mu=7e-9, tesorter_options='', 
-			all_ltr=False, intact=False, only_ltr=True, **kargs):
+			all_ltr=False, intact=False, only_ltr=True, overwrite=False, **kargs):
 		'''all_ltr: use all LTR identified by LTR detectors
 only_ltr: use LTR as classified by TEsorter
 intact: only use completed LTR as classified by TEsorter'''
@@ -166,6 +305,7 @@ intact: only use completed LTR as classified by TEsorter'''
 		self.intact = False if only_ltr else intact 
 		self.only_ltr = only_ltr	# only LTR classified by tesorter
 		self.mu = mu
+		self.overwrite = overwrite
 		self.kargs = kargs
 	def run(self):
 		mkdirs(self.tmpdir)
@@ -175,41 +315,49 @@ intact: only use completed LTR as classified by TEsorter'''
 		self.prefix = '{}'.format(self.tmpdir, )
 		ltr_out = self.prefix +'.scn'
 		ckp = ltr_out + '.ok'
-		if check_ckp(ckp):
+		if check_ckp(ckp) and not self.overwrite:
 			ltrs = list(LTRHarvest(ltr_out))
 		else:
 			with open(ltr_out, 'w') as fout:
 				ltrs = self.identify(fout)
 			mk_ckp(ckp)
-		int_seqs = self.prefix + '.INT.fa'
+		ltr_count = len(ltrs)
+		logger.info('{} LTRs Identified'.format(ltr_count))
+		logger.info('Extracting inner sequences of LTRs to classify by `TEsorter`')
+		self.int_seqs = int_seqs = self.prefix + '.INT.fa'
 		with open(int_seqs, 'w') as fout:
 			self.get_int_seqs(ltrs, fout)
 		d_class = self.classfify(int_seqs)
 
 			
 		filtered_ltrs = []
+		i, j = 0,0
 		for ltr in ltrs:
 			cls = d_class.get(ltr.id, )
 			if cls:
 				ltr.__dict__.update(cls.__dict__)
+			order = getattr(cls, 'order', None)
+			completed = getattr(cls, 'completed', None)
+			if order == 'LTR':
+				i += 1
+			if completed == 'yes':
+				j += 1
 			if self.all_ltr:	# no filter
-				ltr.age = ltr.estimate_age(mu=self.mu)
-				filtered_ltrs += [ltr]
+				pass
+			elif self.only_ltr and order != 'LTR':
 				continue
-			if not cls:	# filter by classification
+			elif self.intact and completed != 'yes':
 				continue
-			if self.only_ltr and cls.order != 'LTR':
-				continue
-			elif self.intact and cls.completed != 'yes':
-				continue
-			ltr.age = ltr.estimate_age(mu=self.mu)
 			filtered_ltrs += [ltr]
+		logger.info('{} ({:.1%}) are classified as LTRs and {} ({:.1%}) as intact by TEsorter'.format(
+				i, i/ltr_count, j, j/i))
+		
 		i, j = len(ltrs), len(filtered_ltrs)
-	#	logger.info('After filter, {} / {} ({:.1f}%)LTRs retained'.format(j, i, 1e2*j/i))
+	#	logger.info('After filter, {} / {} ({:.1f}%) LTRs retained'.format(j, i, 1e2*j/i))
 		
 		ltrs = group_resolve_overlaps(filtered_ltrs)
 		j = len(ltrs)
-		logger.info('After filter, {} / {} ({:.1f}%)LTRs retained'.format(j, i, 1e2*j/i))
+		logger.info('After filter, {} / {} ({:.1%}) LTRs retained'.format(j, i, j/i))
 		ltr_seqs = self.prefix + '.filtered.LTR.fa' 
 		with open(ltr_seqs, 'w') as fout:
 			self.get_full_seqs(ltrs, fout)
@@ -221,13 +369,13 @@ intact: only use completed LTR as classified by TEsorter'''
 
 	def classfify(self, inseq):
 		ckp = self.prefix + '.tesort.ok'
-		if check_ckp(ckp):
+		if check_ckp(ckp) and not self.overwrite:
 			pass
 		else:
 			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > \
 {seqfile}.tesort.log'.format(
 					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
-			if self.intact:
+			if self.intact and '-dp2' not in cmd and "--disable-pass2" not in cmd:
 				cmd += ' -dp2'
 			run_cmd(cmd, log=True)
 			mk_ckp(ckp)
@@ -299,7 +447,7 @@ def resolve_overlaps(ltrs, max_ovl=10):
 
 		if not last_ltr or discard != ltr:
 			last_ltr = ltr
-	logger.info('Discard {} equal and {} overlapped LTRs; {} in total'.format(ie, io, ie+io))
+#	logger.info('Discard {} equal and {} overlapped LTRs; {} in total'.format(ie, io, ie+io))
 	return sorted(set(ltrs) - set(discards), key=lambda x:x.start)
 
 def is_completed(ltr):
@@ -311,30 +459,68 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
 	fout = open(datfile, 'w')
 	line = ['ltr', 'sg', 'age']
 	fout.write('\t'.join(line) + '\n')
+	d_data = {}
 	enriched_ltrs = []
 	for ltr in ltrs:
 		age = ltr.estimate_age(mu=mu)
 		try: sg = d_enriched[ltr.id]
 		except KeyError: continue
+		ltr.sg = sg
+		age = age/1e6
 		enriched_ltrs += [ltr]
 		line = [ltr.id, sg, age]
 		line = map(str, line)
 		fout.write('\t'.join(line) + '\n')
+		try: d_data[sg] += [age]
+		except KeyError: d_data[sg] = [age]
 	fout.close()
+	# summary
+	sumfile = prefix + '.summary'
+	with open(sumfile, 'w') as fout:
+		d_info = summary_ltr_time(d_data, fout)
+	text = 'Summary: median (95% CI)\\n'
+	for sg, info in sorted(d_info.items()):
+		text += '{}: {}\\n'.format(sg, info)
+		
 	rsrc_file = prefix + '.R'
 	outfig = prefix + '.' + figfmt
 	rsrc = '''library(ggplot2)
-data = read.table('{datfile}',fill=T,header=T, sep='\t')
-p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.15) + \
-xlab('LTR insertion age (years)') + scale_colour_hue(l=45)
-ggsave('{outfig}', p, width=12, height=7)
-'''.format(datfile=datfile, outfig=outfig)
+data = read.table('{datfile}',fill=T,header=T, sep='\\t')
+p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) + \
+xlab('LTR insertion age (million years)') + ylab('Density') + scale_colour_manual(values={colors}) + labs(color='Subgenome') + \
+annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)
+ggsave('{outfig}', p, width=10, height=7) 
+'''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)
 	cmd = 'Rscript ' + rsrc_file
 	run_cmd(cmd, log=True)
+	
 	return enriched_ltrs
 
+def summary_ltr_time(d_data, fout):
+	fout.write('# Summary of LTR insertion age (million years)')
+	line = ['#subgenome', 'mean', 'median', 'standard_deviation', '95%-CI', '75%-CI']
+	fout.write('\t'.join(line) + '\n')
+	d_info = {}
+	for sg, ages in sorted(d_data.items()):
+		ages = np.array(ages)
+		_mean = ages.mean()
+		_median = np.median(ages)
+		_std = np.std(ages)
+		_mean = '{:.3f}'.format(_mean)
+		_median = '{:.3f}'.format(_median)
+		_std = '{:.3f}'.format(_std)
+		_tile2_5 = np.percentile(ages, 2.5)
+		_tile97_5 = np.percentile(ages, 97.5)
+		_tile12_5 = np.percentile(ages, 12.5)
+		_tile87_5 = np.percentile(ages, 87.5)
+		_ci95 = '{:.3f}-{:.3f}'.format(_tile2_5, _tile97_5)
+		_ci75 = '{:.3f}-{:.3f}'.format(_tile12_5, _tile87_5)
+		line = [sg, _mean, _median, _std, _ci95, _ci75]
+		fout.write('\t'.join(line) + '\n')
+		d_info[sg] = '{} ({})'.format(_median, _ci95)
+	return d_info
 
 
 class LTRHarvest():

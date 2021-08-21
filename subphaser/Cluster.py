@@ -16,8 +16,11 @@ class Cluster:
 	def __init__(self, datafile, n_clusters, sg_prefix='SG', replicates=1000, jackknife=80, **kargs):
 		data = LoadData(datafile)
 		data.load_matrix()
+		# normalize
 		self.raw_data = data.data
 		self.data = self.raw_data.transpose()	# col: kmer, row: chr
+		self.data = self.normalize_data(self.data, axis=0)
+		
 		self.chrs = data.colnames
 		self.kmers = data.rownames
 		self.d_kmers = data.d_rows
@@ -53,7 +56,7 @@ class Cluster:
 		plt.legend()
 		plt.savefig(outfig)
 	def normalize_data(self, data, axis=0):
-		'''Z normalization'''
+		'''Z normalization: only axis=0 work'''
 		mean = data.mean(axis=axis)
 		std = data.std(axis=axis)
 		return (data-mean)/std
@@ -64,8 +67,9 @@ class Cluster:
 		jackknife = int(jackknife/100 * len(self.kmers))
 		xlabels = []
 		scores, measures = [], []
+		raw_data = self.data.transpose()
 		for i in range(replicates):
-			data = resample(self.raw_data, replace=True, n_samples=replicates)
+			data = resample(raw_data, replace=True, n_samples=replicates)
 			data = data.transpose()
 #			print(data.shape)
 			kmean = self.fit(data, self.n_clusters)
@@ -121,7 +125,7 @@ class Cluster:
 			line = [chr, sg, self.d_bs[chr]]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
-	def output_kmers(self, fout=sys.stdout, min_pval=0.05, ncpu=4, method='map'):
+	def output_kmers(self, fout=sys.stdout, max_pval=0.05, ncpu=4, method='map'):
 		d_groups = {}
 		for i, (chr,sg) in enumerate(self.d_sg.items()):
 			try: d_groups[sg] += [i]
@@ -145,9 +149,7 @@ class Cluster:
 #			max_sg = sgs[0]
 #			ttest = stats.ttest_ind(max_freqs, min_freqs)
 			i += 1
-#			if i % 10000 == 0:
-#				logger.info('Processed {} kmers'.format(i))
-			if pvalue > min_pval:
+			if pvalue > max_pval:
 				continue
 			line = [kmer, max_sg, pvalue]
 			line = map(str, line)

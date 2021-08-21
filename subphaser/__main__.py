@@ -35,14 +35,14 @@ this chromosome set is for identifying differential kmers [required]")
 	group_in.add_argument('-labels', nargs='+', type=str, metavar='LABEL',
 					help="For multiple genomes, provide prefix labels for each genome sequence \
 to avoid conficts among chromosome id \
-[default: '1- 2- ... n-']")
+[default: '1-, 2-, ..., n-']")
 	group_in.add_argument('-no_label', action="store_true", default=False,
 					help="Do not use default prefix labels for genome sequences as there is \
-no conficts among chromosome id [default: %(default)s]")
+no confict among chromosome id [default: %(default)s]")
 	group_in.add_argument("-target", default=None, type=str, metavar='FILE',
 					help="Target chromosomes to output; id mapping is allowed; \
 this chromosome set is for cluster and phase \
-[default: same chromosome set as `-sg_cfgs`]")
+[default: the same chromosome set as `-sg_cfgs`]")
 	group_in.add_argument("-sep", default="|", type=str, metavar='STR',
 					help='Seperator for chromosome ID [default="%(default)s"]')
 	# output
@@ -62,6 +62,10 @@ this chromosome set is for cluster and phase \
 	group_kmer.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
 					 help="Minimum total count for each kmer; will not work \
 if `-min_prop` is specified [default=%(default)s]")
+	group_kmer.add_argument('-baseline', type=int, default=1, choices=[1, -1],
+					 help="Use sub-maximum (1) or minimum (-1) as the baseline of fold \
+[default=%(default)s]")
+
 	group_kmer.add_argument('-lower_count', type=int, default=3, metavar='INT',
 					 help="Don't output k-mer with count < lower-count [default=%(default)s]")
 	group_kmer.add_argument('-min_prop', type=float, default=None, metavar='FLOAT',
@@ -75,55 +79,81 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Low MEMory but slower [default: True if genome size > 3G, else False]")
 	# cluster
 	group_clst = parser.add_argument_group('Cluster', 'Options for cluster to phase')
+	group_clst.add_argument('-nsg', type=int, default=None, metavar='INT',
+					help="Number of subgenomes (>1) [default: auto]")
 	group_clst.add_argument('-replicates', type=int, default=1000, metavar='INT',
 					help="Number of replicates for bootstrap [default=%(default)s]")
-	group_clst.add_argument('-jackknife', type=float, default=80, metavar='FLOAT',
+	group_clst.add_argument('-jackknife', type=float, default=50, metavar='FLOAT',
 					help="Percent of kmers to resample for bootstrap [default=%(default)s]")
-	group_clst.add_argument('-min_pval', type=float, default=0.05, metavar='FLOAT',
-					help="Minimum P value for hypothesis test [default=%(default)s]")
+	group_clst.add_argument('-max_pval', type=float, default=0.05, metavar='FLOAT',
+					help="Maximum P value for hypothesis test [default=%(default)s]")
 
-	group_clst.add_argument("-figfmt", default='pdf', type=str, metavar='STR',
-					choices=['pdf', 'png', 'tiff', 'jpeg', 'bmp'],
+	group_clst.add_argument("-figfmt", default='pdf', type=str, 
+					choices=['pdf', 'png', 'svg',], # 'tiff', 'jpeg', 'bmp'],
 					help="Format of figures [default=%(default)s]")
 	group_clst.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
 	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
-key=T,key.title=NA,density.info='density',main=NA,xlab=NA,margins=c(5,6)",
+key=T,key.title=NA,density.info='density',main=NA,xlab=NA,margins=c(4,8)",
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
+
 	# LTR
 	group_ltr = parser.add_argument_group('LTR', 'Options for LTR analyses')
 	group_ltr.add_argument('-disable_ltr', action="store_true", default=False,
 					help="Disable this step (this step is time-consuming for large genome)\
  [default=%(default)s]")
 
-	group_ltr.add_argument("-ltr_detectors", nargs='+', metavar='PROG', 
+	group_ltr.add_argument("-ltr_detectors", nargs='+',  
 					default=['ltr_finder', 'ltr_harvest'], 
 					choices=['ltr_finder', 'ltr_harvest'],
 					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
-					default='-w 2 -D 15000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.85',
+					default='-w 2 -D 15000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.8',
 					help='Options for `ltr_finder` to identify LTR-RTs (see more with \
-`ltr_finder -h`)[default="%(default)s"]')
+`ltr_finder -h`) [default="%(default)s"]')
 	group_ltr.add_argument("-ltr_harvest_options", metavar='STR',
-					default='-similar 85 -vic 10 -seed 20 -seqids yes -minlenltr 100 \
+					default='-similar 80 -vic 10 -seed 20 -seqids yes -minlenltr 100 \
 -maxlenltr 7000 -mintsd 4 -maxtsd 6',
 					help='Options for `gt ltrharvest` to identify LTR-RTs (see more with \
 `gt ltrharvest -help`) [default="%(default)s"]')
 	group_ltr.add_argument("-tesorter_options", metavar='STR',
-					default='-db rexdb-plant',
-					help='Options for `TEsorter` to classify LTR-RTs [default="%(default)s"]')
+					default='-db rexdb-plant -dp2',
+					help='Options for `TEsorter` to classify LTR-RTs (see more with `TEsorter -h`) \
+[default="%(default)s"]')
+					
 	group_ltr.add_argument('-all_ltr', action="store_true", default=False,
-                    help="Use all LTR identified by `-ltr_detectors` \
+                    help="Use all LTR identified by `-ltr_detectors` (more LTRs but slower) \
 [default: only use LTR as classified by `TEsorter`]")
 	group_ltr.add_argument('-intact_ltr', action="store_true", default=False,
-                    help="Use completed LTR as classified by `TEsorter` \
-[default: same as `-all_ltr`]")
+                    help="Use completed LTR as classified by `TEsorter` (less LTRs but fater) \
+[default: the same as `-all_ltr`]")
 	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
-					help='Substitution rate in the intergenic region, \
+					help='Substitution rate per year in the intergenic region, \
 for estimating age of LTR insertion \
 [default=%(default)s]')
+	group_ltr.add_argument('-disable_ltrtree', action="store_true", default=False,
+					help="Disable subgenome-specific LTR tree (this step is time-consuming when \
+subgenome-specific LTRs are too much)\
+ [default=%(default)s]")
+	group_ltr.add_argument("-ltr_domains", nargs='+', 
+					default=['INT', 'RT', 'RH'], 
+					choices=['GAG', 'PROT', 'INT', 'RT', 'RH', 'AP', 'RNaseH '],
+					help="Domains for LTR tree (Note:  for domains identified by `TEsorter`, \
+PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
+	group_ltr.add_argument("-trimal_options", metavar='STR',
+					default='-automated1',
+					help='Options for `trimal` to trim alignment (see more with `trimal -h`) \
+[default="%(default)s"]')
+	group_ltr.add_argument("-iqtree_options", metavar='STR',
+					default='-mset JTT',
+					help='Options for `iqtree` to construct phylogenetic trees \
+(see more with `iqtree -h`) [default="%(default)s"]')
+	group_ltr.add_argument("-ggtree_options", metavar='STR',
+					default="branch.length='none', layout='circular'",
+					help='Options for `ggtree` to show phylogenetic trees \
+(see more from `https://yulab-smu.top/treedata-book`) [default="%(default)s"]')
 
 	# circos
 	group_circ = parser.add_argument_group('Circos', 'Options for circos plot')
@@ -140,7 +170,7 @@ for estimating age of LTR insertion \
 	group_circ.add_argument("-aligner_options", metavar='STR',
 					default='-x asm20',
 					help='Options for `-aligner` to align chromosome sequences [default="%(default)s"]')
-	group_circ.add_argument('-min_block', type=int, default=20000, metavar='INT',
+	group_circ.add_argument('-min_block', type=int, default=100000, metavar='INT',
 					help="Minimum block size to show [default=%(default)s]")
 
 	# others
@@ -153,11 +183,13 @@ for estimating age of LTR insertion \
 					help="Remove the temporary directory [default=%(default)s]")	
 	group_other.add_argument('-overwrite', action="store_true", default=False,
 					help="Overwrite even if check point files existed [default=%(default)s]")
+	
 	args = parser.parse_args()
 	if args.prefix is not None:
 		args.prefix = args.prefix.replace('/', '_')
 		args.outdir = args.prefix + args.outdir
 		args.tmpdir = args.prefix + args.tmpdir
+	args.ltr_detectors = sorted(set(args.ltr_detectors))
 	return args
 
 class Pipeline:
@@ -181,12 +213,15 @@ class Pipeline:
 			cfg_labels = self.labels
 		else:
 			cfg_labels = [None] * len(self.sg_cfgs)
-		self.sgs, self.chrs, self.nsg = [], [], 0
+		self.sgs, self.chrs, _nsg = [], [], 0
 		for sgcfg, label in zip(self.sg_cfgs, cfg_labels):
 			sgcfg = SGConfig(sgcfg, prefix=label, sep=self.sep)
 			self.sgs += sgcfg.sgs
 			self.chrs += sgcfg.chrs
-			self.nsg += sgcfg.nsg
+			_nsg += sgcfg.nsg
+		if not self.nsg or self.nsg < 2:
+			self.nsg = _nsg
+		
 		# re-labels
 		if self.no_label:
 			self.labels = [''] * (len(genomes))
@@ -230,16 +265,19 @@ class Pipeline:
 			data = chromfiles, labels, d_targets, d_size = Seqs.split_genomes(self.genomes, self.labels, 
 					self.chrs, self.tmpdir, d_targets=d_targets, sep=self.sep)
 			mk_ckp(ckp_file, *data)
-		print(data)
-		self.chromfiles = chromfiles
+	#	print(data)
+		labels, chromfiles = self.sort_labels(d_targets.values(), labels, chromfiles)
+		logger.info('Chromosomes: {}'.format(labels))
+		
+		self.chromfiles = chromfiles	# ordered as the genome files
 		# update
 		self.labels = labels
 		self.sgs = self.update_sgs(self.sgs, d_targets)
 		self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
 		self.d_size =  d_size
-		print(self.sgs)
-#`		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
-		logger.info('ID map: {}'.format(d_targets))
+#		print(self.sgs)
+#		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
+#		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
 			raise ValueError('Only 0 chromosome remained after filtering. Please check the inputs.')
 
@@ -268,23 +306,23 @@ class Pipeline:
 		ckp_file = self.mk_ckpfile(matfile)
 		if self.overwrite or not check_ckp(ckp_file):
 			d_mat = dumps.to_matrix()	# multiprocessing by chrom
-			logger.info('{} kmers in total'.format(len(d_mat)))
+			kmer_count = len(d_mat)
+			logger.info('{} kmers in total'.format(kmer_count))
 			lengths = dumps.lengths
 			logger.info('Filtering differential kmers')	# multiprocessing by kmer
 			histfig = self.para_prefix + '.kmer_freq.' + self.figfmt
 			d_mat = dumps.filter(d_mat, lengths, self.sgs, outfig=histfig, #d_targets=d_targets, 
-					min_fold=self.min_fold, 
+					min_fold=self.min_fold, baseline=self.baseline,
 					min_freq=self.min_freq, max_freq=self.max_freq,
 					min_prop=self.min_prop, max_prop=self.max_prop)
-			logger.info('{} kmers remained after filtering'.format(len(d_mat)))
+			kmer_count2 = len(d_mat)
+			logger.info('{} ({:.1%}) kmers remained after filtering'.format(kmer_count2, kmer_count2/kmer_count))
 			if len(d_mat) == 0:
 				raise ValueError('Only 0 kmer remained after filtering. Please reset the filter options.')
 			with open(matfile, 'w') as fout:
 				dumps.write_matrix(d_mat, fout)
 			mk_ckp(ckp_file)
-		# heatmap	# static mechod
-		outfig = dumps.heatmap(matfile, figfmt=self.figfmt, color=self.heatmap_colors, 
-					heatmap_options=self.heatmap_options)
+		
 		
 		# kmeans cluster
 		logger.info('###Step: Cluster')
@@ -296,19 +334,25 @@ class Pipeline:
 		logger.info('Outputing `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)  # multiprocessing by kmer
+			
+		# heatmap	# static mechod
+		outfig = dumps.heatmap(matfile, mapfile=sg_chrs, figfmt=self.figfmt, color=self.heatmap_colors, 
+					heatmap_options=self.heatmap_options)
+					
 		# PCA
-		outfig = self.para_prefix + '.pca.' + self.figfmt
+		outfig = self.para_prefix + '.kmer_pca.' + self.figfmt
 		logger.info('Outputing PCA plot to `{}`'.format(outfig))
-		cluster.pca(outfig)
+		cluster.pca(outfig, n_components=self.nsg)
+
 
 		# specific kmers and location
 		sg_kmers = self.para_prefix + '.sig.kmer-subgenome.tsv'
 		logger.info('Outputing significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
 		with open(sg_kmers, 'w') as fout:	# multiprocessing by kmer
 			# kmer -> SG
-			d_kmers = cluster.output_kmers(fout, min_pval=self.min_pval, ncpu=self.ncpu)
+			d_kmers = cluster.output_kmers(fout, max_pval=self.max_pval, ncpu=self.ncpu)
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
-		for sg, count in Counter(d_kmers.values()).items():
+		for sg, count in sorted(Counter(d_kmers.values()).items()):
 			logger.info('\t{} {}-specific kmers'.format(count//2, sg))
 		
 		sg_map = self.para_prefix + '.subgenome.bed'
@@ -326,7 +370,7 @@ class Pipeline:
 		bin_enrich = self.para_prefix + '.bin.enrich'
 		with open(bin_enrich, 'w') as fout:
 			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
-					min_pval=self.min_pval)
+					max_pval=self.max_pval)
 
 		# LTR
 		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else ([],[])
@@ -339,9 +383,12 @@ class Pipeline:
 				ltr_lines=ltr_bedlines, # LTR bed lines			circles n+3
 				enrich_ltr_bedlines=enrich_ltr_bedlines, 	#	circles n+3
 				d_sg = d_sg, # chrom -> SG, for colors
+				prefix=self.para_prefix + '.circos',
+				figfmt=self.figfmt,
 				window_size=self.window_size)
 
 		self.step_final()
+		logger.info('Pipeline completed')
 
 	def mk_ckpfile(self, file):
 		return '{}{}.ok'.format(self.tmpdir, os.path.basename(file))
@@ -352,34 +399,57 @@ class Pipeline:
 		tmpdir = '{}LTR'.format(self.tmpdir)
 		if ' -p ' not in self.tesorter_options:
 			self.tesorter_options += ' -p {}'.format(self.ncpu)
+		cont = 0 if self.overwrite else 1
+		job_args = {'mode': 'local', 'retry': 3, 'cont': cont,  'tc_tasks': self.ncpu}
 		kargs = dict(progs=self.ltr_detectors, 
 				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
-				job_args={'mode': 'local', 'retry': 3, 'cont': 1,  'tc_tasks': self.ncpu},
-				tesorter_options=self.tesorter_options, mu=self.mu,)
+				job_args=job_args, tesorter_options=self.tesorter_options, mu=self.mu,)
 		# multiprocessing by chromfile
-		ltrs, ltrfile = LTRpipeline(self.chromfiles, tmpdir=tmpdir, 
+		pipeline = LTRpipeline(self.chromfiles, tmpdir=tmpdir, 
 					all_ltr=self.all_ltr, intact_ltr=self.intact_ltr,
-					ncpu=self.ncpu, **kargs).run()
+					ncpu=self.ncpu, **kargs)
+		ltrs, ltrfile = pipeline.run()
 		ltr_map = self.para_prefix + '.ltr.bed'
 		ckp_file = self.mk_ckpfile(ltr_map)
 		if self.overwrite or not check_ckp(ckp_file):
-#		if True:
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
 			with open(ltr_map, 'w') as fout:	# multiprocessing by LTR
 				Seqs.map_kmer3([ltrfile], d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
 								chunk=False, log=False, method=self.pool_method, chunksize=self.chunksize)
+			# only mapped LTRs are output; the others are ignored
 			mk_ckp(ckp_file)
 
 		# enrich SG by LTR
+		logger.info('Enriching subgenome-specific LTR-RTs')
 		bins, counts = Circos.counts2matrix(ltr_map, keys=self.sg_names, keycol=3, window_size=100000000)
 		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
 			d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
-					min_pval=self.min_pval)
+					max_pval=self.max_pval)
+		
+		logger.info('{} significant subgenome-specific LTR-RTs'.format(len(d_enriched)))
+		for sg, count in sorted(Counter(d_enriched.values()).items()):
+			suffix = {'shared':''}.get(sg, '-specific')
+			logger.info('\t{} {}{} LTR-RTs'.format(count, sg, suffix))
+			
 		# plot insert age
 		prefix = self.para_prefix + '.ltr.insert'
 		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, mu=self.mu, figfmt=self.figfmt)
-
+		
+		# ltr tree
+		if not self.disable_ltrtree:
+			domfile = pipeline.int_seqs + '.cls.pep'
+			# threads = max(1, self.ncpu//2)
+			# iqtree_options = self.iqtree_options + ' -nt {}'.format(threads)
+			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=tmpdir,
+					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, ncpu=self.ncpu)
+			print(job_args)
+			d_files = tree.build(job_args=job_args)
+			for key, (treefile, mapfile) in d_files.items():
+				key = tuple([v for v in key if v])
+				outfig = '{}.{}.tree.pdf'.format(self.para_prefix, '_'.join(key))
+				tree.visualize_treefile(treefile, mapfile, outfig, 
+						ggtree_options=self.ggtree_options)
 		# ltr bed
 		ltr_bedlines = [ltr.to_bed() for ltr in ltrs]
 		enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
@@ -391,6 +461,7 @@ class Pipeline:
 		if not self.disable_blocks:
 			pafs = self.step_blocks()
 			kargs['pafs'] = pafs
+			kargs['min_block'] = self.min_block
 
 		# circos
 		circos_dir = bindir+'/circos'
@@ -405,26 +476,38 @@ class Pipeline:
 	
 	def step_blocks(self):
 		outdir = '{}Blocks/'.format(self.tmpdir)
-		mem_per_cmd = max(self.d_size.values())*150
+		multiple = {'minimap2': 100, 'unimap': 200}	# relative with repeat amount
+		mem_per_cmd = max(self.d_size.values())* multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
 		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))
 		thread = int(self.ncpu // ncpu)
 		
 		mkdirs(outdir)
 		pafs = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,
-						ncpu=ncpu, thread=thread, opts=self.aligner_options)
+						ncpu=ncpu, thread=thread, opts=self.aligner_options, overwrite=self.overwrite)
 						
 		return pafs
 	
 	def step_final(self):
 		# cleanup
 		if self.cleanup:
+			logger.info('Cleaning {}'.format(self.tmpdir))
 			rmdirs(self.tmpdir)
+	def sort_labels(self, order, labels, chromfiles):
+		d = dict(zip(labels, chromfiles))
+		labels, chromfiles = [], []
+		for lab in order:
+			if not lab in d:
+				continue
+			chromfile = d[lab]
+			labels += [lab]
+			chromfiles += [chromfile]
+		return labels, chromfiles
 
 def parse_idmap(mapfile=None):
 	if not mapfile:
 		return None
-	d_map = {}
+	d_map = OrderedDict()
 	for line in open(mapfile):
 		line = line.strip().split('#')[0]
 		if not line:
@@ -478,8 +561,9 @@ def add_prefix(val, prefix=None, sep='|'):
 		return val
 
 def main():
+	logger.info('Command: {}'.format(' '.join(sys.argv)))
 	args = makeArgparse()
-	logger.info('ARGS: {}'.format(args.__dict__))
+	logger.info('Arguments: {}'.format(args.__dict__))
 	pipeline = Pipeline(**args.__dict__)
 	pipeline.run()
 

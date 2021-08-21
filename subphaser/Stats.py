@@ -22,9 +22,10 @@ def enrich_ltr(fout, *args, **kargs):
 	fout.write('\t'.join(line)+'\n')
 	d_enriched = {}
 	for res in enrich(*args, **kargs):
-		if not res.sig:
-			continue
 		ltr, *_ = res.rowname
+		if not res.sig:
+#			d_enriched[ltr] = 'shared'
+			continue
 		counts = ','.join(map(str, res.counts))
 		line = [ltr, res.key, res.pval, counts]
 		line = map(str, line)
@@ -56,7 +57,7 @@ def enrich_bin(fout, *args, **kargs):
 		lines += [line]
 	return lines
 
-def enrich(matrix, colnames=None, rownames=None, min_ratio=0.5, **kargs):	# kargs: min_pval
+def enrich(matrix, colnames=None, rownames=None, min_ratio=0.5, **kargs):	# kargs: max_pval
 	arr = np.array(matrix)
 	if colnames is not None and rownames is not None:
 		assert arr.shape == (len(rownames), len(colnames))
@@ -81,12 +82,12 @@ def enrich(matrix, colnames=None, rownames=None, min_ratio=0.5, **kargs):	# karg
 		yield _min	# min pvalue and max proportion
 
 class Pvalues:
-	def __init__(self, pvals, keys, cutoff=1, min_pval=0.05):
+	def __init__(self, pvals, keys, cutoff=1, max_pval=0.05):
 		assert len(pvals) == len(keys) > 1
 		self.pvals = pvals
 		self.keys = keys
 		self.cutoff = cutoff
-		self.min_pval = min_pval
+		self.max_pval = max_pval
 	def __iter__(self):
 		return (Pvalue(pval, key, i) for i, (pval, key) in enumerate(zip(self.pvals, self.keys)))
 	def sort(self):
@@ -96,11 +97,11 @@ class Pvalues:
 		_min = pvals[0]
 		_submin = pvals[1]
 		_min.sig = True	# significant
-		if _min.pval > self.min_pval:
+		if _min.pval > self.max_pval:
 			_min.sig = False
 		if _min.pval == 0:	# to avoid divide by zero
 			pass
-		elif _submin.pval / _min.pval < self.min_pval/_submin.pval*self.cutoff:
+		elif _submin.pval / _min.pval < self.max_pval/_submin.pval*self.cutoff:
 			_min.sig = False
 		return _min
 

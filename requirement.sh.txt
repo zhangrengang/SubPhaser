@@ -3,3 +3,7 @@ tesorter
 minimap2
 unimap
 ltr_finder
+mafft
+trimal
+iqtree=1.6.12
+newick_utils

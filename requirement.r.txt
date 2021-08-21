@@ -2,3 +2,4 @@ r-base
 r-gplots
 r-ggplot2
 bioconductor-ggtree
+bioconductor-treeio

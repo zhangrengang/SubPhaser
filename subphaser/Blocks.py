@@ -3,7 +3,8 @@ import itertools
 from .RunCmdsMP import run_cmd, logger, pool_run
 from .small_tools import mk_ckp, check_ckp
 
-def run_align(sgs, d_chromfiles, outdir, ncpu=8, thread=2, aligner='unimap', opts='-x asm20'):
+def run_align(sgs, d_chromfiles, outdir, ncpu=8, thread=2, overwrite=False,
+		aligner='unimap', opts='-x asm20'):
 	opts += ' -t {}'.format(thread)
 	cmds = []
 	paf_groups = []
@@ -14,7 +15,7 @@ def run_align(sgs, d_chromfiles, outdir, ncpu=8, thread=2, aligner='unimap', opt
 				fa1, fa2 = d_chromfiles[chr1], d_chromfiles[chr2]
 				outpaf = '{}{}-{}.paf'.format(outdir, chr1, chr2)
 				ckp_file = outpaf + '.ok'
-				if not check_ckp(ckp_file):
+				if not check_ckp(ckp_file) or overwrite:
 					cmd = '{} {} {} {} > {} && touch {}'.format(
 						  aligner, fa1, fa2, opts, outpaf, ckp_file)
 					cmds += [cmd]

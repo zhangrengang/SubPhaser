@@ -10,4 +10,6 @@ biopython
 binpacking
 pp
 psutil
-TEsorter
+svglib
+reportlab
+uuid

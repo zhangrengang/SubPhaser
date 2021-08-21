@@ -1,5 +1,6 @@
 import sys
 import copy
+from collections import OrderedDict
 from Bio import SeqIO
 from Bio.Seq import Seq
 from xopen import xopen as open
@@ -9,9 +10,9 @@ from .RunCmdsMP import logger, pp_func, pool_func
 
 def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 	# allow renaming id split by `|`
-	d_targets2 = {}
+	d_targets2 = OrderedDict()
 	if not d_targets:
-		d_targets = {}
+		d_targets = OrderedDict()
 		for t in targets:
 			temp = t.split(sep, 1)
 			id, new_id = temp[-1], temp[0]
@@ -45,7 +46,7 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 			with open(outfa, 'w') as fout:
 				SeqIO.write(rc, fout, 'fasta')
 			outfas += [outfa]
-			labels += [rc.id]
+			labels += [rc.id]	# new id
 			d_size[rc.id] = len(rc.seq)
 	return outfas, labels, d_targets2, d_size
 
@@ -131,9 +132,7 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 			if log:
 				logger.info('Mapped {} kmers to {}'.format(j, last_id))
 			j = 0
-	#	for line in lines:
-			#print('\t'.join(line), file=fout)
-		fout.write(lines)
+		fout.write(lines)	# not lines when no kmer mapped
 		j += c
 		i += 1
 		if i % 10000 == 0:

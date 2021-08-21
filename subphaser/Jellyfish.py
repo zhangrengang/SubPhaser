@@ -4,7 +4,7 @@ import numpy as np
 from Bio.Seq import Seq
 from xopen import xopen as open
 from .RunCmdsMP import run_cmd, logger, pool_func
-from .small_tools import is_gz
+from .small_tools import is_gz, mk_ckp, check_ckp
 
 class JellyfishDump(object):
 	def __init__(self, column, ncpu=4, ):
@@ -92,37 +92,37 @@ class JellyfishDumps:
 		self.lengths = lengths
 		return d_mat
 
-	def to_matrixi0(self):
-		d_mat = {}
-		lengths = [0] * len(self)
-#		for i, dump in enumerate(pool_func(self._to_matrix, self.dumpfiles)):
-		for i, (dump,dumpfile) in enumerate(pool_func(_to_matrix, self.dumpfiles, self.ncpu)):
-			logger.info('Loading '+ dumpfile)
-#			for j, line in enumerate(dump):
-			for j, (seq, freq) in enumerate(dump):
-				if seq not in d_mat:
-					if i == 0:
-						d_mat[seq] = [freq]
-					else:
-						d_mat[seq] = [0]*i + [freq]
-				else:
-					arr = d_mat[seq]
-					diff = i-len(arr)
-					if diff == 0:
-						arr += [freq]
-					else:
-						arr += [0]*diff + [freq]
-				lengths[i] += freq
-			del dump
-		self.lengths = lengths
-		return d_mat
-	def _to_matrix(self, arg):
-		dumpfile = arg
-		logger.info('Loading '+ dumpfile)
-		return JellyfishDump(dumpfile)
+	# def to_matrixi0(self):
+		# d_mat = {}
+		# lengths = [0] * len(self)
+# #		for i, dump in enumerate(pool_func(self._to_matrix, self.dumpfiles)):
+		# for i, (dump,dumpfile) in enumerate(pool_func(_to_matrix, self.dumpfiles, self.ncpu)):
+			# logger.info('Loading '+ dumpfile)
+# #			for j, line in enumerate(dump):
+			# for j, (seq, freq) in enumerate(dump):
+				# if seq not in d_mat:
+					# if i == 0:
+						# d_mat[seq] = [freq]
+					# else:
+						# d_mat[seq] = [0]*i + [freq]
+				# else:
+					# arr = d_mat[seq]
+					# diff = i-len(arr)
+					# if diff == 0:
+						# arr += [freq]
+					# else:
+						# arr += [0]*diff + [freq]
+				# lengths[i] += freq
+			# del dump
+		# self.lengths = lengths
+		# return d_mat
+	# def _to_matrix(self, arg):
+		# dumpfile = arg
+		# logger.info('Loading '+ dumpfile)
+		# return JellyfishDump(dumpfile)
 
 	def filter(self, d_mat, lengths, sgs, outfig=None, 
-				min_freq=200, max_freq=10000, min_fold=2,
+				min_freq=200, max_freq=10000, min_fold=2, baseline=1, 
 				min_prop=None, max_prop=None):
 		#logger.info([min_freq, max_freq, min_fold])
 		#logger.info(sgs)
@@ -136,9 +136,12 @@ class JellyfishDumps:
 		if min_freq > max_freq:
 			raise ValueError('`min_freq` ({}) should be lower than `max_freq` ({})'.format(min_freq, max_freq))
 
+		for sg in sgs:
+			if len(sg) == 1:
+				logger.warn('Singleton `{}` is ignored'.format(sg))
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
-		args = ((kmer, counts, d_lens, sgs, outfig, min_freq, max_freq, min_fold) \
+		args = ((kmer, counts, d_lens, sgs, outfig, min_freq, max_freq, min_fold, baseline) \
 					for kmer, counts in d_mat.items())
 		i = 0
 		tot_freqs = []
@@ -166,7 +169,7 @@ class JellyfishDumps:
 			line = map(str, line)
 			fout.write( '\t'.join(line) + '\n')
 
-	def heatmap(self, matfile, figfmt='pdf', color=('green', 'black', 'red'), 
+	def heatmap(self, matfile, mapfile=None, figfmt='pdf', color=('green', 'black', 'red'), 
 			heatmap_options='scale="row", key=TRUE, density.info="density", trace="none", labRow=F, main="",xlab=""'):
 		if len(color) == 3:
 			color = 'colorpanel(100, low="{}", mid="{}", high="{}")'.format(*color)
@@ -177,15 +180,33 @@ class JellyfishDumps:
 		outfig = matfile+ '.'+ figfmt
 		rsrc = '''
 data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F, nrows=10000)
+map = read.table('{mapfile}', sep='\t')
+
 data = as.matrix(data)
 z.scale <- function(x) (x - mean(x))/ sqrt(var(x))
 data = apply(data, 1, z.scale)	# transpose
+
+# map to SG
+idmap = list()
+for (i in 1:nrow(map)) {{
+        chrom = as.character(map[i, 1])
+        sg = as.character(map[i, 2])
+        idmap[[chrom]] = paste(sg, chrom, sep='|')
+}}
+
+names = vector()
+for (name in rownames(data)){{
+        new_name = idmap[[name]]
+        names = c(names, new_name)
+}}
+rownames(data) = names
 
 library("gplots")
 {dev}('{outfig}')
 heatmap.2(data, col={color}, {heatmap_options})
 dev.off()
-'''.format(matfile=matfile, dev=figfmt, outfig=outfig, color=color, heatmap_options=heatmap_options)
+'''.format(matfile=matfile, mapfile=mapfile, dev=figfmt, outfig=outfig, 
+			color=color, heatmap_options=heatmap_options)
 		rsrc_file = matfile + '.R'
 		with open(rsrc_file, 'w') as f:
 			f.write(rsrc)
@@ -195,7 +216,7 @@ dev.off()
 		
 def _filter_kmer(arg):
 	(kmer, counts, d_lens, sgs, outfig, 
-		min_freq, max_freq, min_fold) = arg
+		min_freq, max_freq, min_fold, baseline) = arg
 	labels = d_lens.keys()
 	lengths = d_lens.values()
 	tot = sum(counts)
@@ -206,7 +227,6 @@ def _filter_kmer(arg):
 	includes = []
 	for sg in sgs:
 		if len(sg) == 1:
-			logger.warn('Singleton `{}` is ignored'.format(sg))
 			continue
 		include = False
 		freqs = []
@@ -223,8 +243,8 @@ def _filter_kmer(arg):
 			freqs += [freq]
 		freqs = sorted(freqs, reverse=1)
 		_max_freq = freqs[0]
-		_min_freq = freqs[1]
-		if 1.0 * _max_freq / (_min_freq+1e-9) >= min_fold:
+		_min_freq = freqs[baseline]
+		if 1.0 * _max_freq / (_min_freq+1e-20) >= min_fold:
 			include = True
 		includes += [include]
 	if not all(includes):
@@ -246,17 +266,17 @@ def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylab
 	plt.savefig(outfig)
 	
 		
-ints = '1234'
-bases = 'ATCG'
-d_base2int = dict(zip(bases, ints))
-d_int2base = dict(zip(ints, bases))
-def seq2int(seq):
-	as_int = [d_base2int[base] for base in seq]
-	return int(''.join(as_int))
-def int2seq(num):
-	num = str(num)
-	as_str = [d_int2base[i] for i in num]
-	return ''.join(as_str)
+# ints = '1234'
+# bases = 'ATCG'
+# d_base2int = dict(zip(bases, ints))
+# d_int2base = dict(zip(ints, bases))
+# def seq2int(seq):
+	# as_int = [d_base2int[base] for base in seq]
+	# return int(''.join(as_int))
+# def int2seq(num):
+	# num = str(num)
+	# as_str = [d_int2base[i] for i in num]
+	# return ''.join(as_str)
 
 class JellyfishDumpRecord(object):
 	def __init__(self, seq, freq):
@@ -284,16 +304,15 @@ def run_jellyfish_dump(seqfile, threads=4, k=17, prefix=None, lower_count=2, ove
 		prefix = seqfile
 	output = '{prefix}_{KMER}.fa'.format(KMER=k, prefix=prefix)
 	ckp_file = output + '.ok'
-	if not overwrite and os.path.exists(ckp_file):
-		logger.info('Check point {} exists, skipped'.format(ckp_file))
+	if not overwrite and check_ckp(ckp_file):
+		pass
 	else:
-		xcat = 'cat'
-		if is_gz(seqfile):
-			return 'zcat'
+		xcat = 'zcat' if is_gz(seqfile) else 'cat'
 		cmd = '{XCAT} "{seqfile}" | jellyfish count -t {NCPU} -m {KMER} -s 100000000  --canonical /dev/stdin -o "{prefix}_{KMER}.jf" && \
 	jellyfish dump -c -o "{prefix}_{KMER}.fa" "{prefix}_{KMER}.jf" -L {lower_count} && touch "{ckp_file}" \
 	&& rm "{prefix}_{KMER}.jf"'.format(
-		XCAT=xcat, seqfile=seqfile, NCPU=threads, KMER=k, prefix=prefix, ckp_file=ckp_file, lower_count=lower_count)
+			XCAT=xcat, seqfile=seqfile, NCPU=threads, KMER=k, prefix=prefix, 
+				ckp_file=ckp_file, lower_count=lower_count)
 		run_cmd(cmd, log=True)
 	return output
 
