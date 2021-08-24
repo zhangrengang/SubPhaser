@@ -1,6 +1,7 @@
 import sys, re, os
 import math
 import itertools
+import random
 from collections import OrderedDict
 import numpy as np
 from Bio import SeqIO
@@ -75,7 +76,7 @@ def chunk_fastas(inSeqs, d_len, per_bin=20e6, tmpdir='/io/tmp/share',
 	seq_len = sum(d_len.values())
 	nbins = int(seq_len/per_bin + 1)
 		# prefix = '{}/{}'.format(tmpdir, os.path.basename(inSeq))
-	prefix = '{}/'.format(tmpdir, )
+	prefix = '{}/chunks'.format(tmpdir, )
 	*_, chunk_files = bin_split_fastx_by_chunk_num(
 			inSeqs, prefix=prefix, chunk_num=nbins, window_size=window_size, window_ovl=window_ovl, 
 			seqfmt='fasta', suffix='')
@@ -149,7 +150,7 @@ def detect_ltr(inSeqs, harvest_out, d_len, progs=['ltr_finder', 'ltr_harvest'],
 
 class LTRtree:
 	def __init__(self, ltrs, domains, domfile, prefix='ltrtree', 
-			overwrite=False, ncpu=10, 
+			overwrite=False, ncpu=10, subsample=None, 
 			categories=[('LTR', 'Copia', None), ('LTR', 'Gypsy', None)],
 			trimal_options='-automated1', iqtree_options='-mset JTT -nt AUTO'):
 		'''ltrs: enrich_ltrs (list)'''
@@ -162,15 +163,36 @@ class LTRtree:
 		self.iqtree_options = iqtree_options
 		self.overwrite = overwrite
 		self.ncpu = ncpu
+	def sort_ltrs(self):
+		d_ltrs = {}
+		for ltr in self.ltrs:
+			for key in self.categories:
+				order, superfamily, clade = key
+				if order and ltr.order != _order:
+					continue
+				elif superfamily and ltr.superfamily != _superfamily:
+					continue
+				elif ltr.clade and clade != _clade:
+					continue
+				try: d_ltrs[key] += [ltr]
+				except KeyError: d_ltrs[key] = [ltr]
+		return d_ltrs
+	
 	def build(self, job_args):
-		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
+#		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
 #		ltr_ids = {ltr.id for ltr in ltrs}
-		
+		sorted_ltrs = self.sort_ltrs()
 		nseqs = []
 		alnfiles = []
 		for key in self.categories:
 			order, superfamily, clade = key
+			target_ltrs = sorted_ltrs[key]
 			key = tuple([v for v in key if v])
+			# subsmaple
+			if isinstance(subsample, int) and len(target_ltrs) > subsample:
+				logger.info('Subsample {} / {} {}'.format(subsample, len(target_ltrs), key))
+				target_ltrs = random.sample(target_ltrs, subsample)
+			d_ltrs = {ltr.id: ltr for ltr in target_ltrs}
 			prefix = '{}.{}'.format(self.prefix, '_'.join(key))
 			alnfile = prefix + '.aln'
 			mapfile = prefix + '.map'
@@ -323,11 +345,8 @@ intact: only use completed LTR as classified by TEsorter'''
 			mk_ckp(ckp)
 		ltr_count = len(ltrs)
 		logger.info('{} LTRs Identified'.format(ltr_count))
-		logger.info('Extracting inner sequences of LTRs to classify by `TEsorter`')
-		self.int_seqs = int_seqs = self.prefix + '.INT.fa'
-		with open(int_seqs, 'w') as fout:
-			self.get_int_seqs(ltrs, fout)
-		d_class = self.classfify(int_seqs)
+		
+		d_class = self.classfify(ltrs)
 
 			
 		filtered_ltrs = []
@@ -335,7 +354,10 @@ intact: only use completed LTR as classified by TEsorter'''
 		for ltr in ltrs:
 			cls = d_class.get(ltr.id, )
 			if cls:
-				ltr.__dict__.update(cls.__dict__)
+				ltr.__dict__.update(**cls.__dict__)
+			else:
+				ltr.__dict__.update(order=None, superfamily=None,
+					clade=None, completed=None, strand=None, domains=None))
 			order = getattr(cls, 'order', None)
 			completed = getattr(cls, 'completed', None)
 			if order == 'LTR':
@@ -349,7 +371,7 @@ intact: only use completed LTR as classified by TEsorter'''
 			elif self.intact and completed != 'yes':
 				continue
 			filtered_ltrs += [ltr]
-		logger.info('{} ({:.1%}) are classified as LTRs and {} ({:.1%}) as intact by TEsorter'.format(
+		logger.info('{} ({:.1%}) are classified as LTRs, of which {} ({:.1%}) as intact by TEsorter'.format(
 				i, i/ltr_count, j, j/i))
 		
 		i, j = len(ltrs), len(filtered_ltrs)
@@ -360,18 +382,23 @@ intact: only use completed LTR as classified by TEsorter'''
 		logger.info('After filter, {} / {} ({:.1%}) LTRs retained'.format(j, i, j/i))
 		ltr_seqs = self.prefix + '.filtered.LTR.fa' 
 		with open(ltr_seqs, 'w') as fout:
-			self.get_full_seqs(ltrs, fout)
+			self.get_full_seqs(ltrs, fout)	# for kmer enrich
 		return ltrs, ltr_seqs
 
 
 	def identify(self, fout):
 		return detect_ltr(self.genomes, fout, self.d_len, tmpdir=self.prefix, unique=False, **self.kargs)
 
-	def classfify(self, inseq):
+	def classfify(self, ltrs):
+		inseq = self.int_seqs = int_seqs = self.prefix + '.inner.fa'
 		ckp = self.prefix + '.tesort.ok'
 		if check_ckp(ckp) and not self.overwrite:
 			pass
 		else:
+			logger.info('Extracting inner sequences of LTRs to classify by `TEsorter`')
+			with open(int_seqs, 'w') as fout:
+				self.get_int_seqs(ltrs, fout)
+				
 			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > \
 {seqfile}.tesort.log'.format(
 					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
@@ -389,6 +416,8 @@ intact: only use completed LTR as classified by TEsorter'''
 		d_seqs = self.d_seqs
 		for ltr in ltrs:
 			seq = getattr(ltr, method)(d_seqs=d_seqs)
+			if seq is None:
+				continue
 			fout.write('>{}\n{}\n'.format(ltr.id, seq))
 	def get_int_seqs(self, ltrs, fout):
 		return self.get_seqs(ltrs, fout, method='get_int_seq')
@@ -515,7 +544,7 @@ def summary_ltr_time(d_data, fout):
 		_tile97_5 = np.percentile(ages, 97.5)
 		_tile12_5 = np.percentile(ages, 12.5)
 		_tile87_5 = np.percentile(ages, 87.5)
-		_ci95 = '{:.3f}-{:.3f}'.format(_tile2_5, _tile97_5)
+		_ci95 = '{:.3f}-{:.3f}'.format(abs(_tile2_5), _tile97_5)
 		_ci75 = '{:.3f}-{:.3f}'.format(_tile12_5, _tile87_5)
 		line = [sg, _mean, _median, _std, _ci95, _ci75]
 		fout.write('\t'.join(line) + '\n')
@@ -609,7 +638,8 @@ class LTRHarvestRecord(object):
 		return self.end - self.rltr + 1
 	def get_seq(self, seq=None, start=None, end=None, d_seqs=None):
 		if seq is None and d_seqs is not None:
-			seq = d_seqs[self.seq_id]
+			try: seq = d_seqs[self.seq_id]
+			except KeyError: return
 		return seq[start:end]
 	def get_int_seq(self, **kargs):
 		return self.get_seq(start=self.lltr_e, end=self.rltr_s, **kargs)

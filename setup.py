@@ -4,7 +4,7 @@ from subphaser.__version__ import version
 from setuptools import setup, find_packages
 # from distutils.core import setup
 from distutils.extension import Extension
-from Cython.Build import cythonize
+#from Cython.Build import cythonize
 
 with open('README.md') as f:
     long_description = f.read()
@@ -27,7 +27,7 @@ setup(
         'console_scripts': ['subphaser = subphaser.__main__:main',
         ],
     },
-	ext_modules=cythonize([
-                Extension("subphaser.Kmer", ["subphaser/Kmer.pyx"]),
-	]),
+#	ext_modules=cythonize([
+#                Extension("subphaser.Kmer", ["subphaser/Kmer.pyx"]),
+#	]),
 )

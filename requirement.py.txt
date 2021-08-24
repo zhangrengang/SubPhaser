@@ -1,15 +1,13 @@
-multiprocess
-xopen
-scipy
-fisher
-numpy
-tklearn
-matplotlib
-reportlab
-biopython
-binpacking
-pp
-psutil
-svglib
-reportlab
-uuid
+python=3.6.4	3.8.8	3.9.6
+multiprocess=0.70.9
+xopen=0.3.5
+scipy=1.1.0
+fisher=0.1.9	0.1.9
+numpy=1.17.3
+psutil=5.6.3
+scikit-learn=0.20.3
+matplotlib=2.1.2
+reportlab=3.5.59
+biopython=1.73
+binpacking=1.5.1
+svglib=1.1.0

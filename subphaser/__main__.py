@@ -77,6 +77,10 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
 	group_kmer.add_argument('-low_mem', action="store_true", default=None,
 					help="Low MEMory but slower [default: True if genome size > 3G, else False]")
+	group_kmer.add_argument('-re_filter', action="store_true", default=False,
+					help="Re-filter with subset of chromosomes (subgenome assignments are expected to change)\
+ [default=%(default)s]")
+ 
 	# cluster
 	group_clst = parser.add_argument_group('Cluster', 'Options for cluster to phase')
 	group_clst.add_argument('-nsg', type=int, default=None, metavar='INT',
@@ -87,9 +91,9 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Percent of kmers to resample for bootstrap [default=%(default)s]")
 	group_clst.add_argument('-max_pval', type=float, default=0.05, metavar='FLOAT',
 					help="Maximum P value for hypothesis test [default=%(default)s]")
-
+	
 	group_clst.add_argument("-figfmt", default='pdf', type=str, 
-					choices=['pdf', 'png', 'svg',], # 'tiff', 'jpeg', 'bmp'],
+					choices=['pdf', 'png', ], # 'svg','tiff', 'jpeg', 'bmp'],
 					help="Format of figures [default=%(default)s]")
 	group_clst.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
@@ -106,7 +110,7 @@ of `gplots` package) [default="%(default)s"]')
  [default=%(default)s]")
 
 	group_ltr.add_argument("-ltr_detectors", nargs='+',  
-					default=['ltr_finder', 'ltr_harvest'], 
+					default=['ltr_harvest'], 
 					choices=['ltr_finder', 'ltr_harvest'],
 					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
@@ -137,9 +141,11 @@ for estimating age of LTR insertion \
 					help="Disable subgenome-specific LTR tree (this step is time-consuming when \
 subgenome-specific LTRs are too much)\
  [default=%(default)s]")
+	group_ltr.add_argument('-subsample', type=int, default=1000, metavar='INT',
+					help="Subsample LTRs to avoid too many to construct a tree [default=%(default)s]")
 	group_ltr.add_argument("-ltr_domains", nargs='+', 
 					default=['INT', 'RT', 'RH'], 
-					choices=['GAG', 'PROT', 'INT', 'RT', 'RH', 'AP', 'RNaseH '],
+					choices=['GAG', 'PROT', 'INT', 'RT', 'RH', 'AP', 'RNaseH'],
 					help="Domains for LTR tree (Note:  for domains identified by `TEsorter`, \
 PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 	group_ltr.add_argument("-trimal_options", metavar='STR',
@@ -162,7 +168,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 	group_circ.add_argument('-window_size', type=int, default=1000000, metavar='INT',
 					help="Window size for circos plot [default=%(default)s]")
 	group_circ.add_argument('-disable_blocks', action="store_true", default=False,
-					help="Disable to identify homologous blocks [default=%(default)s]")
+					help="Disable to plot homologous blocks [default=%(default)s]")
 	group_circ.add_argument("-aligner", metavar='PROG', 
 					default='minimap2', 
 					choices=['minimap2', 'unimap'],
@@ -262,8 +268,10 @@ class Pipeline:
 			chromfiles, labels, d_targets, d_size = data = ckp
 		else:
 			d_targets = parse_idmap(self.target)
+			outdir = '{}chromosomes/'.format(self.tmpdir)
+			mkdirs(outdir)
 			data = chromfiles, labels, d_targets, d_size = Seqs.split_genomes(self.genomes, self.labels, 
-					self.chrs, self.tmpdir, d_targets=d_targets, sep=self.sep)
+					self.chrs, outdir, d_targets=d_targets, sep=self.sep)
 			mk_ckp(ckp_file, *data)
 	#	print(data)
 		labels, chromfiles = self.sort_labels(d_targets.values(), labels, chromfiles)
@@ -304,7 +312,7 @@ class Pipeline:
 		self.para_prefix = '{}k{}_q{}_f{}'.format(self.outdir, self.k, self.min_freq, self.min_fold)
 		matfile = self.para_prefix + '.kmer.mat'
 		ckp_file = self.mk_ckpfile(matfile)
-		if self.overwrite or not check_ckp(ckp_file):
+		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
 			d_mat = dumps.to_matrix()	# multiprocessing by chrom
 			kmer_count = len(d_mat)
 			logger.info('{} kmers in total'.format(kmer_count))
@@ -329,6 +337,7 @@ class Pipeline:
 		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG',
 				replicates=self.replicates, jackknife=self.jackknife)
 		d_sg = cluster.d_sg	# chrom -> SG
+		logger.info('Subgenome assignments: {}'.format(d_sg))
 		self.sg_names = cluster.sg_names
 		sg_chrs = self.para_prefix + '.chrom-subgenome.tsv'
 		logger.info('Outputing `chromosome` - `subgenome` assignments to `{}`'.format(sg_chrs))
@@ -357,7 +366,7 @@ class Pipeline:
 		
 		sg_map = self.para_prefix + '.subgenome.bed'
 		ckp_file = self.mk_ckpfile(sg_map)
-		if self.overwrite or not check_ckp(ckp_file):	# SG id should be stable
+		if self.overwrite or self.re_filter or not check_ckp(ckp_file):	# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
 			chunksize = None if self.pool_method == 'map' else 10
 			with open(sg_map, 'w') as fout:	# multiprocessing by chrom chunk
@@ -399,7 +408,7 @@ class Pipeline:
 		tmpdir = '{}LTR'.format(self.tmpdir)
 		if ' -p ' not in self.tesorter_options:
 			self.tesorter_options += ' -p {}'.format(self.ncpu)
-		cont = 0 if self.overwrite else 1
+		cont = not self.overwrite
 		job_args = {'mode': 'local', 'retry': 3, 'cont': cont,  'tc_tasks': self.ncpu}
 		kargs = dict(progs=self.ltr_detectors, 
 				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
@@ -411,7 +420,7 @@ class Pipeline:
 		ltrs, ltrfile = pipeline.run()
 		ltr_map = self.para_prefix + '.ltr.bed'
 		ckp_file = self.mk_ckpfile(ltr_map)
-		if self.overwrite or not check_ckp(ckp_file):
+		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
 			with open(ltr_map, 'w') as fout:	# multiprocessing by LTR
 				Seqs.map_kmer3([ltrfile], d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
@@ -441,9 +450,13 @@ class Pipeline:
 			domfile = pipeline.int_seqs + '.cls.pep'
 			# threads = max(1, self.ncpu//2)
 			# iqtree_options = self.iqtree_options + ' -nt {}'.format(threads)
+			overwrite = (self.overwrite or self.re_filter)
 			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=tmpdir,
-					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, ncpu=self.ncpu)
-			print(job_args)
+					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, 
+					subsample=self.subsample, 
+					ncpu=self.ncpu, overwrite=overwrite)
+			#print(job_args)
+			job_args['cont'] = not (self.overwrite or self.re_filter)
 			d_files = tree.build(job_args=job_args)
 			for key, (treefile, mapfile) in d_files.items():
 				key = tuple([v for v in key if v])
@@ -476,7 +489,7 @@ class Pipeline:
 	
 	def step_blocks(self):
 		outdir = '{}Blocks/'.format(self.tmpdir)
-		multiple = {'minimap2': 100, 'unimap': 200}	# relative with repeat amount
+		multiple = {'minimap2': 200, 'unimap': 300}	# relative with repeat amount
 		mem_per_cmd = max(self.d_size.values())* multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
 		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))

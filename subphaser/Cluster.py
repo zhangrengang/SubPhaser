@@ -108,12 +108,14 @@ class Cluster:
 		return [d_map[label] for label in labels]
 
 	def assign_subgenomes(self, base=1):
+		max_len = len(str(self.n_clusters))
+		fmtstr = '{{}}{{:0>{}d}}'.format(max_len)
 		d_sg = OrderedDict()
 		sg_names = set([])
 		self.labels = labels = self.sort_subgenomes(self.kmean.labels_)
 		assert len(self.chrs) == len(labels)
 		for label, chr in zip(labels, self.chrs):
-			sg = '{}{}'.format(self.sg_prefix, label+base)
+			sg = fmtstr.format(self.sg_prefix, label+base)
 			d_sg[chr] = sg
 			sg_names.add(sg)
 		self.sg_names = sorted(sg_names)

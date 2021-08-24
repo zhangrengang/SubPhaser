@@ -136,9 +136,14 @@ class JellyfishDumps:
 		if min_freq > max_freq:
 			raise ValueError('`min_freq` ({}) should be lower than `max_freq` ({})'.format(min_freq, max_freq))
 
+		i = 0
 		for sg in sgs:
 			if len(sg) == 1:
 				logger.warn('Singleton `{}` is ignored'.format(sg))
+				i += 1
+		if i == len(sgs):
+			raise ValueError('All singletons are not allowed')
+		
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
 		args = ((kmer, counts, d_lens, sgs, outfig, min_freq, max_freq, min_fold, baseline) \
