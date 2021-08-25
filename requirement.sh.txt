@@ -7,4 +7,5 @@ mafft>=7.481
 trimal>=1.2
 iqtree=1.6.12
 newick_utils>=1.6
-circos
+circo
+pigz

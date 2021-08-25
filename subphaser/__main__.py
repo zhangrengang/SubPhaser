@@ -110,7 +110,7 @@ of `gplots` package) [default="%(default)s"]')
  [default=%(default)s]")
 
 	group_ltr.add_argument("-ltr_detectors", nargs='+',  
-					default=['ltr_harvest'], 
+					default=['ltr_harvest', 'ltr_finder'], 
 					choices=['ltr_finder', 'ltr_harvest'],
 					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
@@ -324,7 +324,7 @@ class Pipeline:
 					min_freq=self.min_freq, max_freq=self.max_freq,
 					min_prop=self.min_prop, max_prop=self.max_prop)
 			kmer_count2 = len(d_mat)
-			logger.info('{} ({:.1%}) kmers remained after filtering'.format(kmer_count2, kmer_count2/kmer_count))
+			logger.info('{} ({:.2%}) kmers remained after filtering'.format(kmer_count2, kmer_count2/kmer_count))
 			if len(d_mat) == 0:
 				raise ValueError('Only 0 kmer remained after filtering. Please reset the filter options.')
 			with open(matfile, 'w') as fout:

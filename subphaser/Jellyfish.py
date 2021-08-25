@@ -162,7 +162,7 @@ class JellyfishDumps:
 		
 		# plot
 		if outfig is not None:
-			logger.info('plot ' + outfig)
+			logger.info('Plot ' + outfig)
 			plot_histogram(tot_freqs, outfig)
 		return d_mat2
 

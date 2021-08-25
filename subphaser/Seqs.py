@@ -130,7 +130,7 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 					processors=ncpu, method=method, chunksize=chunksize):
 		if last_id and id != last_id:
 			if log:
-				logger.info('Mapped {} kmers to {}'.format(j, last_id))
+				logger.info('Mapped {} kmers to sequence {}'.format(j, last_id))
 			j = 0
 		fout.write(lines)	# not lines when no kmer mapped
 		j += c

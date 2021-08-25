@@ -163,16 +163,17 @@ class LTRtree:
 		self.iqtree_options = iqtree_options
 		self.overwrite = overwrite
 		self.ncpu = ncpu
+		self.subsample = subsample
 	def sort_ltrs(self):
 		d_ltrs = {}
 		for ltr in self.ltrs:
 			for key in self.categories:
 				order, superfamily, clade = key
-				if order and ltr.order != _order:
+				if order and ltr.order != order:
 					continue
-				elif superfamily and ltr.superfamily != _superfamily:
+				elif superfamily and ltr.superfamily != superfamily:
 					continue
-				elif ltr.clade and clade != _clade:
+				elif ltr.clade and clade != clade:
 					continue
 				try: d_ltrs[key] += [ltr]
 				except KeyError: d_ltrs[key] = [ltr]
@@ -181,6 +182,7 @@ class LTRtree:
 	def build(self, job_args):
 #		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
 #		ltr_ids = {ltr.id for ltr in ltrs}
+		subsample = self.subsample
 		sorted_ltrs = self.sort_ltrs()
 		nseqs = []
 		alnfiles = []
@@ -357,7 +359,7 @@ intact: only use completed LTR as classified by TEsorter'''
 				ltr.__dict__.update(**cls.__dict__)
 			else:
 				ltr.__dict__.update(order=None, superfamily=None,
-					clade=None, completed=None, strand=None, domains=None))
+					clade=None, completed=None, strand=None, domains=None)
 			order = getattr(cls, 'order', None)
 			completed = getattr(cls, 'completed', None)
 			if order == 'LTR':

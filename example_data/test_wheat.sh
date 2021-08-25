@@ -8,4 +8,4 @@ prefix=wheat
 
 # run subphaser
 options="-pre ${prefix}_" # to avoid conficts
-../subphaser.py -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options
+subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options
