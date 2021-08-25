@@ -251,6 +251,7 @@ nw_reroot {alnfile}.treefile > {treefile}'.format(
 		rsrc_file = os.path.splitext(outfig)[0] + '.R'
 		rsrc = '''treefile = "{treefile}"
 mapfile = "{mapfile}"
+branch_color = 'Subgenome'
 library(ggplot2)
 library(ggtree)
 library(treeio)
@@ -258,43 +259,45 @@ library(treeio)
 map = read.table(mapfile, head=T, fill=T)
 tree <- read.tree(file = treefile)
 
-clades = sort(unique(map$Clade))
+if (branch_color == 'Clade') {{
+	clades = sort(unique(map$Clade))
 
-grp = list()
-for (clade in clades){{
-        labels = map[which(map$Clade==clade), ]
-        labels = labels$label
-        grp[[clade]] = labels
+	grp = list()
+	for (clade in clades){{
+			labels = map[which(map$Clade==clade), ]
+			labels = labels$label
+			grp[[clade]] = labels
+	}}
+	tree3 = groupOTU(tree, grp, 'Clade')
+	map3 = data.frame(label=map$label, Subgenome=map$Subgenome)
+	p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
+	  theme(legend.position="right")  + 
+	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1, color='white') +
+	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades)
+
+}} else {{	# branch_color == 'Subgenome'
+	subgenomes = sort(unique(map$Subgenome))
+
+	grp = list()
+	for (subgenome in subgenomes){{
+			labels = map[which(map$Subgenome==subgenome), ]
+			labels = labels$label
+			grp[[subgenome]] = labels
+	}}
+	tree3 = groupOTU(tree, grp, 'Subgenome')
+	map3 = data.frame(label=map$label, Clade=map$Clade)
+	p = ggtree(tree3 , aes(color=Subgenome) , {ggtree_options} ) %<+% map3 +
+	  theme(legend.position="right")  + 
+	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1, color='white') +
+	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes)
+
 }}
-tree3 = groupOTU(tree, grp, 'Clade')
-map3 = data.frame(label=map$label, Subgenome=map$Subgenome)
-p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
-  theme(legend.position="right")  + geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1, color='white') +
-    scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades)
-
-# grp = list()
-# for (sg in unique(map$Subgenome)){{
-        # labels = map[which(map$Subgenome==sg), ]
-        # labels = labels$label
-        # grp[[sg]] = labels
-# }}
-
-# tree2 = groupOTU(tree, grp, 'Subgenome')
-# map2 = data.frame(label=map$label, Clade=map$Clade)
-# p = ggtree(tree2, aes(color=Subgenome), {ggtree_options} ) %<+% map2 + scale_colour_manual(values={colors}) +
-  # theme(legend.position="right")  + geom_tippoint(aes(fill=Clade), pch=21, stroke=0, color='white')
-
-# p <- ggtree(tree, {ggtree_options}) %<+% map
-# p <- p + geom_tippoint(aes(fill=Clade), pch=1, stroke =0)
-
-# p <- groupOTU(p, grp, 'Subgenome') + aes(color=Subgenome) + scale_colour_manual(values={colors}) + 
-  # theme(legend.position="right")
-ggsave("{outfig}", p)
+ggsave("{outfig}", p, width=8, height=7)
 '''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=colors_r, 
 			ggtree_options=ggtree_options)
 		with open(rsrc_file, 'w') as f:
 			f.write(rsrc)
-		cmd = 'Rscript4 ' + rsrc_file
+		cmd = 'Rscript ' + rsrc_file
 		run_cmd(cmd, log=True)
 
 
@@ -520,7 +523,7 @@ data = read.table('{datfile}',fill=T,header=T, sep='\\t')
 p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) + \
 xlab('LTR insertion age (million years)') + ylab('Density') + scale_colour_manual(values={colors}) + labs(color='Subgenome') + \
 annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)
-ggsave('{outfig}', p, width=10, height=7) 
+ggsave('{outfig}', p, width=8, height=7) 
 '''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)

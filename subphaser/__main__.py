@@ -204,8 +204,7 @@ class Pipeline:
 		self.genomes = genomes
 		self.sg_cfgs = sg_cfgs
 		self.__dict__.update(**kargs)
-#		for key, value in kargs.items():
-#			setattr(self, key, value)
+		
 		# labels
 		if labels is None:
 			if len(genomes) == 1 or self.no_label:
@@ -273,7 +272,6 @@ class Pipeline:
 			data = chromfiles, labels, d_targets, d_size = Seqs.split_genomes(self.genomes, self.labels, 
 					self.chrs, outdir, d_targets=d_targets, sep=self.sep)
 			mk_ckp(ckp_file, *data)
-	#	print(data)
 		labels, chromfiles = self.sort_labels(d_targets.values(), labels, chromfiles)
 		logger.info('Chromosomes: {}'.format(labels))
 		
@@ -283,7 +281,6 @@ class Pipeline:
 		self.sgs = self.update_sgs(self.sgs, d_targets)
 		self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
 		self.d_size =  d_size
-#		print(self.sgs)
 #		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
 #		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
@@ -291,7 +288,7 @@ class Pipeline:
 
 		# auto set pool method for multiprocessing
 		genome_size = sum(d_size.values())
-		logger.info('Genome size: {:,}'.format(genome_size))
+		logger.info('Genome size: {:,} bp'.format(genome_size))
 		self.pool_method = 'map'
 		self.chunksize = None
 		if self.low_mem is None and genome_size > 3e9:
@@ -414,10 +411,12 @@ class Pipeline:
 				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
 				job_args=job_args, tesorter_options=self.tesorter_options, mu=self.mu,)
 		# multiprocessing by chromfile
+		logger.info('Identifying LTR-RTs by {}'.format(self.ltr_detectors))
 		pipeline = LTRpipeline(self.chromfiles, tmpdir=tmpdir, 
 					all_ltr=self.all_ltr, intact_ltr=self.intact_ltr,
 					ncpu=self.ncpu, **kargs)
 		ltrs, ltrfile = pipeline.run()
+		
 		ltr_map = self.para_prefix + '.ltr.bed'
 		ckp_file = self.mk_ckpfile(ltr_map)
 		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
@@ -448,14 +447,11 @@ class Pipeline:
 		# ltr tree
 		if not self.disable_ltrtree:
 			domfile = pipeline.int_seqs + '.cls.pep'
-			# threads = max(1, self.ncpu//2)
-			# iqtree_options = self.iqtree_options + ' -nt {}'.format(threads)
 			overwrite = (self.overwrite or self.re_filter)
 			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=tmpdir,
 					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, 
 					subsample=self.subsample, 
 					ncpu=self.ncpu, overwrite=overwrite)
-			#print(job_args)
 			job_args['cont'] = not (self.overwrite or self.re_filter)
 			d_files = tree.build(job_args=job_args)
 			for key, (treefile, mapfile) in d_files.items():
@@ -463,7 +459,7 @@ class Pipeline:
 				outfig = '{}.{}.tree.pdf'.format(self.para_prefix, '_'.join(key))
 				tree.visualize_treefile(treefile, mapfile, outfig, 
 						ggtree_options=self.ggtree_options)
-		# ltr bed
+		# ltr bed for circos
 		ltr_bedlines = [ltr.to_bed() for ltr in ltrs]
 		enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
 		return ltr_bedlines, enrich_ltr_bedlines

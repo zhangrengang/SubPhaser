@@ -19,7 +19,7 @@ setup(
     author='Zhang, Ren-Gang and Wang, Zhao-Xuan',
     license='GPL-3.0',
 
-    python_requires='>=3',
+    python_requires='>=3.6:',
     packages=find_packages(),
     include_package_data=True,
     scripts=[],
@@ -27,7 +27,4 @@ setup(
         'console_scripts': ['subphaser = subphaser.__main__:main',
         ],
     },
-#	ext_modules=cythonize([
-#                Extension("subphaser.Kmer", ["subphaser/Kmer.pyx"]),
-#	]),
 )

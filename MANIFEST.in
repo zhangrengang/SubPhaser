@@ -1,0 +1,3 @@
+include subphaser/circos/*
+include subphaser/circos/*/*
+include subphaser/circos/*/*/*

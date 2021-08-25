@@ -145,7 +145,7 @@ def chunk_chromfiles(chromfiles, window_size=10e6, overlap=0):
 	window_size = int(window_size)
 	j = 0
 	for chromfile in chromfiles:
-		logger.info('Loading ' + chromfile)
+#		logger.info('Loading ' + chromfile)
 		for rc in SeqIO.parse(open(chromfile), 'fasta'):
 			logger.info('Chunking chromsome {}: {:,} bp'.format(rc.id, len(rc.seq)))
 #			rc_seq = list(str(rc.seq).upper())
