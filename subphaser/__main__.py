@@ -11,7 +11,6 @@ from . import Seqs
 from .Jellyfish import run_jellyfish_dumps, JellyfishDumps
 from .Cluster import Cluster
 from . import LTR
-from .LTR import LTRpipeline
 from . import Stats
 from . import Circos
 from . import Blocks
@@ -131,7 +130,7 @@ of `gplots` package) [default="%(default)s"]')
                     help="Use all LTR identified by `-ltr_detectors` (more LTRs but slower) \
 [default: only use LTR as classified by `TEsorter`]")
 	group_ltr.add_argument('-intact_ltr', action="store_true", default=False,
-                    help="Use completed LTR as classified by `TEsorter` (less LTRs but fater) \
+                    help="Use completed LTR as classified by `TEsorter` (less LTRs but faster) \
 [default: the same as `-all_ltr`]")
 	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
 					help='Substitution rate per year in the intergenic region, \
@@ -341,7 +340,7 @@ class Pipeline:
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)  # multiprocessing by kmer
 			
-		# heatmap	# static mechod
+		# heatmap	# static method
 		outfig = dumps.heatmap(matfile, mapfile=sg_chrs, figfmt=self.figfmt, color=self.heatmap_colors, 
 					heatmap_options=self.heatmap_options)
 					
@@ -412,7 +411,7 @@ class Pipeline:
 				job_args=job_args, tesorter_options=self.tesorter_options, mu=self.mu,)
 		# multiprocessing by chromfile
 		logger.info('Identifying LTR-RTs by {}'.format(self.ltr_detectors))
-		pipeline = LTRpipeline(self.chromfiles, tmpdir=tmpdir, 
+		pipeline = LTR.LTRpipeline(self.chromfiles, tmpdir=tmpdir, 
 					all_ltr=self.all_ltr, intact_ltr=self.intact_ltr,
 					ncpu=self.ncpu, **kargs)
 		ltrs, ltrfile = pipeline.run()
@@ -491,7 +490,7 @@ class Pipeline:
 	
 	def step_blocks(self):
 		outdir = '{}Blocks/'.format(self.tmpdir)
-		multiple = {'minimap2': 200, 'unimap': 300}	# relative with repeat amount
+		multiple = {'minimap2': 150, 'unimap': 300}	# relative with repeat amount
 		mem_per_cmd = max(self.d_size.values())* multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
 		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))
@@ -576,8 +575,8 @@ def add_prefix(val, prefix=None, sep='|'):
 		return val
 
 def main():
-	logger.info('Command: {}'.format(' '.join(sys.argv)))
 	args = makeArgparse()
+	logger.info('Command: {}'.format(' '.join(sys.argv)))
 	logger.info('Arguments: {}'.format(args.__dict__))
 	pipeline = Pipeline(**args.__dict__)
 	pipeline.run()
