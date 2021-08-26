@@ -2,13 +2,14 @@
 import os
 import sys
 import re
+import random
 import uuid
 from Bio import SeqIO
 from .RunCmdsMP import run_cmd, logger
 
 def concat_domains(inSeq, domains, outSeq=None, tmpdir='/tmp',
 		targets=None, unique=False, prefix=None, raw=False,
-		order=None, superfamily=None, clade=None,
+		order=None, superfamily=None, clade=None, subsample=None,
 		format_id=False):
 	'''targets: target TE id set
 unique: remove duplicated sequences
@@ -64,7 +65,13 @@ format_id: format seq id for compatibility with iqtree'''
 			intersect = set(rawids)
 			continue
 		intersect = intersect & set(rawids)
-	logger.info('\t{} sequences contain {} domains'.format(len(intersect), domains))
+	nseq = len(intersect)
+	logger.info('{} sequences contain all {} domains'.format(len(intersect), domains))
+	
+
+	if isinstance(subsample, int) and nseq > subsample:
+		logger.info('Subsample {} / {} {:.2%}'.format(subsample, nseq, subsample/nseq)):
+		intersect = random.sample(intersect, subsample)
 	
 	d_idmap = {raw_id: d_idmap[raw_id] for raw_id in intersect}
 	

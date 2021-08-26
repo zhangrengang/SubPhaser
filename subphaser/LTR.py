@@ -164,23 +164,23 @@ class LTRtree:
 		self.overwrite = overwrite
 		self.ncpu = ncpu
 		self.subsample = subsample
-	def sort_ltrs(self):
-		d_ltrs = {}
-		for ltr in self.ltrs:
-			for key in self.categories:
-				order, superfamily, clade = key
-				if order and ltr.order != order:
-					continue
-				elif superfamily and ltr.superfamily != superfamily:
-					continue
-				elif ltr.clade and clade != clade:
-					continue
-				try: d_ltrs[key] += [ltr]
-				except KeyError: d_ltrs[key] = [ltr]
-		return d_ltrs
+	# def sort_ltrs(self):
+		# d_ltrs = {}
+		# for ltr in self.ltrs:
+			# for key in self.categories:
+				# order, superfamily, clade = key
+				# if order and ltr.order != order:
+					# continue
+				# elif superfamily and ltr.superfamily != superfamily:
+					# continue
+				# elif ltr.clade and clade != clade:
+					# continue
+				# try: d_ltrs[key] += [ltr]
+				# except KeyError: d_ltrs[key] = [ltr]
+		# return d_ltrs
 	
 	def build(self, job_args):
-#		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
+		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
 #		ltr_ids = {ltr.id for ltr in ltrs}
 		subsample = self.subsample
 		sorted_ltrs = self.sort_ltrs()
@@ -188,13 +188,14 @@ class LTRtree:
 		alnfiles = []
 		for key in self.categories:
 			order, superfamily, clade = key
-			target_ltrs = sorted_ltrs[key]
+			# target_ltrs = sorted_ltrs[key]
 			key = tuple([v for v in key if v])
-			# subsmaple
-			if isinstance(subsample, int) and len(target_ltrs) > subsample:
-				logger.info('Subsample {} / {} {}'.format(subsample, len(target_ltrs), key))
-				target_ltrs = random.sample(target_ltrs, subsample)
-			d_ltrs = {ltr.id: ltr for ltr in target_ltrs}
+			logger.info('Extracting adn aligning protein domain sequences of '.format('/'.join(key)))
+			# # subsmaple
+			# if isinstance(subsample, int) and len(target_ltrs) > subsample:
+				# logger.info('Subsample {} / {} {}'.format(subsample, len(target_ltrs), key))
+				# target_ltrs = random.sample(target_ltrs, subsample)
+			# d_ltrs = {ltr.id: ltr for ltr in target_ltrs}
 			prefix = '{}.{}'.format(self.prefix, '_'.join(key))
 			alnfile = prefix + '.aln'
 			mapfile = prefix + '.map'
@@ -206,7 +207,7 @@ class LTRtree:
 				with open(alnfile, 'w') as fout:
 					_, d_idmap = concat_domains(self.domfile, self.domains, outSeq=fout, 
 						targets=d_ltrs, unique=True, prefix=prefix, raw=True, format_id=True,
-						order=order, superfamily=superfamily, clade=clade)
+						order=order, superfamily=superfamily, clade=clade, subsample=subsample)
 				with open(mapfile, 'w') as f:
 					line = ['label', 'Clade', 'Subgenome']
 					f.write('\t'.join(line)+'\n')
@@ -220,7 +221,6 @@ class LTRtree:
 			nseqs += [nseq]
 			alnfiles += [(key, alnfile, mapfile)]
 			
-		#print(nseqs)
 		# assign CPU
 		prop = [v**2 for v in nseqs]
 		tprop = sum(prop)
@@ -376,15 +376,15 @@ intact: only use completed LTR as classified by TEsorter'''
 			elif self.intact and completed != 'yes':
 				continue
 			filtered_ltrs += [ltr]
-		logger.info('{} ({:.1%}) are classified as LTRs, of which {} ({:.1%}) as intact by TEsorter'.format(
-				i, i/ltr_count, j, j/i))
+		logger.info('By TEsorter, {} ({:.1%}) are classified as LTRs, of which {} ({:.1%}) are intact \
+with complete  protein domains'.format(i, i/ltr_count, j, j/i))
 		
 		i, j = len(ltrs), len(filtered_ltrs)
 	#	logger.info('After filter, {} / {} ({:.1f}%) LTRs retained'.format(j, i, 1e2*j/i))
 		
 		ltrs = group_resolve_overlaps(filtered_ltrs)
 		j = len(ltrs)
-		logger.info('After filter, {} / {} ({:.1%}) LTRs retained'.format(j, i, j/i))
+		logger.info('After filtering, {} / {} ({:.1%}) LTRs retained'.format(j, i, j/i))
 		ltr_seqs = self.prefix + '.filtered.LTR.fa' 
 		with open(ltr_seqs, 'w') as fout:
 			self.get_full_seqs(ltrs, fout)	# for kmer enrich
