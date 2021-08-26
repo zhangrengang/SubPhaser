@@ -173,7 +173,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 					choices=['minimap2', 'unimap'],
 					help="Programs to identify homologous blocks [default=%(default)s]")
 	group_circ.add_argument("-aligner_options", metavar='STR',
-					default='-x asm20',
+					default='-x asm20 -n 10',
 					help='Options for `-aligner` to align chromosome sequences [default="%(default)s"]')
 	group_circ.add_argument('-min_block', type=int, default=100000, metavar='INT',
 					help="Minimum block size to show [default=%(default)s]")
@@ -494,7 +494,7 @@ class Pipeline:
 		mem_per_cmd = max(self.d_size.values())* multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
 		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))
-		thread = int(self.ncpu // ncpu)
+		thread = 1 # int(self.ncpu // ncpu)
 		
 		mkdirs(outdir)
 		pafs = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,

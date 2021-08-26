@@ -183,9 +183,9 @@ class JellyfishDumps:
 		else:
 			logger.error('Colors must 2 or 3 in size but {} ({}) got'.format(len(color), color))
 		outfig = matfile+ '.'+ figfmt
-		rsrc = '''
+		rsrc = r'''
 data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F, nrows=10000)
-map = read.table('{mapfile}', sep='\t')
+map = read.table('{mapfile}', sep='\t', ,colClasses = "character")
 
 data = as.matrix(data)
 z.scale <- function(x) (x - mean(x))/ sqrt(var(x))

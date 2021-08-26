@@ -69,7 +69,7 @@ format_id: format seq id for compatibility with iqtree'''
 	logger.info('{} sequences contain all {} domains'.format(len(intersect), domains))
 	
 
-	if isinstance(subsample, int) and nseq > subsample:
+	if isinstance(subsample, int) and subsample>0 and nseq > subsample:
 		logger.info('Subsample {} / {} {:.2%}'.format(subsample, nseq, subsample/nseq))
 		intersect = random.sample(intersect, subsample)
 	
