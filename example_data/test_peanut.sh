@@ -5,7 +5,8 @@ url=https://peanutbase.org/data/v2/Arachis/hypogaea/genomes/Tifrunner.gnm2.J5K5/
 	wget $url -O ${prefix}_genomic.fna.gz -c && \
 	mv ${prefix}_genomic.fna.gz ${prefix}_genome.fasta.gz
 
+DT=`date +"%y%m%d%H%M"`
 # run subphaser
 options="-pre ${prefix}_" # to avoid conficts
-subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options 2>&1 | tee ${prefix}.log
+subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options 2>&1 | tee ${prefix}.log.$DT
 	
