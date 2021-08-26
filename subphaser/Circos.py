@@ -282,7 +282,7 @@ stroke_thickness = 0
 
 def circos_plot(genomes, wddir='circos', bedfile='', 
 		sg_lines=[], d_sg={}, prefix='circos', figfmt='pdf',
-		ltr_lines=[], enrich_ltr_bedlines=[],
+		ltr_lines=[], enrich_ltr_bedlines=[[]],	# list
 		pafs=[], min_block=10000, # blocks
 		window_size=100000):
 	from .colors import colors_rgb
@@ -323,7 +323,7 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	if ltr_lines :
 		n_circles += 1
 	start = 0.99
-	step = round(0.6/n_circles, 2)
+	step = round(0.55/n_circles, 2)
 	if sg_lines:
 		# ratio and enrich
 		ratio_file, enrich_file = out_sg_lines(sg_lines, datadir)
@@ -351,10 +351,10 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	if ltr_lines:
 		ltr_file = '{}/ltr_density.txt'.format(datadir)
 	#	bed_density(ltr_lines, ltr_file, window_size=window_size)
-		bed_density_minus(ltr_lines,[enrich_ltr_bedlines], ltr_file, window_size=window_size)
+		bed_density_minus(ltr_lines,enrich_ltr_bedlines, ltr_file, window_size=window_size)
 		start = start-0.01
 		r1, r0 = start, start-step
-		color = 'lorange,dblue' #colors_rgb[i+1]
+		color = ','.join(colors[:-1]) + ',grey' #colors_rgb[i+1]
 		circle = CIRCLE.format(type='histogram', datafile=ltr_file, r1=r1, r0=r0, color=color)
 		fout.write(circle)
 		start = r0-0.01

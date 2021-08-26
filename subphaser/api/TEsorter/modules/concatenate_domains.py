@@ -70,7 +70,7 @@ format_id: format seq id for compatibility with iqtree'''
 	
 
 	if isinstance(subsample, int) and nseq > subsample:
-		logger.info('Subsample {} / {} {:.2%}'.format(subsample, nseq, subsample/nseq)):
+		logger.info('Subsample {} / {} {:.2%}'.format(subsample, nseq, subsample/nseq))
 		intersect = random.sample(intersect, subsample)
 	
 	d_idmap = {raw_id: d_idmap[raw_id] for raw_id in intersect}

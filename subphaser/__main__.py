@@ -461,7 +461,13 @@ class Pipeline:
 						ggtree_options=self.ggtree_options)
 		# ltr bed for circos
 		ltr_bedlines = [ltr.to_bed() for ltr in ltrs]
-		enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
+		# bin ltrs by sg
+		d_enrich_ltr_bedlines = {}
+		for ltr in enrich_ltrs:
+			try: d_enrich_ltr_bedlines[ltr.sg] += [ltr.to_bed()]
+			except KeyError: d_enrich_ltr_bedlines[ltr.sg] = [ltr.to_bed()]
+		#enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
+		enrich_ltr_bedlines = [v for k,v in sorted(d_enrich_ltr_bedlines.items())]
 		return ltr_bedlines, enrich_ltr_bedlines
 
 	def step_circos(self, *args, **kargs):
