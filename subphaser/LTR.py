@@ -174,7 +174,7 @@ class LTRtree:
 		for key in self.categories:
 			order, superfamily, clade = key
 			key = tuple([v for v in key if v])
-			logger.info('Extracting adn aligning protein domain sequences of '.format('/'.join(key)))
+			logger.info('Extracting and aligning protein domain sequences of {}'.format('/'.join(key)))
 			prefix = '{}.{}'.format(self.prefix, '_'.join(key))
 			alnfile = prefix + '.aln'
 			mapfile = prefix + '.map'
@@ -499,10 +499,18 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
 	outfig = prefix + '.' + figfmt
 	rsrc = '''library(ggplot2)
 data = read.table('{datfile}',fill=T,header=T, sep='\\t')
-p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) + \
-xlab('LTR insertion age (million years)') + ylab('Density') + scale_colour_manual(values={colors}) + labs(color='Subgenome') + \
-annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)
-ggsave('{outfig}', p, width=8, height=7) 
+p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) + 
+	xlab('LTR insertion age (million years)') + ylab('Density') + 
+	scale_colour_manual(values={colors}) + labs(color='Subgenome') + 	
+	annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)+
+	theme_bw() + 
+	theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+	theme(legend.position=c(0.95,0.85), legend.justification=c(0.95,0.85)) +
+	theme(legend.background=element_blank(), legend.key=element_blank()) +
+	theme(legend.text=element_text(size=12)) +
+	guides(color=guide_legend(title=NULL))
+
+ggsave('{outfig}', p, width=7, height=7) 
 '''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)

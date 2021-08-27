@@ -54,7 +54,7 @@ class Cluster:
 		plt.xlabel(xlabel)
 		plt.ylabel(ylabel)
 		plt.legend()
-		plt.savefig(outfig)
+		plt.savefig(outfig, bbox_inches='tight')
 	def normalize_data(self, data, axis=0):
 		'''Z normalization: only axis=0 work'''
 		mean = data.mean(axis=axis)

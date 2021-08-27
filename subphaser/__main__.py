@@ -3,6 +3,7 @@ import copy
 import argparse
 import shutil
 import json
+import math
 import multiprocessing
 from collections import OrderedDict, Counter
 from xopen import xopen as open
@@ -490,8 +491,9 @@ class Pipeline:
 	
 	def step_blocks(self):
 		outdir = '{}Blocks/'.format(self.tmpdir)
-		multiple = {'minimap2': 150, 'unimap': 300}	# relative with repeat amount
-		mem_per_cmd = max(self.d_size.values())* multiple[self.aligner]
+		multiple = {'minimap2': 30, 'unimap': 50}	# relative with repeat amount
+		max_size = max(self.d_size.values())
+		mem_per_cmd = max_size*math.log(max_size, 10) * multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
 		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))
 		thread = 1 # int(self.ncpu // ncpu)
