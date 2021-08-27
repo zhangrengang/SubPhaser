@@ -161,7 +161,7 @@ class Cluster:
 			d_ksg[rc_kmer] = max_sg
 		return d_ksg
 #	def _output_kmers(self, args):
-def _output_kmers( args):
+def _output_kmers(args):
 		kmer, array, d_groups = args
 		grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
 		sgs = sorted(d_groups.keys())

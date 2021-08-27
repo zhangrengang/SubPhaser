@@ -1,6 +1,7 @@
 import fisher
 import copy
 import numpy as np
+from .RunCmdsMP import logger, pool_func
 
 def fisher_test(each, total):
 	assert len(each) == len(total)
@@ -57,30 +58,58 @@ def enrich_bin(fout, *args, **kargs):
 		lines += [line]
 	return lines
 
-def enrich(matrix, colnames=None, rownames=None, min_ratio=0.5, **kargs):	# kargs: max_pval
+# def enrich(matrix, colnames=None, rownames=None, min_ratio=0.5, **kargs):	# kargs: max_pval
+	# arr = np.array(matrix)
+	# if colnames is not None and rownames is not None:
+		# assert arr.shape == (len(rownames), len(colnames))
+	# total = list(arr.sum(axis=0))	# sum by column
+	# for row, rowname in zip(matrix, rownames):
+		# pvals = fisher_test(row, total)
+		# pvals = Pvalues(pvals, colnames, **kargs)
+		# _min = pvals.get_enriched()
+		# _min.counts = row
+		# _min.pvals = pvals.pvals
+		# ratios = np.array(row) / np.array(total)
+		# _min.ratios = ratios / ratios.sum()
+		# _min.ratio = _min.ratios[_min.idx]
+		# if _min.ratio < min_ratio:
+			# _min.sig = False
+		# _min.enrich = [0]* (len(colnames)+1)
+		# if _min.sig:
+			# _min.enrich[_min.idx] = 1
+		# else:
+			# _min.enrich[-1] = 1
+		# _min.rowname = rowname
+		# yield _min	# min pvalue and max proportion
+def enrich(matrix, colnames=None, rownames=None, ncpu=4, min_ratio=0.5, **kargs):	# kargs: max_pval
 	arr = np.array(matrix)
 	if colnames is not None and rownames is not None:
 		assert arr.shape == (len(rownames), len(colnames))
 	total = list(arr.sum(axis=0))	# sum by column
-	for row, rowname in zip(matrix, rownames):
-		pvals = fisher_test(row, total)
-		pvals = Pvalues(pvals, colnames, **kargs)
-		_min = pvals.get_enriched()
-		_min.counts = row
-		_min.pvals = pvals.pvals
-		ratios = np.array(row) / np.array(total)
-		_min.ratios = ratios / ratios.sum()
-		_min.ratio = _min.ratios[_min.idx]
-		if _min.ratio < min_ratio:
-			_min.sig = False
-		_min.enrich = [0]* (len(colnames)+1)
-		if _min.sig:
-			_min.enrich[_min.idx] = 1
-		else:
-			_min.enrich[-1] = 1
-		_min.rowname = rowname
-		yield _min	# min pvalue and max proportion
-
+	iterable = ((row, rowname, total, colnames, min_ratio, kargs) for row, rowname in zip(matrix, rownames))
+	for _min in pool_func(_enrich, iterable, processors=ncpu, method='map'):
+		yield _min
+	
+def _enrich(args):
+	row, rowname, total, colnames, min_ratio, kargs = args
+	pvals = fisher_test(row, total)
+	pvals = Pvalues(pvals, colnames, **kargs)
+	_min = pvals.get_enriched()
+	_min.counts = row
+	_min.pvals = pvals.pvals
+	ratios = np.array(row) / np.array(total)
+	_min.ratios = ratios / ratios.sum()
+	_min.ratio = _min.ratios[_min.idx]
+	if _min.ratio < min_ratio:
+		_min.sig = False
+	_min.enrich = [0]* (len(colnames)+1)
+	if _min.sig:
+		_min.enrich[_min.idx] = 1
+	else:
+		_min.enrich[-1] = 1
+	_min.rowname = rowname
+	return _min
+	
 class Pvalues:
 	def __init__(self, pvals, keys, cutoff=1, max_pval=0.05):
 		assert len(pvals) == len(keys) > 1

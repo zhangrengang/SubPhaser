@@ -376,7 +376,7 @@ class Pipeline:
 		bin_enrich = self.para_prefix + '.bin.enrich'
 		with open(bin_enrich, 'w') as fout:
 			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
-					max_pval=self.max_pval)
+					max_pval=self.max_pval, ncpu=self.ncpu)
 
 		# LTR
 		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else ([],[])
@@ -433,7 +433,7 @@ class Pipeline:
 		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
 			d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
-					max_pval=self.max_pval)
+					max_pval=self.max_pval, ncpu=self.ncpu)
 		
 		logger.info('{} significant subgenome-specific LTR-RTs'.format(len(d_enriched)))
 		for sg, count in sorted(Counter(d_enriched.values()).items()):

@@ -251,7 +251,8 @@ if (branch_color == 'Clade') {{
 	map3 = data.frame(label=map$label, Subgenome=map$Subgenome)
 	p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
-	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1, color='white') +
+	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1.1, color='white') +
+	  scale_fill_hue(l=35) +
 	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades)
 
 }} else {{	# branch_color == 'Subgenome'
@@ -267,11 +268,18 @@ if (branch_color == 'Clade') {{
 	map3 = data.frame(label=map$label, Clade=map$Clade)
 	p = ggtree(tree3 , aes(color=Subgenome) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
-	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1, color='white') +
+	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.1, color='white') +
+	  scale_fill_hue(l=35) +
 	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes)
 
 }}
-ggsave("{outfig}", p, width=8, height=7)
+p = p + theme(plot.margin=margin(0,0,0,0)) +
+	theme(legend.position=c(1.025,0.9), legend.justification=c(1.025,0.9)) +
+	theme(legend.background=element_blank(), legend.key=element_blank())
+
+#	theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text=element_blank())
+
+ggsave("{outfig}", p, width=7.5, height=7)
 '''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=colors_r, 
 			ggtree_options=ggtree_options)
 		with open(rsrc_file, 'w') as f:
@@ -501,7 +509,7 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
 data = read.table('{datfile}',fill=T,header=T, sep='\\t')
 p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) + 
 	xlab('LTR insertion age (million years)') + ylab('Density') + 
-	scale_colour_manual(values={colors}) + labs(color='Subgenome') + 	
+	scale_colour_manual(values={colors}) + labs(color='Subgenome') + 
 	annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)+
 	theme_bw() + 
 	theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
