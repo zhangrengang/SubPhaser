@@ -111,6 +111,7 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 	# return xlines
 
 def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6, 
+		bin_size=10000, sg_names=[], 
 		ncpu='autodetect', method='map', log=True, chunk=True, chunksize=None):
 	if k is None:
 		for key in d_kmers.keys():
@@ -122,11 +123,13 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 	else:
 		chunks = unchunk_chromfiles(chromfiles)
 
-	iterable = ((id, start, seq, k, d_kmers) for id, start, seq in chunks)
+	iterable = ((id, start, seq, k, d_kmers, bin_size, sg_names) for id, start, seq in chunks)
 	last_id = ''
 	i, j = 0, 0
 	#method='map'
-	for id, c, lines in pool_func(map_kmer_each3, iterable, 
+	line = ['#chrom', 'start', 'end'] + sg_names
+	fout.write('\t'.join(line)+'\n')
+	for id, c, lines in pool_func(map_kmer_each4, iterable, 
 					processors=ncpu, method=method, chunksize=chunksize):
 		if last_id and id != last_id:
 			if log:
@@ -139,6 +142,23 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 			logger.info('Processed {} sequences'.format(i))
 		del lines
 		last_id = id
+	# iterable = ((id, start, seq, k, d_kmers) for id, start, seq in chunks)
+	# last_id = ''
+	# i, j = 0, 0
+	# #method='map'
+	# for id, c, lines in pool_func(map_kmer_each3, iterable, 
+					# processors=ncpu, method=method, chunksize=chunksize):
+		# if last_id and id != last_id:
+			# if log:
+				# logger.info('Mapped {} kmers to chromsome {}'.format(j, last_id))
+			# j = 0
+		# fout.write(lines)	# not lines when no kmer mapped
+		# j += c
+		# i += 1
+		# if i % 10000 == 0:
+			# logger.info('Processed {} sequences'.format(i))
+		# del lines
+		# last_id = id
 
 def chunk_chromfiles(chromfiles, window_size=10e6, overlap=0):
 	'''too large genome need to chunk'''
@@ -148,7 +168,6 @@ def chunk_chromfiles(chromfiles, window_size=10e6, overlap=0):
 #		logger.info('Loading ' + chromfile)
 		for rc in SeqIO.parse(open(chromfile), 'fasta'):
 			logger.info('Chunking chromsome {}: {:,} bp'.format(rc.id, len(rc.seq)))
-#			rc_seq = list(str(rc.seq).upper())
 			rc_seq = str(rc.seq).upper()
 			x = 0
 			for i in range(0, len(rc_seq), window_size):
@@ -166,21 +185,50 @@ def unchunk_chromfiles(chromfiles):
 			seq = str(rc.seq).upper()
 			yield rc.id, 0, seq
 
-def map_kmer_each3(args):
-	id, offset, seq, k, d_kmers = args
-	lines = []
+def map_kmer_each4(args):
+	'''bin counts'''
+	id, offset, seq, k, d_kmers, bin_size, sg_names = args
+	size = len(seq) + offset
 	c = 0
+	d_bin = OrderedDict()
 	for s, kmer in _get_kmer(seq, k):
 		try: sg = d_kmers[kmer]
 		except KeyError: continue
-		c += 1
+		c += 1	# count
 		s += offset
-		e = s + k
-		line = [id, s,e, sg]
+		bin = s // bin_size
+		if bin not in d_bin:
+			d_bin[bin] = OrderedDict((v, 0) for v in sg_names)
+		d_bin[bin][sg] += 1	# count by sg
+	
+	lines = []
+	for bin, d_counts in d_bin.items():
+		s = bin * bin_size
+		e = s + bin_size
+		if e > size:
+			e = size
+		counts = d_counts.values()
+		line = [id, s,e] + list(counts)
 		line = map(str, line)
 		line = '\t'.join(line) + '\n'
 		lines += [line]
 	return id, c, ''.join(lines)
+	
+# def map_kmer_each3(args):
+	# id, offset, seq, k, d_kmers = args
+	# lines = []
+	# c = 0
+	# for s, kmer in _get_kmer(seq, k):
+		# try: sg = d_kmers[kmer]
+		# except KeyError: continue
+		# c += 1	# count
+		# s += offset
+		# e = s + k
+		# line = [id, s,e, sg]
+		# line = map(str, line)
+		# line = '\t'.join(line) + '\n'
+		# lines += [line]
+	# return id, c, ''.join(lines)
 
 def _get_kmer(seq, k):
 	for i in range(len(seq)):

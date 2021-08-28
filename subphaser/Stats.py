@@ -84,7 +84,8 @@ def enrich_bin(fout, *args, **kargs):
 def enrich(matrix, colnames=None, rownames=None, ncpu=4, min_ratio=0.5, **kargs):	# kargs: max_pval
 	arr = np.array(matrix)
 	if colnames is not None and rownames is not None:
-		assert arr.shape == (len(rownames), len(colnames))
+		assert arr.shape == (len(rownames), len(colnames)), '{} != {}'.format(
+								arr.shape, (len(rownames), len(colnames)))
 	total = list(arr.sum(axis=0))	# sum by column
 	iterable = ((row, rowname, total, colnames, min_ratio, kargs) for row, rowname in zip(matrix, rownames))
 	for _min in pool_func(_enrich, iterable, processors=ncpu, method='map'):

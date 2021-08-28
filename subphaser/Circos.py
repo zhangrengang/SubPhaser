@@ -283,7 +283,7 @@ stroke_thickness = 0
 def circos_plot(genomes, wddir='circos', bedfile='', 
 		sg_lines=[], d_sg={}, prefix='circos', figfmt='pdf',
 		ltr_lines=[], enrich_ltr_bedlines=[[]],	# list
-		pafs=[], min_block=10000, # blocks
+		pafs=[], paf_offsets={}, min_block=10000, # blocks
 		window_size=100000):
 	from .colors import colors_rgb
 	from .RunCmdsMP import run_cmd
@@ -301,8 +301,8 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	outpre = '{}/subgenome'.format(datadir)
 
 	# bedfile, split by keys
-	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)	# SG density
-
+#	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)	# SG density
+	d_outfiles = stack_bed_density(bedfile, outpre, colnames=sgs, window_size=window_size)
 	
 	# colors
 	conf_file = '{}/colors.conf'.format(wddir)
@@ -378,7 +378,7 @@ bezier_radius_purity = 1\n'''.format(start))
 
 	if pafs:
 		linkfile = '{}/block_link.txt'.format(datadir)
-		paf2blocks(pafs, linkfile, min_block=min_block)
+		paf2blocks(pafs, linkfile, paf_offsets, min_block=min_block)
 		fout.write('''<link>
 file       = {}
 </link>
@@ -444,7 +444,7 @@ def svg2pdf(svgfile, pdfile):
 	renderPDF.drawToFile(drawing, pdfile)
 	
 	
-def paf2blocks(paf_groups, linkfile, min_block=10000, colors=None):
+def paf2blocks(paf_groups, linkfile, paf_offsets={}, min_block=10000, colors=None):
 	from .Paf import PafParser
 	if colors is None:
 		colors = defualt_colors
@@ -452,16 +452,22 @@ def paf2blocks(paf_groups, linkfile, min_block=10000, colors=None):
 	for i, paf_group in enumerate(paf_groups):
 		blocks = []
 		for paf in paf_group:
+			offset = paf_offsets.get(paf, {})
 			for rc in PafParser(paf):
 				if not rc.is_primary:
 					continue
 				rc.size = rc.alen
 				if rc.size < min_block:
 					continue
+				rc.offset = offset.get(rc.qid, None)
 				blocks += [rc]
 		color = colors[i%len(colors)]
 		for rc in sorted(blocks, key=lambda x:x.size):
 			options = 'color={}'.format(color)
+			if rc.offset is not None:
+				qid, offset = rc.offset
+				rc.qid = qid
+				rc.qstart, rc.qend = rc.qstart+offset, rc.qend+offset
 			line = [rc.qid, rc.qstart, rc.qend, rc.tid, rc.tstart, rc.tend, options]
 			line = map(str, line)
 			f.write(' '.join(line) + '\n')
@@ -493,12 +499,19 @@ def _bed_density_minus(totBed, setBeds, **kargs):
 	return d_count_out
 
 def _bed_density(inBed, window_size=None, chr_col=0, start_col=1, end_col=2, based=0, 
-		by_sites=False, split_by=None):
+		split_by=None, by_sites=False, stack=False):
+	'''
+split_by: split and count by one key column
+by_sites: count by site instead of line
+stack: stack short bins into long window
+	'''
 	if split_by is not None:	# split by one col
-		d_counts = {}
+		d_counts = OrderedDict()
 	d_count = OrderedDict()
 	for line in lazy_open(inBed):
 		if isinstance(line, str):
+			if line.startswith('#'):
+				continue
 			temp = line.strip().split()
 		elif isinstance(line, collections.abc.Iterable):
 			temp = list(line)
@@ -510,6 +523,15 @@ def _bed_density(inBed, window_size=None, chr_col=0, start_col=1, end_col=2, bas
 				END = int(END)
 		except IndexError: continue
 		except ValueError: continue
+		if stack:
+			values = list(map(int, temp[3:]))	# assume bed format
+			values = np.array(values)
+			BIN = int(START // window_size)
+			if CHR not in d_count:
+				d_count[CHR] = OrderedDict()
+			try: d_count[CHR][BIN] += values
+			except KeyError: d_count[CHR][BIN] = values
+			continue
 		if by_sites and end_col is not None:
 			for POS in range(START, END):
 				BIN = int(POS // window_size)
@@ -538,6 +560,22 @@ def bed_density_by_col(inBed, outpre, keycol=3, window_size=100000, **kargs):
 		write_density(d_count, outfile, window_size)
 		d_outfiles[key] = outfile
 	return d_outfiles
+def stack_bed_density(inBedCount, outpre, colnames, window_size=100000):
+	coords, counts = stack_matrix(inBedCount, window_size=window_size)
+	d_outfiles = {key: '{}.{}.txt'.format(outpre, key) for key in colnames}
+	d_handles = {key: open(d_outfiles[key], 'w') for key in colnames}
+	for coord, _count in zip(coords, counts):
+		coord = list(coord)
+		assert len(colnames) == len(_count), '{} != {}'.format(len(colnames), len(_count))
+		for key, count in zip(colnames, _count):
+			line = coord + [count]
+			line = map(str, line)
+			fout = d_handles[key]
+			print(' '.join(line), file=fout)
+	for f in d_handles.values():
+		f.close()
+	return d_outfiles
+
 def counts2matrix(inBed, keys=None, keycol=3, window_size=100000, **kargs):
 	d_counts = _bed_density(inBed, window_size=window_size, split_by=keycol, **kargs)
 	_keys = set([])
@@ -561,7 +599,19 @@ def counts2matrix(inBed, keys=None, keycol=3, window_size=100000, **kargs):
 		coords += [(CHR, start, end)]
 		counts += [count]
 	return coords, counts
-	
+def stack_matrix(inBedCount, window_size=100000):
+	'''stack short bins'''
+	d_bincounts = _bed_density(inBedCount, window_size=window_size, stack=True)
+	coords, counts = [], []
+	for CHR, d_count in d_bincounts.items():
+		for BIN, count in d_count.items():
+			start = int(BIN * window_size)
+			end = int(start+window_size)
+			coords += [(CHR, start, end)]
+			count = list(count)	# [ordered count]
+			counts += [count]
+	return coords, counts
+
 def bed_density(inBed, outfile, window_size=100000, **kargs):
 	d_count = _bed_density(inBed, window_size=window_size, **kargs)
 	write_density(d_count, outfile, window_size)

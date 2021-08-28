@@ -361,18 +361,21 @@ class Pipeline:
 		for sg, count in sorted(Counter(d_kmers.values()).items()):
 			logger.info('\t{} {}-specific kmers'.format(count//2, sg))
 		
-		sg_map = self.para_prefix + '.subgenome.bed'
+		sg_map = self.para_prefix + '.subgenome.bin.count'
 		ckp_file = self.mk_ckpfile(sg_map)
 		if self.overwrite or self.re_filter or not check_ckp(ckp_file):	# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
 			chunksize = None if self.pool_method == 'map' else 10
 			with open(sg_map, 'w') as fout:	# multiprocessing by chrom chunk
 				Seqs.map_kmer3(chromfiles, d_kmers, fout=fout, k=self.k, 
+					bin_size=10000, sg_names=self.sg_names,
 					ncpu=self.ncpu, method=self.pool_method, chunksize=chunksize)
 			mk_ckp(ckp_file)
 		# enrich by BIN
 		logger.info('Enriching subgenome by chromosome window')
-		bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
+	#	bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
+		bins, counts = Circos.stack_matrix(sg_map, window_size=self.window_size)
+		logger.info('Matrix loaded')
 		bin_enrich = self.para_prefix + '.bin.enrich'
 		with open(bin_enrich, 'w') as fout:
 			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
@@ -417,19 +420,21 @@ class Pipeline:
 					ncpu=self.ncpu, **kargs)
 		ltrs, ltrfile = pipeline.run()
 		
-		ltr_map = self.para_prefix + '.ltr.bed'
+		ltr_map = self.para_prefix + '.ltr.bin.count'
 		ckp_file = self.mk_ckpfile(ltr_map)
 		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
 			with open(ltr_map, 'w') as fout:	# multiprocessing by LTR
 				Seqs.map_kmer3([ltrfile], d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
+								bin_size=10000000, sg_names=self.sg_names,
 								chunk=False, log=False, method=self.pool_method, chunksize=self.chunksize)
 			# only mapped LTRs are output; the others are ignored
 			mk_ckp(ckp_file)
 
 		# enrich SG by LTR
 		logger.info('Enriching subgenome-specific LTR-RTs')
-		bins, counts = Circos.counts2matrix(ltr_map, keys=self.sg_names, keycol=3, window_size=100000000)
+#		bins, counts = Circos.counts2matrix(ltr_map, keys=self.sg_names, keycol=3, window_size=100000000)
+		bins, counts = Circos.stack_matrix(ltr_map, window_size=100000000)
 		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
 			d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
@@ -474,8 +479,9 @@ class Pipeline:
 		logger.info('###Step: Circos')
 		# blocks
 		if not self.disable_blocks:
-			pafs = self.step_blocks()
+			pafs, paf_offsets = self.step_blocks()
 			kargs['pafs'] = pafs
+			kargs['paf_offsets'] = paf_offsets
 			kargs['min_block'] = self.min_block
 
 		# circos
@@ -496,13 +502,14 @@ class Pipeline:
 		mem_per_cmd = max_size*math.log(max_size, 10) * multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
 		logger.info('Using {} processes to align chromosome sequences'.format(ncpu))
-		thread = 1 # int(self.ncpu // ncpu)
+		thread = int(self.ncpu // ncpu)
 		
 		mkdirs(outdir)
-		pafs = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,
-						ncpu=ncpu, thread=thread, opts=self.aligner_options, overwrite=self.overwrite)
+		pafs, paf_offsets = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,
+						ncpu=ncpu, thread=thread, d_size=self.d_size, overlap=self.min_block*5,
+						opts=self.aligner_options, overwrite=self.overwrite)
 						
-		return pafs
+		return pafs, paf_offsets
 	
 	def step_final(self):
 		# cleanup

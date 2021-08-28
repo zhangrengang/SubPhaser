@@ -204,8 +204,11 @@ def split_fastx_by_chunk_num(inFastx, prefix, chunk_num, seqfmt, suffix):
 		exec('f%s.close()' % (chunk_id, ))
 	return (i, chunk_num, i/chunk_num, outfiles)
 def cut_seqs(inSeqs, outSeq, window_size=500000, window_ovl=100000, seqfmt='fasta'):
+	window_size = int(window_size)
+	window_ovl = int(window_ovl)
 	if isinstance(inSeqs, str):
 		inSeqs = [inSeqs]
+	d_offset = {}
 	for inSeq in inSeqs:
 		for rc in SeqIO.parse(inSeq, seqfmt):
 			seq_len = len(rc.seq)
@@ -217,10 +220,12 @@ def cut_seqs(inSeqs, outSeq, window_size=500000, window_ovl=100000, seqfmt='fast
 	#					s = max(0, s-window_size/10)
 				sseq = rc.seq[s:e]
 				sid = '%s:%s-%s' % (rc.id, s+1, e)
+				d_offset[sid] = (rc.id, s)
 				sid += ' length=%s' % len(sseq)
 				print('>%s\n%s' % (sid, sseq), file=outSeq)
 				if e == seq_len:
 					continue
+	return d_offset
 
 def bin_split_fastx_by_chunk_num(inFastx, prefix, chunk_num, seqfmt, suffix, window_size=1e6, window_ovl=1e5, tmpdir='/tmp'):
 #	from tempfile import NamedTemporaryFile
