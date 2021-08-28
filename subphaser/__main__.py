@@ -375,7 +375,7 @@ class Pipeline:
 		logger.info('Enriching subgenome by chromosome window')
 	#	bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
 		bins, counts = Circos.stack_matrix(sg_map, window_size=self.window_size)
-		logger.info('Matrix loaded')
+	#	logger.info('Matrix loaded')
 		bin_enrich = self.para_prefix + '.bin.enrich'
 		with open(bin_enrich, 'w') as fout:
 			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
@@ -424,10 +424,12 @@ class Pipeline:
 		ckp_file = self.mk_ckpfile(ltr_map)
 		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
+			pool_method = self.pool_method
+			chunksize = None if pool_method == 'map' else 2000
 			with open(ltr_map, 'w') as fout:	# multiprocessing by LTR
 				Seqs.map_kmer3([ltrfile], d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
 								bin_size=10000000, sg_names=self.sg_names,
-								chunk=False, log=False, method=self.pool_method, chunksize=self.chunksize)
+								chunk=False, log=False, method=pool_method, chunksize=chunksize)
 			# only mapped LTRs are output; the others are ignored
 			mk_ckp(ckp_file)
 
@@ -497,7 +499,7 @@ class Pipeline:
 	
 	def step_blocks(self):
 		outdir = '{}Blocks/'.format(self.tmpdir)
-		multiple = {'minimap2': 30, 'unimap': 50}	# relative with repeat amount
+		multiple = {'minimap2': 20, 'unimap': 40}	# relative with repeat amount
 		max_size = max(self.d_size.values())
 		mem_per_cmd = max_size*math.log(max_size, 10) * multiple[self.aligner]
 		ncpu = min(self.ncpu, limit_memory(mem_per_cmd, self.max_memory))
@@ -508,7 +510,7 @@ class Pipeline:
 		pafs, paf_offsets = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,
 						ncpu=ncpu, thread=thread, d_size=self.d_size, overlap=self.min_block*5,
 						opts=self.aligner_options, overwrite=self.overwrite)
-						
+		#print(paf_offsets)
 		return pafs, paf_offsets
 	
 	def step_final(self):

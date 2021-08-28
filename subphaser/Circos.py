@@ -446,28 +446,29 @@ def svg2pdf(svgfile, pdfile):
 	
 def paf2blocks(paf_groups, linkfile, paf_offsets={}, min_block=10000, colors=None):
 	from .Paf import PafParser
+	#print(vars(), file=sys.stderr)
 	if colors is None:
 		colors = defualt_colors
 	f = open(linkfile, 'w')
 	for i, paf_group in enumerate(paf_groups):
 		blocks = []
 		for paf in paf_group:
-			offset = paf_offsets.get(paf, {})
 			for rc in PafParser(paf):
 				if not rc.is_primary:
 					continue
 				rc.size = rc.alen
 				if rc.size < min_block:
 					continue
-				rc.offset = offset.get(rc.qid, None)
 				blocks += [rc]
 		color = colors[i%len(colors)]
 		for rc in sorted(blocks, key=lambda x:x.size):
 			options = 'color={}'.format(color)
-			if rc.offset is not None:
-				qid, offset = rc.offset
-				rc.qid = qid
+			if rc.qid in paf_offsets:
+				rc.qid, offset = paf_offsets[rc.qid]
 				rc.qstart, rc.qend = rc.qstart+offset, rc.qend+offset
+			if rc.tid in paf_offsets:
+				rc.tid, offset = paf_offsets[rc.tid]
+				rc.tstart, rc.tend = rc.tstart+offset, rc.tend+offset
 			line = [rc.qid, rc.qstart, rc.qend, rc.tid, rc.tstart, rc.tend, options]
 			line = map(str, line)
 			f.write(' '.join(line) + '\n')

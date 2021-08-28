@@ -138,7 +138,7 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 		fout.write(lines)	# not lines when no kmer mapped
 		j += c
 		i += 1
-		if i % 10000 == 0:
+		if i % 100000 == 0:
 			logger.info('Processed {} sequences'.format(i))
 		del lines
 		last_id = id
@@ -204,9 +204,7 @@ def map_kmer_each4(args):
 	lines = []
 	for bin, d_counts in d_bin.items():
 		s = bin * bin_size
-		e = s + bin_size
-		if e > size:
-			e = size
+		e = min(s + bin_size, size)
 		counts = d_counts.values()
 		line = [id, s,e] + list(counts)
 		line = map(str, line)
