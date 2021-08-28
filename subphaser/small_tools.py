@@ -27,14 +27,16 @@ from Bio import SeqIO
 from .RunCmdsMP import logger
 
 ISOTIMEFORMAT='%Y-%m-%d %X'
-def mk_ckp(ckgfile, *data):
+def mk_ckp(ckgfile, *data, log=True):
 	with open(ckgfile, 'wb') as f:
 		for dat in data:
 			pickle.dump(dat, f)
-	logger.info('New check point file: `{}`'.format(ckgfile))
-def check_ckp(ckgfile):
+	if log:
+		logger.info('New check point file: `{}`'.format(ckgfile))
+def check_ckp(ckgfile, log=True):
 	if os.path.exists(ckgfile):
-		logger.info('Check point file: `{}` exists; skip this step'.format(ckgfile))
+		if log:
+			logger.info('Check point file: `{}` exists; skip this step'.format(ckgfile))
 		if os.path.getsize(ckgfile) == 0:
 			return True
 		data = []
