@@ -254,7 +254,8 @@ if (branch_color == 'Clade') {{
 	  theme(legend.position="right")  + 
 	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1.1, color='white') +
 	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades) +
-	  scale_fill_hue(l=35)
+	  scale_fill_hue(l=35) +
+	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
 
 }} else {{	# branch_color == 'Subgenome'
 	subgenomes = sort(unique(map$Subgenome))
@@ -270,7 +271,7 @@ if (branch_color == 'Clade') {{
 	p = ggtree(tree3 , aes(color=Subgenome) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
 	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes) +
-	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.1, color='white') +
+	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.2, color='white') +
 	  scale_fill_hue(l=35) +
 	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
 
