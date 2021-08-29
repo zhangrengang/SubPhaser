@@ -18,6 +18,7 @@ from .split_records import bin_split_fastx_by_chunk_num
 from .RunCmdsMP import run_job, run_cmd, pool_func, logger
 from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
 from .colors import colors_r
+from .fonts import fonts, fonts_r
 
 job_args = {
 	'tc_tasks': 40,
@@ -252,8 +253,8 @@ if (branch_color == 'Clade') {{
 	p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
 	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1.1, color='white') +
-	  scale_fill_hue(l=35) +
-	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades)
+	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades) +
+	  scale_fill_hue(l=35)
 
 }} else {{	# branch_color == 'Subgenome'
 	subgenomes = sort(unique(map$Subgenome))
@@ -268,20 +269,22 @@ if (branch_color == 'Clade') {{
 	map3 = data.frame(label=map$label, Clade=map$Clade)
 	p = ggtree(tree3 , aes(color=Subgenome) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
+	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes) +
 	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.1, color='white') +
 	  scale_fill_hue(l=35) +
-	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes)
+	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
 
 }}
 p = p + theme(plot.margin=margin(0,0,0,0)) +
-	theme(legend.position=c(1.025,0.9), legend.justification=c(1.025,0.9)) +
-	theme(legend.background=element_blank(), legend.key=element_blank())
+	theme(legend.position=c(1.15,0.9), legend.justification=c(1.15,0.9)) +
+	theme(legend.background=element_blank(), legend.key=element_blank()) +
+	theme(legend.text=element_text(size={fontsize}), legend.title=element_text(size={title_fontsize}))
 
 #	theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text=element_blank())
 
-ggsave("{outfig}", p, width=7.5, height=7)
+ggsave("{outfig}", p, width=8.5, height=7)
 '''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=colors_r, 
-			ggtree_options=ggtree_options)
+			ggtree_options=ggtree_options, **fonts_r)
 		with open(rsrc_file, 'w') as f:
 			f.write(rsrc)
 		cmd = 'Rscript ' + rsrc_file
@@ -513,13 +516,13 @@ p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) 
 	annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)+
 	theme_bw() + 
 	theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-	theme(legend.position=c(0.95,0.85), legend.justification=c(0.95,0.85)) +
+	theme(legend.position=c(0.95,0.8), legend.justification=c(0.95,0.8)) +
 	theme(legend.background=element_blank(), legend.key=element_blank()) +
-	theme(legend.text=element_text(size=12)) +
+	theme(legend.text=element_text(size={fontsize}), axis.title=element_text(size={fontsize})) +
 	guides(color=guide_legend(title=NULL))
 
 ggsave('{outfig}', p, width=7, height=7) 
-'''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text)
+'''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text, **fonts_r)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)
 	cmd = 'Rscript ' + rsrc_file

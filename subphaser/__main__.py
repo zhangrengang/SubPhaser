@@ -304,8 +304,9 @@ class Pipeline:
 
 		# matrix
 		logger.info('Loading kmer matrix from jellyfish')	# multiprocessing by kmer
+		chunksize = None if self.pool_method == 'map' else 2000
 		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, 
-							method=self.pool_method, chunksize=self.chunksize)
+							method=self.pool_method, chunksize=chunksize)
 		self.para_prefix = '{}k{}_q{}_f{}'.format(self.outdir, self.k, self.min_freq, self.min_fold)
 		matfile = self.para_prefix + '.kmer.mat'
 		ckp_file = self.mk_ckpfile(matfile)

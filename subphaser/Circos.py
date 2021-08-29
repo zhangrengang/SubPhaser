@@ -397,11 +397,14 @@ file       = {}
 	figfile = '{}/circos.{}'.format(wddir, figfmt)
 	if figfmt == 'pdf':
 		svg2pdf(svgfile, figfile)
-	# link file
-	dstfig = '{}.{}'.format(prefix, figfmt)
-	try: os.remove(dstfig)
-	except FileNotFoundError: pass
-	os.link(figfile, dstfig)
+	figfmts = set([figfmt, 'png'])
+	for figfmt in figfmts:
+		# link file
+		figfile = '{}/circos.{}'.format(wddir, figfmt)
+		dstfig = '{}.{}'.format(prefix, figfmt)
+		try: os.remove(dstfig)
+		except FileNotFoundError: pass
+		os.link(figfile, dstfig)
 	
 	# legend
 	annofile = '{}/../circos_legend.txt'.format(wddir)

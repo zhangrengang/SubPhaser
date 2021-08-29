@@ -10,6 +10,7 @@ from scipy import stats
 from Bio.Seq import Seq
 from .Data import LoadData
 from .colors import colors_hex
+from .fonts import fonts
 from .RunCmdsMP import logger, pool_func
 
 class Cluster:
@@ -49,11 +50,13 @@ class Cluster:
 			d_coord[sg][1] += [_y]
 		for sg, (_x, _y, _c) in sorted(d_coord.items()):
 			plt.scatter(_x, _y, c=_c, marker='o', label=sg)
+		plt.axhline(0, ls='--', c='grey')
+		plt.axvline(0, ls='--', c='grey')
 		xlabel = 'PC1 ({:.1f}%)'.format(percent[0])
 		ylabel = 'PC2 ({:.1f}%)'.format(percent[1])
-		plt.xlabel(xlabel)
-		plt.ylabel(ylabel)
-		plt.legend()
+		plt.xlabel(xlabel, **fonts)
+		plt.ylabel(ylabel, **fonts)
+		plt.legend(**fonts)
 		plt.savefig(outfig, bbox_inches='tight')
 	def normalize_data(self, data, axis=0):
 		'''Z normalization: only axis=0 work'''

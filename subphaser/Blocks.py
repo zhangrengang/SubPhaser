@@ -20,8 +20,9 @@ def run_align(sgs, d_chromfiles, outdir, ncpu=8, thread=2, overwrite=False,
 				ckp_file = outpaf + '.ok'
 				ckp = check_ckp(ckp_file)
 				# load data from ckp file and skip
-				if ckp and not overwrite:	
-					d_offset, = ckp
+				if ckp and not overwrite:
+					try: d_offset, *_ = ckp	# dict
+					except (ValueError, TypeError): d_offset = {}	# compatible with previous ckp file
 					d_offsets.update(d_offset)
 					continue
 				fa1, fa2 = d_chromfiles[chr1], d_chromfiles[chr2]

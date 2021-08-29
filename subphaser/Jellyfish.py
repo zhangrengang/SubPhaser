@@ -5,6 +5,7 @@ from Bio.Seq import Seq
 from xopen import xopen as open
 from .RunCmdsMP import run_cmd, logger, pool_func
 from .small_tools import is_gz, mk_ckp, check_ckp
+from .fonts import fonts
 
 class JellyfishDump(object):
 	def __init__(self, column, ncpu=4, ):
@@ -153,7 +154,7 @@ class JellyfishDumps:
 		for kmer, freqs, tot_freq in pool_func(_filter_kmer, args, self.ncpu, 
 					method=self.method, chunksize=self.chunksize):
 			i += 1
-			if i % 1000000 == 0:
+			if i % 10000000 == 0:
 				logger.info('Processed {} kmers'.format(i))
 			if freqs:
 				d_mat2[kmer] = freqs
@@ -163,7 +164,7 @@ class JellyfishDumps:
 		# plot
 		if outfig is not None:
 			logger.info('Plot ' + outfig)
-			plot_histogram(tot_freqs, outfig)
+			plot_histogram(tot_freqs, outfig, vline=min_freq)
 		return d_mat2
 
 	
@@ -258,16 +259,19 @@ def _filter_kmer(arg):
 		return kmer, False, tot
 	return kmer, [c/l for c,l in zip(counts, lengths)], tot
 		
-def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylabel='Count'):
+def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylabel='Count', vline=None):
 	from matplotlib import pyplot as plt
 	_min, _max = 0, max(data)
 	nbins = int((_max-_min)/step)
+	plt.figure(figsize=(7,6))
 	n,bins,patches = plt.hist(data, bins=nbins)
 	xlim = np.percentile(data, xlim)
 	plt.xlim(_min, xlim)
 #	plt.semilogy()
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
+	plt.xlabel(xlabel, **fonts)
+	plt.ylabel(ylabel, **fonts)
+	if vline is not None:
+		plt.axvline(vline, ls='--', c='grey')
 	plt.savefig(outfig)
 	
 		

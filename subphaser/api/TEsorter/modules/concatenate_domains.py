@@ -28,7 +28,7 @@ format_id: format seq id for compatibility with iqtree'''
 	d_seqs = {}
 	d_idmap = {}
 	for rc in SeqIO.parse(inSeq, 'fasta'):
-		domain, = re.compile(r'gene=([^;\s]+)').search(rc.description).groups()
+		domain, *_ = re.compile(r'gene=([^;\s]+)').search(rc.description).groups()
 		if domain not in d_domain:
 			continue
 			
@@ -37,7 +37,7 @@ format_id: format seq id for compatibility with iqtree'''
 			continue
 			
 		_order, _superfamily, *_ = cid.split('/')
-		_clade, = re.compile(r'clade=([^;\s]+)').search(rc.description).groups()
+		_clade, *_ = re.compile(r'clade=([^;\s]+)').search(rc.description).groups()
 		if order and order != _order:
 			continue
 		elif superfamily and superfamily != _superfamily:
@@ -70,7 +70,7 @@ format_id: format seq id for compatibility with iqtree'''
 	
 
 	if isinstance(subsample, int) and subsample>0 and nseq > subsample:
-		logger.info('Subsample {} / {} {:.2%}'.format(subsample, nseq, subsample/nseq))
+		logger.info('Subsample {} / {} ({:.2%})'.format(subsample, nseq, subsample/nseq))
 		intersect = random.sample(intersect, subsample)
 	
 	d_idmap = {raw_id: d_idmap[raw_id] for raw_id in intersect}
@@ -89,7 +89,7 @@ format_id: format seq id for compatibility with iqtree'''
 	# align
 	alnfiles = []
 	for seqfile in files:
-		alnfile = seqfile + '.algn'
+		alnfile = seqfile + '.alignment'
 		cmd = 'mafft --auto {} > {}'.format(seqfile, alnfile)
 #		os.system(cmd)
 		run_cmd(cmd, log=True)
