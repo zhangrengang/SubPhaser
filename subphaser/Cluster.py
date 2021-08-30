@@ -39,7 +39,7 @@ class Cluster:
 		x = X_pca[:, 0]
 		y = X_pca[:, 1]
 #		colors = [colors_hex[lab] for lab in self.labels]
-		plt.figure(figsize=(8,8))
+		plt.figure(figsize=(7,7), dpi=300, tight_layout=True)
 #		plt.scatter(x, y, c=colors, marker='o')
 		d_coord = {}
 		for _x, _y, _c, _l in zip(x, y, self.chrs, self.labels):
@@ -54,10 +54,11 @@ class Cluster:
 		plt.axvline(0, ls='--', c='grey')
 		xlabel = 'PC1 ({:.1f}%)'.format(percent[0])
 		ylabel = 'PC2 ({:.1f}%)'.format(percent[1])
-		plt.xlabel(xlabel, **fonts)
-		plt.ylabel(ylabel, **fonts)
-		plt.legend(**fonts)
-		plt.savefig(outfig, bbox_inches='tight')
+		plt.xlabel(xlabel, fontsize=fonts['fontsize'])
+		plt.ylabel(ylabel, fontsize=fonts['fontsize'], ha='center', va='center')
+		plt.legend(fontsize=fonts['fontsize'])
+		plt.tick_params(labelsize=fonts['labelsize'])
+		plt.savefig(outfig, bbox_inches='tight', dpi=300)
 	def normalize_data(self, data, axis=0):
 		'''Z normalization: only axis=0 work'''
 		mean = data.mean(axis=axis)

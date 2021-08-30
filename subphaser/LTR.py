@@ -277,13 +277,13 @@ if (branch_color == 'Clade') {{
 
 }}
 p = p + theme(plot.margin=margin(0,0,0,0)) +
-	theme(legend.position=c(1.15,0.9), legend.justification=c(1.15,0.9)) +
+	theme(legend.position=c(1.145,0.9), legend.justification=c(1.145,0.9)) +
 	theme(legend.background=element_blank(), legend.key=element_blank()) +
 	theme(legend.text=element_text(size={fontsize}), legend.title=element_text(size={title_fontsize}))
 
 #	theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text=element_blank())
 
-ggsave("{outfig}", p, width=8.5, height=7)
+ggsave("{outfig}", p, width=10.2, height=8.4, dpi=300, units="in")
 '''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=colors_r, 
 			ggtree_options=ggtree_options, **fonts_r)
 		with open(rsrc_file, 'w') as f:
@@ -519,10 +519,11 @@ p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) 
 	theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
 	theme(legend.position=c(0.95,0.8), legend.justification=c(0.95,0.8)) +
 	theme(legend.background=element_blank(), legend.key=element_blank()) +
-	theme(legend.text=element_text(size={fontsize}), axis.title=element_text(size={fontsize})) +
+	theme(legend.text=element_text(size={fontsize}), axis.title=element_text(size={fontsize}),
+		axis.text=element_text(size={tick_fontsize})) +
 	guides(color=guide_legend(title=NULL))
 
-ggsave('{outfig}', p, width=7, height=7) 
+ggsave('{outfig}', p, width=7, height=7, dpi=300, units="in") 
 '''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text, **fonts_r)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)

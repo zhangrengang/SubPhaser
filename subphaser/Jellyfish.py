@@ -80,6 +80,7 @@ class JellyfishDumps:
 		d_idx = dict(zip(self.dumpfiles, range(ncol)))
 		d_mat = {}
 		# args = []
+		# multiprocessing by chromosomes
 		dumps = pool_func(_to_matrix2, self.dumpfiles, self.ncpu, method=self.method)
 		for seqs, freqs, dumpfile, tot in dumps:
 			i = d_idx[dumpfile]
@@ -164,7 +165,7 @@ class JellyfishDumps:
 		# plot
 		if outfig is not None:
 			logger.info('Plot ' + outfig)
-			plot_histogram(tot_freqs, outfig, vline=min_freq)
+			plot_histogram(tot_freqs, outfig, vline=None)
 		return d_mat2
 
 	
@@ -209,10 +210,10 @@ rownames(data) = names
 
 library("gplots")
 {dev}('{outfig}')
-heatmap.2(data, col={color}, {heatmap_options})
+heatmap.2(data, col={color}, {heatmap_options}, )
 dev.off()
 '''.format(matfile=matfile, mapfile=mapfile, dev=figfmt, outfig=outfig, 
-			color=color, heatmap_options=heatmap_options)
+			color=color, heatmap_options=heatmap_options, )
 		rsrc_file = matfile + '.R'
 		with open(rsrc_file, 'w') as f:
 			f.write(rsrc)
@@ -263,16 +264,18 @@ def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylab
 	from matplotlib import pyplot as plt
 	_min, _max = 0, max(data)
 	nbins = int((_max-_min)/step)
-	plt.figure(figsize=(7,6))
+	plt.figure(figsize=(7,5), dpi=300, tight_layout=True)
 	n,bins,patches = plt.hist(data, bins=nbins)
 	xlim = np.percentile(data, xlim)
 	plt.xlim(_min, xlim)
 #	plt.semilogy()
-	plt.xlabel(xlabel, **fonts)
-	plt.ylabel(ylabel, **fonts)
+	plt.xlabel(xlabel, fontsize=fonts['fontsize'])
+	plt.ylabel(ylabel, fontsize=fonts['fontsize'], ha='center', va='center')
+	plt.tick_params(labelsize=fonts['labelsize'])
+	plt.ticklabel_format(style='plain')
 	if vline is not None:
 		plt.axvline(vline, ls='--', c='grey')
-	plt.savefig(outfig)
+	plt.savefig(outfig, bbox_inches='tight', dpi=300)
 	
 		
 # ints = '1234'

@@ -304,7 +304,7 @@ class Pipeline:
 
 		# matrix
 		logger.info('Loading kmer matrix from jellyfish')	# multiprocessing by kmer
-		chunksize = None if self.pool_method == 'map' else 2000
+		chunksize = None if self.pool_method == 'map' else 20000
 		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, 
 							method=self.pool_method, chunksize=chunksize)
 		self.para_prefix = '{}k{}_q{}_f{}'.format(self.outdir, self.k, self.min_freq, self.min_fold)
@@ -378,7 +378,7 @@ class Pipeline:
 		bins, counts = Circos.stack_matrix(sg_map, window_size=self.window_size)
 	#	logger.info('Matrix loaded')
 		bin_enrich = self.para_prefix + '.bin.enrich'
-		with open(bin_enrich, 'w') as fout:
+		with open(bin_enrich, 'w') as fout:	# multiprocessing by chrom bin
 			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
 					max_pval=self.max_pval, ncpu=self.ncpu)
 
