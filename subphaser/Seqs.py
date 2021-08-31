@@ -29,6 +29,7 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 
 	outfas, labels = [], []
 	d_size = {}
+	got_ids = set([])
 	for genome, prefix in zip(genomes, prefixes):
 		for rc in SeqIO.parse(open(genome), 'fasta'):
 			old_id, new_id = rc.id, '{}{}'.format(prefix, rc.id)
@@ -40,7 +41,7 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 					pass
 				else:
 					continue
-			
+			got_ids.add(rc.id)
 			rc.id = d_targets[rc.id]
 			outfa = '{}{}.fasta'.format(outdir, rc.id)
 			with open(outfa, 'w') as fout:
@@ -48,6 +49,9 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 			outfas += [outfa]
 			labels += [rc.id]	# new id
 			d_size[rc.id] = len(rc.seq)
+	ungot_ids = set(d_targets) - got_ids
+	if ungot_ids:
+		logger.error('Chromosomes {} are not found in sequences files'.format(ungot_ids))
 	return outfas, labels, d_targets2, d_size
 
 # def map_kmer_each(args):

@@ -142,7 +142,8 @@ for estimating age of LTR insertion \
 subgenome-specific LTRs are too much)\
  [default=%(default)s]")
 	group_ltr.add_argument('-subsample', type=int, default=1000, metavar='INT',
-					help="Subsample LTRs to avoid too many to construct a tree [default=%(default)s]")
+					help="Subsample LTRs to avoid too many to construct a tree \
+[default=%(default)s] (0 to disable)")
 	group_ltr.add_argument("-ltr_domains", nargs='+', 
 					default=['INT', 'RT', 'RH'], 
 					choices=['GAG', 'PROT', 'INT', 'RT', 'RH', 'AP', 'RNaseH'],
@@ -578,6 +579,9 @@ class SGConfig:
 					self.chrs += [xxchr]
 			yield chrs
 		self.nsg = max(self.nsgs)
+		for chr, count in Counter(self.chrs).items():
+			if count > 1:
+				logger.warn('Chromsome id {} repeat {} times'.format(chr, count))
 
 def add_prefix(val, prefix=None, sep='|'):
 	if prefix:
