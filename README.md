@@ -29,13 +29,37 @@ bash test_wheat.sh
 ### Introduction ###
 
 ### Pipeline ###
+io=>inputoutput: Input genome(s) and config files
+o1=>operation: Count kmer by `jellyfish`
+o2=>operation: Cluster subgenomes by k-Means
+o2x1=>operation: Bootstrap
+o2x2=>operation: PCA
+o3=>operation: Identify subgenome-specific kmers
+o4=>operation: Enrich subgenome-specific genome regions
+ol1=>operation: Identify LTR-RTs by LTRhavest and/or LTRfinder
+ol2=>operation: Classify LTR-RTs by TEsorter
+ol3=>operation: Identify subgenome-specific LTR-RTs
+ol4=>operation: Estimate insert age of subgenome-specific LTR-RTs
+ol5=>operation: Construct phylogenetic trees of LTR/Gypsy and LTR/Copia
+oc1=>operation: Identify homologous blocks by minimap2
+oc2=>operation: Visualize genome-wide data by circos
+io2=>inputoutput: Output data and figures
+io->o1->o2->o3
+ol1->ol2->ol3->ol4
+ol3->ol5
+io->oc1->oc2
+o4->oc2
+ol3->oc2
+o2->o2x1
+o2->o2x2
+
 ### Inputs ###
 1. Chromosome-level genome sequences (fasta format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
 2. Configuration of homologous chromosome sets, e.g. 
 ```
 Chr1A   Chr1B   Chr1D                      # each row is one homologous chromosome set
 Chr2B   Chr2A   Chr2D                      # seperate with blank chracter(s)
-Chr3D   Chr3B   Chr3A
+Chr3D   Chr3B   Chr3A                      # chromosome order is arbitrary
 Chr4A   Chr4B   Chr4D
 5A|Chr5A   5B|Chr5B   5D|Chr5D             # will rename chromosome id as 5A, 5B and 5D
 Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # treat multiple chromosomes together using ","
@@ -89,7 +113,7 @@ tmp/
 An example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-
+Figure Phased subgenomes in allohexaploid bread wheat genome. (A) The histgram of differential 15-mers among homoeologous chromosomes. (B) Clustering and (C) principal component analysis of differential 15-mers that differentiate homeologous chromosomes enables the consistent partitioning of the genome into three subgenomes. (D) Chromosomal characteristics. Rings from outer to inner: (1) Karyotypes based on k-Means algorithm. (2) Significant enrichment of subgenome-specific k-mers. The same color as the karyotype indicates significant enrichment in that karyotype. The white areas are not significantly enriched. (3) The normalized proportion of subgenome-specific k-mers. (4-6) Density distribution of each subgenome-specific k-mer set. (7) The density of subgenome-specific LTR-RTs. (8) homoeologous blocks. All statistics are computed for windows of 1 Mb. (E) Insertion time of subgenome-specific LTR-RTs. (F) A phylogenetic tree of 1,000 Gypsy LTR-RTs randomly selected from the subgenome-specific LTR-RTs.
 ### Usage ###
 ```
 
