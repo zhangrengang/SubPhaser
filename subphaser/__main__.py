@@ -309,7 +309,7 @@ class Pipeline:
 		chunksize = None if self.pool_method == 'map' else 20000
 		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, 
 							method=self.pool_method, chunksize=chunksize)
-		self.basename = '{k{}_q{}_f{}'.format(self.k, self.min_freq, self.min_fold)
+		self.basename = 'k{}_q{}_f{}'.format(self.k, self.min_freq, self.min_fold)
 		self.para_prefix = '{}{}'.format(self.outdir, self.basename)
 		matfile = self.para_prefix + '.kmer.mat'
 		ckp_file = self.mk_ckpfile(matfile)
@@ -459,7 +459,7 @@ class Pipeline:
 		if not self.disable_ltrtree:
 			domfile = pipeline.int_seqs + '.cls.pep'
 			overwrite = (self.overwrite or self.re_filter)
-			prefix = tmpdir + self.basename
+			prefix = tmpdir + '.' + self.basename
 			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=prefix,
 					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, 
 					subsample=self.subsample, 

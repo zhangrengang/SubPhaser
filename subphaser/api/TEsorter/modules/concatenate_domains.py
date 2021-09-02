@@ -119,6 +119,8 @@ def catAln(inALNs, outALN, unique=False):
 			
 			try: d_seqs[sp] += [seq]
 			except KeyError: d_seqs[sp] = [seq]
+		try: _len = len(seq)
+		except UnboundLocalError: _len = 0
 		lens += [len(seq)]
 	description = 'genes:{} sites:{} blocks:{}'.format(len(lens), sum(lens), lens)
 	
