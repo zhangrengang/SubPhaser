@@ -11,11 +11,11 @@ python setup.py install
 
 # start
 cd example_data
-# small genome (Arabidopsis_suecica: 270Mb)
+# small genome    (Arabidopsis_suecica: 270Mb)
 bash test_Arabidopsis.sh
-# middle genome    (peanut: 2.6Gb)
+# middle genome   (peanut: 2.6Gb)
 bash test_peanut.sh
-# large genome (wheat: 14Gb)
+# large genome    (wheat: 14Gb)
 bash test_wheat.sh
 ```
 ## Table of Contents
@@ -27,34 +27,50 @@ bash test_wheat.sh
    * [Full Usage](#Usage)
 
 ### Introduction ###
-For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel the subgenome. 
-Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as "genomic signatures". 
+For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenome. 
+Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "genomic signatures". 
 We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insight to the evolutionary history of allopolyploid.
 
 There are mainly three modules:
 
-1. The core module to partition and phase subgenomes
-2. `LTR` module to identify and analysis subgenome-specific LTR-RT elements
-3. `Visualization` module to visualize genome-wide data
+1. The core module to partition and phase subgenomes.
+   - Count kmers by `jellyfish`.
+   - Identify the differential kmers among homologous.
+   - Cluster into subgenomes by K-Means algorithm and perform bootstrap.
+   - Identify subgenome-specific kmers.
+   - Identify enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange.
+2. LTR module to identify and analysis subgenome-specific LTR-RT elements.
+   - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder`.
+   - Classify the LTR-RTs by `TEsorter`.
+   - Identify subgenome-specific LTR-RTs by test the enrichment subgenome-specific kmers.
+   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization peroid(s).
+   - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolution history of these LTR-RTs.
+3. Visualization module to visualize genome-wide data.
+   - Identify the homologous blocks by `minimap2` simply.
+   - Integrate and visualize the whole genome-wide data by `circos`.
 
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure. Phased subgenomes in allohexaploid bread wheat genome.**
+**Figure. Phased subgenomes in allohexaploid bread wheat genome.** Unified colors are set for each subgenome in subplots `B-F`.
+
 (**A**) The histgram of differential 15-mers among homoeologous chromosome sets. 
-(**B**) Clustering and (**C**) principal component analysis of differential 15-mers that differentiate homeologous chromosomes 
+
+(**B**) Clustering and (**C**) principal component analysis of differential 15-mers that  
 enables the consistent partitioning of the genome into three subgenomes. 
+
 (**D**) Chromosomal characteristics. Rings from outer to inner: 
-(**1**) Karyotypes based on k-Means algorithm. 
-(**2**) Significant enrichment of subgenome-specific k-mers. 
-The same color as the karyotype indicates significant enrichment in that karyotype. 
-The white areas are not significantly enriched. 
-(**3**) The normalized proportion of subgenome-specific k-mers. 
-(**4-6**) Density distribution of each subgenome-specific k-mer set. 
-(**7**) The density of subgenome-specific LTR-RTs. 
-(**8**) homoeologous blocks. All statistics are computed for windows of 1 Mb. 
+
+ - (**1**) Karyotypes based on k-Means algorithm. 
+ - (**2**) Significant enrichment of subgenome-specific k-mers. 
+ - (**3**) The normalized proportion of subgenome-specific k-mers. 
+ - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
+ - (**7**) The density of subgenome-specific LTR-RTs. 
+ - (**8**) homoeologous blocks.
+
 (**E**) Insertion time of subgenome-specific LTR-RTs. 
-(**F**) A phylogenetic tree of 1,000 Gypsy LTR-RTs randomly selected from the subgenome-specific LTR-RTs.
+
+(**F**) A phylogenetic tree of 1,000 randomly sampled LTR/Gypsy elements.
 
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
@@ -64,7 +80,7 @@ Chr1A   Chr1B   Chr1D                      # each row is one homologous chromoso
 Chr2B   Chr2A   Chr2D                      # seperate with blank chracter(s)
 Chr3D   Chr3B   Chr3A                      # chromosome order is arbitrary
 Chr4A   Chr4B   Chr4D
-5A|Chr5A   5B|Chr5B   5D|Chr5D             # will rename chromosome id as 5A, 5B and 5D
+5A|Chr5A   5B|Chr5B   5D|Chr5D             # will rename chromosome id as 5A, 5B and 5D, respectively
 Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # treat multiple chromosomes together using ","
 ```
 ### Run SubPhaser ###
@@ -80,6 +96,15 @@ Change key parameters:
 ```
 subphaser -i genome.fasta.gz -c sg.config -k 13 -q 100 -f 2
 ```
+Mutiple genomes:
+```
+subphaser -i genomeA.fasta.gz genomeB.fasta.gz -c sg.config
+```
+Mutiple config files:
+```
+subphaser -i genome.fasta.gz -c sg1.config sg2.config
+```
+
 ### Outputs ###
 ```
 phase-results/
