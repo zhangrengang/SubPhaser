@@ -24,7 +24,7 @@ bash test_wheat.sh
    * [Inputs](#Inputs)
    * [Run SubPhaser](#Run-SubPhaser)
    * [Outputs](#Outputs)
-   * [Full Usage](#Usage)
+   * [Full Usage and Default Parameters](#Full-Usage-and-Default-Parameters)
 
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenome. 
@@ -38,15 +38,15 @@ There are mainly three modules:
    - Identify the differential kmers among homologous.
    - Cluster into subgenomes by K-Means algorithm and perform bootstrap.
    - Identify subgenome-specific kmers.
-   - Identify enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange.
-2. LTR module to identify and analysis subgenome-specific LTR-RT elements.
-   - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder`.
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange.
+2. LTR module to identify and analysis subgenome-specific LTR-RT elements (disbale by `-disable_ltr`) .
+   - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
    - Identify subgenome-specific LTR-RTs by test the enrichment subgenome-specific kmers.
    - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization peroid(s).
-   - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolution history of these LTR-RTs.
-3. Visualization module to visualize genome-wide data.
-   - Identify the homologous blocks by `minimap2` simply.
+   - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolution history of these LTR-RTs (disbale by `-disable_ltrtree`, time-consuming for large genome).
+3. Visualization module to visualize genome-wide data (disbale by `-disable_circos`) .
+   - Identify the homologous blocks by `minimap2` simply (disbale by `-disable_blocks`, time-consuming for large genome).
    - Integrate and visualize the whole genome-wide data by `circos`.
 
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
@@ -54,23 +54,23 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 ![wheat](example_data/wheat_figures.png)
 **Figure. Phased subgenomes in allohexaploid bread wheat genome.** Unified colors are set for each subgenome in subplots `B-F`.
 
-(**A**) The histgram of differential 15-mers among homoeologous chromosome sets. 
+* (**A**) The histgram of differential 15-mers among homoeologous chromosome sets. 
 
-(**B**) Clustering and (**C**) principal component analysis of differential 15-mers that  
+* (**B**) Clustering and (**C**) principal component analysis of differential 15-mers that  
 enables the consistent partitioning of the genome into three subgenomes. 
 
-(**D**) Chromosomal characteristics. Rings from outer to inner: 
+* (**D**) Chromosomal characteristics. Rings from outer to inner: 
 
- - (**1**) Karyotypes based on k-Means algorithm. 
- - (**2**) Significant enrichment of subgenome-specific k-mers. 
- - (**3**) The normalized proportion of subgenome-specific k-mers. 
- - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
- - (**7**) The density of subgenome-specific LTR-RTs. 
- - (**8**) homoeologous blocks.
+   - (**1**) Karyotypes of subgenome assignments by k-Means algorithm. 
+   - (**2**) Significant enrichment of subgenome-specific k-mers. 
+   - (**3**) Normalized proportion of subgenome-specific k-mers. 
+   - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
+   - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (most outer in grey color). 
+   - (**8**) homoeologous blocks.
 
-(**E**) Insertion time of subgenome-specific LTR-RTs. 
+* (**E**) Insertion time of subgenome-specific LTR-RTs. 
 
-(**F**) A phylogenetic tree of 1,000 randomly sampled LTR/Gypsy elements.
+* (**F**) A phylogenetic tree of 1,000 randomly sampled LTR/Gypsy elements.
 
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
@@ -139,7 +139,7 @@ tmp/
 .....
 ```
 
-### Usage ###
+### Full Usage and Default Parameters ###
 ```
 usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-labels LABEL [LABEL ...]] [-no_label]
