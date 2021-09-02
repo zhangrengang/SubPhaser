@@ -41,20 +41,20 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
 **Figure. Phased subgenomes in allohexaploid bread wheat genome.**
-(A) The histgram of differential 15-mers among homoeologous chromosomes. 
-(B) Clustering and (C) principal component analysis of differential 15-mers that differentiate homeologous chromosomes 
+(**A**) The histgram of differential 15-mers among homoeologous chromosome sets. 
+(**B**) Clustering and (**C**) principal component analysis of differential 15-mers that differentiate homeologous chromosomes 
 enables the consistent partitioning of the genome into three subgenomes. 
-(D) Chromosomal characteristics. Rings from outer to inner: 
-(1) Karyotypes based on k-Means algorithm. 
-(2) Significant enrichment of subgenome-specific k-mers. 
+(**D**) Chromosomal characteristics. Rings from outer to inner: 
+(**1**) Karyotypes based on k-Means algorithm. 
+(**2**) Significant enrichment of subgenome-specific k-mers. 
 The same color as the karyotype indicates significant enrichment in that karyotype. 
 The white areas are not significantly enriched. 
-(3) The normalized proportion of subgenome-specific k-mers. 
-(4-6) Density distribution of each subgenome-specific k-mer set. 
-(7) The density of subgenome-specific LTR-RTs. 
-(8) homoeologous blocks. All statistics are computed for windows of 1 Mb. 
-(E) Insertion time of subgenome-specific LTR-RTs. 
-(F) A phylogenetic tree of 1,000 Gypsy LTR-RTs randomly selected from the subgenome-specific LTR-RTs.
+(**3**) The normalized proportion of subgenome-specific k-mers. 
+(**4-6**) Density distribution of each subgenome-specific k-mer set. 
+(**7**) The density of subgenome-specific LTR-RTs. 
+(**8**) homoeologous blocks. All statistics are computed for windows of 1 Mb. 
+(**E**) Insertion time of subgenome-specific LTR-RTs. 
+(**F**) A phylogenetic tree of 1,000 Gypsy LTR-RTs randomly selected from the subgenome-specific LTR-RTs.
 
 ### Inputs ###
 1. Chromosome-level genome sequences (fasta format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
