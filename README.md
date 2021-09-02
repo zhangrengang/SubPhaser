@@ -52,7 +52,7 @@ There are mainly three modules:
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure. Phased subgenomes in allohexaploid bread wheat genome.** Unified colors are set for each subgenome in subplots `B-F`.
+**Figure. Phased subgenomes in allohexaploid bread wheat genome.** Colors are unified for each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
 * (**A**) The histgram of differential k-mers among homoeologous chromosome sets. 
 * (**B**) Clustering and (**C**) principal component analysis of differential k-mers that enables the consistent partitioning of the genome into three subgenomes. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
@@ -60,7 +60,7 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
    - (**2**) Significant enrichment of subgenome-specific k-mers. 
    - (**3**) Normalized proportion of subgenome-specific k-mers. 
    - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
-   - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (most outer in grey color). 
+   - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (the most outer, in grey color). 
    - (**8**) Homoeologous blocks among each homoeologous chromosome set.
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
