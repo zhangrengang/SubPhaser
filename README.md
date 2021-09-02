@@ -29,8 +29,11 @@ bash test_wheat.sh
 ### Introduction ###
 
 ### Pipeline ###
+```
+mermaind
+flowchart
 io=>inputoutput: Input genome(s) and config files
-o1=>operation: Count kmer by `jellyfish`
+o1=>operation: Count kmer by jellyfish
 o2=>operation: Cluster subgenomes by k-Means
 o2x1=>operation: Bootstrap
 o2x2=>operation: PCA
@@ -52,7 +55,7 @@ o4->oc2
 ol3->oc2
 o2->o2x1
 o2->o2x2
-
+```
 ### Inputs ###
 1. Chromosome-level genome sequences (fasta format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
 2. Configuration of homologous chromosome sets, e.g. 
