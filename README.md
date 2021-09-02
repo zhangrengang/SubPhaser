@@ -35,7 +35,7 @@ There are mainly three modules:
 
 1. The core module to partition and phase subgenomes.
    - Count kmers by `jellyfish`.
-   - Identify the differential kmers among homologous.
+   - Identify the differential kmers among homologous chromosome set.
    - Cluster into subgenomes by K-Means algorithm and perform bootstrap.
    - Identify subgenome-specific kmers.
    - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange.

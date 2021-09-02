@@ -139,7 +139,7 @@ for estimating age of LTR insertion \
 [default=%(default)s]')
 	group_ltr.add_argument('-disable_ltrtree', action="store_true", default=False,
 					help="Disable subgenome-specific LTR tree (this step is time-consuming when \
-subgenome-specific LTRs are too much)\
+subgenome-specific LTRs are too many, so `-subsample` is enabled by defualt)\
  [default=%(default)s]")
 	group_ltr.add_argument('-subsample', type=int, default=1000, metavar='INT',
 					help="Subsample LTRs to avoid too many to construct a tree \
@@ -167,7 +167,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 	group_circ.add_argument('-disable_circos', action="store_true", default=False,
 					help="Disable this step [default=%(default)s]")
 	group_circ.add_argument('-window_size', type=int, default=1000000, metavar='INT',
-					help="Window size for circos plot [default=%(default)s]")
+					help="Window size (bp) for circos plot [default=%(default)s]")
 	group_circ.add_argument('-disable_blocks', action="store_true", default=False,
 					help="Disable to plot homologous blocks [default=%(default)s]")
 	group_circ.add_argument("-aligner", metavar='PROG', 
@@ -178,7 +178,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 					default='-x asm20 -n 10',
 					help='Options for `-aligner` to align chromosome sequences [default="%(default)s"]')
 	group_circ.add_argument('-min_block', type=int, default=100000, metavar='INT',
-					help="Minimum block size to show [default=%(default)s]")
+					help="Minimum block size (bp) to show [default=%(default)s]")
 
 	# others
 	group_other = parser.add_argument_group('Other options')
