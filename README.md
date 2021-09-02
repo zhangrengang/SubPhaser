@@ -29,8 +29,7 @@ bash test_wheat.sh
 ### Introduction ###
 
 ### Pipeline ###
-```
-mermaind
+```mermaid
 flowchart
 io=>inputoutput: Input genome(s) and config files
 o1=>operation: Count kmer by jellyfish
