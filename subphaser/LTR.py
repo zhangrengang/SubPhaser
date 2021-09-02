@@ -142,10 +142,14 @@ def detect_ltr(inSeqs, harvest_out, d_len, progs=['ltr_finder', 'ltr_harvest'],
 	return all_ltrs
 
 class LTRtree:
+	tree_template = {
+		'iqtree': 'iqtree -s {alnfile}.trimal -pre {alnfile} {tree_options} -nt {ncpu} -redo',
+		'FastTree': 'FastTree {tree_options} {alnfile}.trimal  > {alnfile}.treefile'}
 	def __init__(self, ltrs, domains, domfile, prefix='ltrtree', 
 			overwrite=False, ncpu=10, subsample=None, 
 			categories=[('LTR', 'Copia', None), ('LTR', 'Gypsy', None)],
-			trimal_options='-automated1', iqtree_options='-mset JTT -nt AUTO'):
+			trimal_options='-automated1', 
+			tree_method='iqtree', tree_options='-mset JTT -nt AUTO'):
 		'''ltrs: enrich_ltrs (list)'''
 		self.ltrs = ltrs
 		self.domains = domains
@@ -153,7 +157,8 @@ class LTRtree:
 		self.prefix = prefix
 		self.categories = categories
 		self.trimal_options = trimal_options
-		self.iqtree_options = iqtree_options
+		self.tree_method = tree_method
+		self.tree_options = tree_options
 		self.overwrite = overwrite
 		self.ncpu = ncpu
 		self.subsample = subsample
@@ -206,12 +211,13 @@ class LTRtree:
 			if nseq < 4:
 				continue
 			treefile = alnfile + '.rooted.tre'
-			cmd = 'trimal -in {alnfile} {trimal_options} > {alnfile}.trimal && \
-iqtree -s {alnfile}.trimal -pre {alnfile} {iqtree_options} -nt {ncpu} -redo && \
-nw_reroot {alnfile}.treefile > {treefile}'.format(
+			template = 'trimal -in {alnfile} {trimal_options} > {alnfile}.trimal && ' + \
+					self.tree_template[self.tree_method] + \
+					'&& nw_reroot {alnfile}.treefile > {treefile}'
+			cmd = template.format(
 				alnfile=alnfile, treefile=treefile, 
 				trimal_options=self.trimal_options,
-				iqtree_options=self.iqtree_options, ncpu=ncpu)
+				tree_options=self.tree_options, ncpu=ncpu)
 			
 			cmds +=[cmd]
 			d_files[key] = (treefile, mapfile)

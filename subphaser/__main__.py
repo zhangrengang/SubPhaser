@@ -153,10 +153,15 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 					default='-automated1',
 					help='Options for `trimal` to trim alignment (see more with `trimal -h`) \
 [default="%(default)s"]')
-	group_ltr.add_argument("-iqtree_options", metavar='STR',
+	group_ltr.add_argument("-tree_method",  
+					default='iqtree', 
+					choices=['iqtree', 'FastTree'],
+					help="Programs to construct phylogenetic trees [default=%(default)s]")
+
+	group_ltr.add_argument("-tree_options", metavar='STR',
 					default='-mset JTT',
-					help='Options for `iqtree` to construct phylogenetic trees \
-(see more with `iqtree -h`) [default="%(default)s"]')
+					help='Options for `-tree_method` to construct phylogenetic trees \
+(see more with `iqtree -h` or `FastTree -expert`) [default="%(default)s"]')
 	group_ltr.add_argument("-ggtree_options", metavar='STR',
 					default="branch.length='none', layout='circular'",
 					help='Options for `ggtree` to show phylogenetic trees \
@@ -461,7 +466,8 @@ class Pipeline:
 			overwrite = (self.overwrite or self.re_filter)
 			prefix = tmpdir + '.' + self.basename
 			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=prefix,
-					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, 
+					trimal_options=self.trimal_options, 
+					tree_method=self.tree_method, tree_options=self.tree_options, 
 					subsample=self.subsample, 
 					ncpu=self.ncpu, overwrite=overwrite)
 			job_args['cont'] = not (self.overwrite or self.re_filter)

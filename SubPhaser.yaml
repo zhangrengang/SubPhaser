@@ -30,6 +30,7 @@ dependencies:
   - drmaa=0.7.9=py_1000
   - entrez-direct=13.9=pl5262he881be0_2
   - expat=2.4.1=h9c3ff4c_0
+  - fasttree=2.1.10=h779adbc_5
   - fisher=0.1.9=py38hb5d20a5_2
   - font-ttf-dejavu-sans-mono=2.37=hab24e00_0
   - font-ttf-inconsolata=3.000=h77eed37_0
