@@ -24,7 +24,7 @@ bash test_wheat.sh
    * [Inputs](#Inputs)
    * [Run SubPhaser](#Run-SubPhaser)
    * [Outputs](#Outputs)
-   * [Usage](#Usage)
+   * [Full Usage](#Usage)
 
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel the subgenome. 
@@ -33,14 +33,14 @@ We also identify genome-wide subgenome-specific regions and LTR-RTs, which will 
 
 There are mainly three modules:
 
-	1. The core module to partition and phase subgenomes
-	2. `LTR` module to identify and analysis subgenome-specific LTR-RT elements
-	3. `Visualization` module to visualize genome-wide data
+1. The core module to partition and phase subgenomes
+2. `LTR` module to identify and analysis subgenome-specific LTR-RT elements
+3. `Visualization` module to visualize genome-wide data
 
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure: Phased subgenomes in allohexaploid bread wheat genome. **
+**Figure. Phased subgenomes in allohexaploid bread wheat genome.**
 (A) The histgram of differential 15-mers among homoeologous chromosomes. 
 (B) Clustering and (C) principal component analysis of differential 15-mers that differentiate homeologous chromosomes 
 enables the consistent partitioning of the genome into three subgenomes. 
