@@ -28,7 +28,7 @@ bash test_wheat.sh
 
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel the subgenome. 
-Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as "genomic signature". 
+Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as "genomic signatures". 
 We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insight to the evolutionary history of allopolyploid.
 
 There are mainly three modules:
@@ -57,7 +57,7 @@ The white areas are not significantly enriched.
 (**F**) A phylogenetic tree of 1,000 Gypsy LTR-RTs randomly selected from the subgenome-specific LTR-RTs.
 
 ### Inputs ###
-1. Chromosome-level genome sequences (fasta format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
+1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
 2. Configuration of homologous chromosome sets, e.g. 
 ```
 Chr1A   Chr1B   Chr1D                      # each row is one homologous chromosome set
