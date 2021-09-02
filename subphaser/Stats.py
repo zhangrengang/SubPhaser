@@ -50,37 +50,9 @@ def enrich_bin(fout, *args, **kargs):
 		line = [chrom, start, end, key, res.pval, counts, ratios, enrichs, pvals]
 		line = list(map(str, line))
 		fout.write('\t'.join(line)+'\n')
-#		if start > last_end:
-#			line = [chrom, last_end, start, None]
-#			line = map(str, line)
-#			fout.write('\t'.join(line)+'\n')
-#		last_end = end
 		lines += [line]
 	return lines
 
-# def enrich(matrix, colnames=None, rownames=None, min_ratio=0.5, **kargs):	# kargs: max_pval
-	# arr = np.array(matrix)
-	# if colnames is not None and rownames is not None:
-		# assert arr.shape == (len(rownames), len(colnames))
-	# total = list(arr.sum(axis=0))	# sum by column
-	# for row, rowname in zip(matrix, rownames):
-		# pvals = fisher_test(row, total)
-		# pvals = Pvalues(pvals, colnames, **kargs)
-		# _min = pvals.get_enriched()
-		# _min.counts = row
-		# _min.pvals = pvals.pvals
-		# ratios = np.array(row) / np.array(total)
-		# _min.ratios = ratios / ratios.sum()
-		# _min.ratio = _min.ratios[_min.idx]
-		# if _min.ratio < min_ratio:
-			# _min.sig = False
-		# _min.enrich = [0]* (len(colnames)+1)
-		# if _min.sig:
-			# _min.enrich[_min.idx] = 1
-		# else:
-			# _min.enrich[-1] = 1
-		# _min.rowname = rowname
-		# yield _min	# min pvalue and max proportion
 def enrich(matrix, colnames=None, rownames=None, ncpu=4, min_ratio=0.5, **kargs):	# kargs: max_pval
 	arr = np.array(matrix)
 	if colnames is not None and rownames is not None:

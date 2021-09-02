@@ -4,8 +4,6 @@ from collections import OrderedDict
 from Bio import SeqIO
 from Bio.Seq import Seq
 from xopen import xopen as open
-# from . import Kmer
-# from .Kmer import get_subgenomes
 from .RunCmdsMP import logger, pp_func, pool_func
 
 def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
@@ -54,65 +52,6 @@ def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 		logger.error('Chromosomes {} are not found in sequences files'.format(ungot_ids))
 	return outfas, labels, d_targets2, d_size
 
-# def map_kmer_each(args):
-	# rc, d_kmers, k = args
-	# seq = list(rc.seq.upper())
-	# lines = []
-	# for s,e,sg in get_subgenomes(d_kmers, seq, k):
-# #		line = [rc.id, s, e, sg]
-		# line = [s, sg]
-	# #	line = list(map(str, line))
-		# lines += [line]
-	# return rc.id, lines
-# def map_kmer_each2(rc, d_kmers, k, ncpu=4):
-	# seq = list(rc.seq.upper())
-	# iterable = ((seq, i, k, d_kmers) for i in range(len(seq)))
-	# jobs = pool_func(_get_2kmer, iterable, processors=ncpu, )
-	# for kmers in jobs:
-		# for kmer in kmers:
-			# line = (rc.id,) + kmer
-			# line = list(map(str, line))
-			# yield line
-# def _get_2kmer(args):
-	# seq, i, k, d_kmers = args
-	# s,e = i, i+k
-	# kmers = Kmer.get_2kmer(seq, i, k)
-	# res = []
-	# for kmer in kmers:
-		# try: sg = d_kmers[kmer]
-		# except KeyError: continue
-		# res += [( s, e, sg)]
-	# return res
-# def map_kmer(chromfiles, d_kmers, fout=sys.stdout, k=None, ncpu='autodetect', method='map'):
-	# if k is None:
-		# k = len(list(d_kmers.keys())[0])
-	# iterable = ((rc, d_kmers, k) for chromfile in chromfiles for rc in SeqIO.parse(open(chromfile), 'fasta'))
-	# xlines = []	
-	# for (rc, d_kmers, k) in iterable:
-		# j = 0
-		# for line in map_kmer_each2(rc, d_kmers, k, ncpu=ncpu):
-			# print('\t'.join(line), file=fout)
-			# j += 1
-			# xlines += [line]
-		# logger.info('Mapped {} kmers to {}'.format(j, rc.id))
-	# return xlines
-# def map_kmer2(chromfiles, d_kmers, fout=sys.stdout, k=None, ncpu='autodetect', method='map'):
-	# if k is None:
-		# k = len(list(d_kmers.keys())[0])
-	# iterable = ((rc, d_kmers, k) for chromfile in chromfiles for rc in SeqIO.parse(open(chromfile), 'fasta'))
-	# jobs = pool_func(map_kmer_each, iterable, processors=ncpu, method=method)
-	# xlines = []
-	# for job in jobs:
-		# id, lines = job
-		# j = 0
-# #		for line in lines:
-		# for s, sg in lines:
-			# line = [id, s, s+k, sg]
-			# line = list(map(str, line))
-			# print('\t'.join(line), file=fout)
-			# j += 1
-			# xlines += [line]
-	# return xlines
 
 def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6, 
 		bin_size=10000, sg_names=[], 
@@ -146,23 +85,6 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 			logger.info('Processed {} sequences'.format(i))
 		del lines
 		last_id = id
-	# iterable = ((id, start, seq, k, d_kmers) for id, start, seq in chunks)
-	# last_id = ''
-	# i, j = 0, 0
-	# #method='map'
-	# for id, c, lines in pool_func(map_kmer_each3, iterable, 
-					# processors=ncpu, method=method, chunksize=chunksize):
-		# if last_id and id != last_id:
-			# if log:
-				# logger.info('Mapped {} kmers to chromsome {}'.format(j, last_id))
-			# j = 0
-		# fout.write(lines)	# not lines when no kmer mapped
-		# j += c
-		# i += 1
-		# if i % 10000 == 0:
-			# logger.info('Processed {} sequences'.format(i))
-		# del lines
-		# last_id = id
 
 def chunk_chromfiles(chromfiles, window_size=10e6, overlap=0):
 	'''too large genome need to chunk'''
@@ -216,21 +138,6 @@ def map_kmer_each4(args):
 		lines += [line]
 	return id, c, ''.join(lines)
 	
-# def map_kmer_each3(args):
-	# id, offset, seq, k, d_kmers = args
-	# lines = []
-	# c = 0
-	# for s, kmer in _get_kmer(seq, k):
-		# try: sg = d_kmers[kmer]
-		# except KeyError: continue
-		# c += 1	# count
-		# s += offset
-		# e = s + k
-		# line = [id, s,e, sg]
-		# line = map(str, line)
-		# line = '\t'.join(line) + '\n'
-		# lines += [line]
-	# return id, c, ''.join(lines)
 
 def _get_kmer(seq, k):
 	for i in range(len(seq)):

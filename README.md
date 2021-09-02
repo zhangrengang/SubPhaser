@@ -49,7 +49,7 @@ Run with only core algorithm enabled:
 ```
 subphaser -i genome.fasta.gz -c sg.config -disable_ltr -disable_circos
 ```
-Change key options:
+Change key parameters:
 ```
 subphaser -i genome.fasta.gz -c sg.config -k 13 -q 100 -f 2
 ```

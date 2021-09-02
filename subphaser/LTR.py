@@ -65,14 +65,6 @@ def chunk_fastas(inSeqs, d_len, per_bin=20e6, tmpdir='/io/tmp/share',
 	if unique:	# unique dir
 		tmpdir = '{}/ltr_{}'.format(tmpdir, os.getpid())
 	mkdirs(tmpdir)
-	# tmpdir0 = tmpdir
-	# xchunk_files = []
-	# d_lens = {}
-	# d_chunks = {}
-	# for inSeq in inSeqs:
-		# tmpdir = '{}/{}'.format(tmpdir, os.path.basename(inSeq))
-		# d_len = OrderedDict((rc.id, len(rc.seq)) for rc in SeqIO.parse(inSeq, 'fasta'))
-		# d_lens.update(d_len)
 	# binning
 	seq_len = sum(d_len.values())
 	nbins = int(seq_len/per_bin + 1)
@@ -294,23 +286,6 @@ ggsave("{outfig}", p, width=10.2, height=8.4, dpi=300, units="in")
 		run_cmd(cmd, log=True)
 
 
-
-# class LTRpipelines:
-	# def __init__(self, genomes, ncpu=8, tmpdir='tmp', **kargs):
-		# self.genomes = genomes
-		# self.ncpu = ncpu
-		# self.tmpdir = tmpdir
-		# self.kargs = kargs
-	# def run(self):
-		# ltrs = []
-		# seqs = []
-		# for _ltrs, _seqs in pool_func(self._run, self.genomes, self.ncpu):
-			# ltrs += _ltrs
-			# seqs += [_seqs]
-		# return ltrs, seqs
-	# def _run(self, genome):
-		# return LTRpipeline(genome, tmpdir=self.tmpdir, **self.kargs).run()
-		
 
 class LTRpipeline:
 	def __init__(self, genomes, tmpdir='./tmp', mu=7e-9, tesorter_options='', 

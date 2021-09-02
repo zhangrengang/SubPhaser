@@ -144,16 +144,6 @@ class Cluster:
 		#jobs = list(jobs)
 		i = 0
 		for kmer, max_sg, pvalue, rc_kmer in jobs:
-#		for kmer, array in self.d_kmers.items():
-#			grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
-#			sgs = sorted(d_groups.keys())
-#			xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
-#			grouped = [x[0] for x in xgrouped]	# sorted with the same order
-#			sgs = [x[1] for x in xgrouped]
-#			max_freqs = grouped[0]
-#			min_freqs = grouped[1]
-#			max_sg = sgs[0]
-#			ttest = stats.ttest_ind(max_freqs, min_freqs)
 			i += 1
 			if pvalue > max_pval:
 				continue

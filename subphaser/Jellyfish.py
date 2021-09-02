@@ -51,19 +51,6 @@ def _to_matrix2(arg):
 		tot += rc.freq
 	return seqs, freqs, dumpfile, tot
 	
-# def _insert_freq(arg):
-	# generator, dumpfile, d_mat, i = arg
-	# for seq, freq in generator:
-		# d_mat[seq][i] = freq
-	# return dumpfile
-# def _insert_freq2(arg):
-	# (seq, freq), d_mat, i = arg
-	# d_mat[seq][i] = freq
-
-# def _to_matrix(arg):
-	# dumpfile = arg
-	# dump = [(rc.seq, rc.freq) for rc in JellyfishDump(dumpfile)]
-	# return dump, dumpfile
 
 class JellyfishDumps:
 	def __init__(self, dumpfiles, labels=None, ncpu=4, method='map', chunksize=None, **kargs):
@@ -93,35 +80,6 @@ class JellyfishDumps:
 			del seqs, freqs
 		self.lengths = lengths
 		return d_mat
-
-	# def to_matrixi0(self):
-		# d_mat = {}
-		# lengths = [0] * len(self)
-# #		for i, dump in enumerate(pool_func(self._to_matrix, self.dumpfiles)):
-		# for i, (dump,dumpfile) in enumerate(pool_func(_to_matrix, self.dumpfiles, self.ncpu)):
-			# logger.info('Loading '+ dumpfile)
-# #			for j, line in enumerate(dump):
-			# for j, (seq, freq) in enumerate(dump):
-				# if seq not in d_mat:
-					# if i == 0:
-						# d_mat[seq] = [freq]
-					# else:
-						# d_mat[seq] = [0]*i + [freq]
-				# else:
-					# arr = d_mat[seq]
-					# diff = i-len(arr)
-					# if diff == 0:
-						# arr += [freq]
-					# else:
-						# arr += [0]*diff + [freq]
-				# lengths[i] += freq
-			# del dump
-		# self.lengths = lengths
-		# return d_mat
-	# def _to_matrix(self, arg):
-		# dumpfile = arg
-		# logger.info('Loading '+ dumpfile)
-		# return JellyfishDump(dumpfile)
 
 	def filter(self, d_mat, lengths, sgs, outfig=None, 
 				min_freq=200, max_freq=10000, min_fold=2, baseline=1, 
@@ -277,18 +235,7 @@ def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylab
 		plt.axvline(vline, ls='--', c='grey')
 	plt.savefig(outfig, bbox_inches='tight', dpi=300)
 	
-		
-# ints = '1234'
-# bases = 'ATCG'
-# d_base2int = dict(zip(bases, ints))
-# d_int2base = dict(zip(ints, bases))
-# def seq2int(seq):
-	# as_int = [d_base2int[base] for base in seq]
-	# return int(''.join(as_int))
-# def int2seq(num):
-	# num = str(num)
-	# as_str = [d_int2base[i] for i in num]
-	# return ''.join(as_str)
+
 
 class JellyfishDumpRecord(object):
 	def __init__(self, seq, freq):
@@ -300,9 +247,6 @@ class JellyfishDumpRecord(object):
 
 def run_jellyfish_dumps(seqfiles, ncpu=4, **kargs):
 	dumpfiles = []
-#	for seqfile in seqfiles:
-#		dumpfile = run_jellyfish_dump(seqfile, **kargs)
-#		dumpfiles += [dumpfile]
 	args = ((seqfile, kargs) for seqfile in seqfiles)
 	for dumpfile in pool_func(_run_jellyfish_dump, args, ncpu):
 		dumpfiles += [dumpfile]
