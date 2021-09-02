@@ -29,7 +29,7 @@ bash test_wheat.sh
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenome. 
 Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "genomic signatures". 
-We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insight to the evolutionary history of allopolyploid.
+We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insights to the evolutionary history of allopolyploid.
 
 There are mainly three modules:
 
@@ -53,24 +53,17 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
 **Figure. Phased subgenomes in allohexaploid bread wheat genome.** Unified colors are set for each subgenome in subplots `B-F`.
-
-* (**A**) The histgram of differential 15-mers among homoeologous chromosome sets. 
-
-* (**B**) Clustering and (**C**) principal component analysis of differential 15-mers that  
-enables the consistent partitioning of the genome into three subgenomes. 
-
+* (**A**) The histgram of differential k-mers among homoeologous chromosome sets. 
+* (**B**) Clustering and (**C**) principal component analysis of differential k-mers that enables the consistent partitioning of the genome into three subgenomes. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
-
    - (**1**) Karyotypes of subgenome assignments by k-Means algorithm. 
    - (**2**) Significant enrichment of subgenome-specific k-mers. 
    - (**3**) Normalized proportion of subgenome-specific k-mers. 
    - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
    - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (most outer in grey color). 
-   - (**8**) homoeologous blocks.
-
+   - (**8**) Homoeologous blocks among each homoeologous chromosome set.
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
-
-* (**F**) A phylogenetic tree of 1,000 randomly sampled LTR/Gypsy elements.
+* (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
@@ -88,7 +81,7 @@ Run with default parameters:
 ```
 subphaser -i genome.fasta.gz -c sg.config
 ```
-Run with only core algorithm enabled:
+Run with just core algorithm enabled:
 ```
 subphaser -i genome.fasta.gz -c sg.config -disable_ltr -disable_circos
 ```
@@ -96,7 +89,7 @@ Change key parameters:
 ```
 subphaser -i genome.fasta.gz -c sg.config -k 13 -q 100 -f 2
 ```
-Mutiple genomes:
+Mutiple genomes (e.g. two species):
 ```
 subphaser -i genomeA.fasta.gz genomeB.fasta.gz -c sg.config
 ```
@@ -113,7 +106,7 @@ phase-results/
 ├── k15_q200_f2.kmer.mat               # differential kmer matrix (m kmer x n chromosome)
 ├── k15_q200_f2.kmer.mat.pdf           # heatmap of the kmer matrix
 ├── k15_q200_f2.kmer.mat.R             # R script for the heatmap plot
-├── k15_q200_f2.kmer_pca.pdf           # PCA plot of the kmer matrix
+├── k15_q200_f2.kmer_pca.pdf           # PCA plot of the kmer matrix, developer may re-plot with some custom modification
 ├── k15_q200_f2.chrom-subgenome.tsv    # subgenome assignments and bootstrap values
 ├── k15_q200_f2.sig.kmer-subgenome.tsv # subgenome-specific kmers
 ├── k15_q200_f2.bin.enrich             # subgenome-specific enrichments by genome window/bin
@@ -126,16 +119,16 @@ phase-results/
 ├── k15_q200_f2.LTR_Gypsy.tree.R       # R script for the LTR/Gypsy tree plot
 ├── k15_q200_f2.circos.pdf             # final circos plot
 ├── k15_q200_f2.circos.png
-├── circos_legend.txt                  # legend of circos plot
+├── circos_legend.txt                  # legend of the circos plot
 
 tmp/
-├── LTR.scn                 # identifation of LTR-RTs by LTRhavest and/or LTRfinder
+├── LTR.scn                 # identification of LTR-RTs by LTRhavest and/or LTRfinder
 ├── LTR.inner.fa            # inner sequences of LTR-RTs
 ├── LTR.inner.fa.cls.*      # classfication of LTR-RTs by TEsorter
 ├── LTR.filtered.LTR.fa     # full sequences of filtered LTR-RTs
-├── LTR.LTR_*.aln           # alignments of LTR-RTs' protein domains
+├── LTR.LTR_*.aln           # alignments of LTR-RTs' protein domains for the below tree
 ├── LTR.LTR_*.rooted.tre    # phylogenetic tree files
-├── LTR.LTR_*.map           # information of tip nodes on the tree
+├── LTR.LTR_*.map           # information of tip nodes on the above tree
 .....
 ```
 
