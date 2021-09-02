@@ -62,7 +62,7 @@ this chromosome set is for cluster and phase \
 	group_kmer.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
 					 help="Minimum total count for each kmer; will not work \
 if `-min_prop` is specified [default=%(default)s]")
-	group_kmer.add_argument('-baseline', type=int, default=1, choices=[1, -1],
+	group_kmer.add_argument('-baseline', type=int, default=1, 
 					 help="Use sub-maximum (1) or minimum (-1) as the baseline of fold \
 [default=%(default)s]")
 
@@ -275,6 +275,7 @@ class Pipeline:
 			mk_ckp(ckp_file, *data)
 		labels, chromfiles = self.sort_labels(d_targets.values(), labels, chromfiles)
 		logger.info('Chromosomes: {}'.format(labels))
+		logger.info('Chromosome No.: {}'.format(len(labels)))
 		
 		self.chromfiles = chromfiles	# ordered as the genome files
 		# update
@@ -308,7 +309,8 @@ class Pipeline:
 		chunksize = None if self.pool_method == 'map' else 20000
 		dumps = JellyfishDumps(dumpfiles, labels, ncpu=self.ncpu, 
 							method=self.pool_method, chunksize=chunksize)
-		self.para_prefix = '{}k{}_q{}_f{}'.format(self.outdir, self.k, self.min_freq, self.min_fold)
+		self.basename = '{k{}_q{}_f{}'.format(self.k, self.min_freq, self.min_fold)
+		self.para_prefix = '{}{}'.format(self.outdir, self.basename)
 		matfile = self.para_prefix + '.kmer.mat'
 		ckp_file = self.mk_ckpfile(matfile)
 		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
@@ -457,7 +459,8 @@ class Pipeline:
 		if not self.disable_ltrtree:
 			domfile = pipeline.int_seqs + '.cls.pep'
 			overwrite = (self.overwrite or self.re_filter)
-			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=tmpdir,
+			prefix = tmpdir + self.basename
+			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=prefix,
 					trimal_options=self.trimal_options, iqtree_options=self.iqtree_options, 
 					subsample=self.subsample, 
 					ncpu=self.ncpu, overwrite=overwrite)
@@ -490,7 +493,7 @@ class Pipeline:
 
 		# circos
 		circos_dir = bindir+'/circos'
-		wkdir = self._outdir+'/circos'
+		wkdir = self.para_prefix + '.circos' #self._outdir+'/circos'
 		rmdirs(wkdir)
 		try:
 			logger.info('Copy `{}` to `{}`'.format(circos_dir, self._outdir))

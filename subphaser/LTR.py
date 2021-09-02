@@ -182,7 +182,7 @@ class LTRtree:
 			ckp_file = alnfile + '.ok'
 			ckp = check_ckp(ckp_file)
 			if ckp and isinstance(ckp, list) and not self.overwrite:
-				nseq, = ckp
+				nseq, *_ = ckp
 			else:
 				with open(alnfile, 'w') as fout:
 					_, d_idmap = concat_domains(self.domfile, self.domains, outSeq=fout, 
@@ -199,7 +199,7 @@ class LTRtree:
 				nseq = len(d_idmap)
 				mk_ckp(ckp_file, nseq)
 			nseqs += [nseq]
-			alnfiles += [(key, alnfile, mapfile)]
+			alnfiles += [(key, alnfile, mapfile, nseq)]
 			
 		# assign CPU
 		prop = [v**2 for v in nseqs]
@@ -210,7 +210,9 @@ class LTRtree:
 		# tree
 		d_files = {}
 		cmds = []
-		for ncpu, (key, alnfile, mapfile) in zip(ncpus, alnfiles):
+		for ncpu, (key, alnfile, mapfile, nseq) in zip(ncpus, alnfiles):
+			if nseq < 4:
+				continue
 			treefile = alnfile + '.rooted.tre'
 			cmd = 'trimal -in {alnfile} {trimal_options} > {alnfile}.trimal && \
 iqtree -s {alnfile}.trimal -pre {alnfile} {iqtree_options} -nt {ncpu} -redo && \
