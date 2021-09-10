@@ -121,7 +121,7 @@ def catAln(inALNs, outALN, unique=False):
 			except KeyError: d_seqs[sp] = [seq]
 		try: _len = len(seq)
 		except UnboundLocalError: _len = 0
-		lens += [len(seq)]
+		lens += [_len]
 	description = 'genes:{} sites:{} blocks:{}'.format(len(lens), sum(lens), lens)
 	
 	xseqs = set([])
@@ -135,8 +135,10 @@ def catAln(inALNs, outALN, unique=False):
 		if unique:
 			xseqs.add(seqs)
 		print('>{} {}\n{}'.format(sp, description, seqs), file=outALN)
-	if unique:
+	if unique and i > 0:
 		logger.info('{} ({:.1%}) unique alignments retained'.format(i-j, 1-j/i))
+	if i == 0:
+		logger.warn('0 sequences')
 
 def format_id_for_iqtree(id):
     return re.compile(r'[^\w]+').sub('_', id)

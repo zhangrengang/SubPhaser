@@ -77,6 +77,8 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Maximum total proportion (< 1) for each kmer [default=%(default)s]")
 	group_kmer.add_argument('-low_mem', action="store_true", default=None,
 					help="Low MEMory but slower [default: True if genome size > 3G, else False]")
+	group_kmer.add_argument('-by_count', action="store_true", default=False,
+					help="Calculate fold by count instead of by propor [default=%(default)s]")
 	group_kmer.add_argument('-re_filter', action="store_true", default=False,
 					help="Re-filter with subset of chromosomes (subgenome assignments are expected to change)\
  [default=%(default)s]")
@@ -211,6 +213,10 @@ class Pipeline:
 		self.sg_cfgs = sg_cfgs
 		self.__dict__.update(**kargs)
 		
+		# check 
+		check_duplicates(genomes)
+		check_duplicates(labels)
+		
 		# labels
 		if labels is None:
 			if len(genomes) == 1 or self.no_label:
@@ -233,6 +239,7 @@ class Pipeline:
 		if not self.nsg or self.nsg < 2:
 			self.nsg = _nsg
 		
+		
 		# re-labels
 		if self.no_label:
 			self.labels = [''] * (len(genomes))
@@ -249,9 +256,7 @@ class Pipeline:
 		return sgs
 	
 	def run(self):
-		# check 
-		check_duplicates(self.genomes)
-		check_duplicates(self.labels)
+		
 		# mkdir
 		self.outdir = os.path.realpath(self.outdir)
 		self.tmpdir = os.path.realpath(self.tmpdir)
@@ -291,7 +296,7 @@ class Pipeline:
 #		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
 #		logger.info('ID map: {}'.format(d_targets))
 		if len(chromfiles) == 0:
-			raise ValueError('Only 0 chromosome remained after filtering. Please check the inputs.')
+			raise ValueError('0 chromosome remained after filtering. Please check the inputs.')
 
 		# auto set pool method for multiprocessing
 		genome_size = sum(d_size.values())
@@ -330,9 +335,9 @@ class Pipeline:
 					min_freq=self.min_freq, max_freq=self.max_freq,
 					min_prop=self.min_prop, max_prop=self.max_prop)
 			kmer_count2 = len(d_mat)
-			logger.info('{} ({:.2%}) kmers remained after filtering'.format(kmer_count2, kmer_count2/kmer_count))
+	#		logger.info('{} ({:.2%}) kmers remained after filtering'.format(kmer_count2, kmer_count2/kmer_count))
 			if len(d_mat) == 0:
-				raise ValueError('Only 0 kmer remained after filtering. Please reset the filter options.')
+				raise ValueError('0 kmer remained after filtering. Please reset the filter options.')
 			with open(matfile, 'w') as fout:
 				dumps.write_matrix(d_mat, fout)
 			mk_ckp(ckp_file)

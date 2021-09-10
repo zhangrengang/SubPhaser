@@ -81,7 +81,7 @@ class JellyfishDumps:
 		self.lengths = lengths
 		return d_mat
 
-	def filter(self, d_mat, lengths, sgs, outfig=None, 
+	def filter(self, d_mat, lengths, sgs, outfig=None, by_count=False, 
 				min_freq=200, max_freq=10000, min_fold=2, baseline=1, 
 				min_prop=None, max_prop=None):
 		#logger.info([min_freq, max_freq, min_fold])
@@ -106,7 +106,7 @@ class JellyfishDumps:
 		
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
-		args = ((kmer, counts, d_lens, sgs, outfig, min_freq, max_freq, min_fold, baseline) \
+		args = ((kmer, counts, d_lens, sgs, outfig, by_count, min_freq, max_freq, min_fold, baseline) \
 					for kmer, counts in d_mat.items())
 		i = 0
 		tot_freqs = []
@@ -119,9 +119,13 @@ class JellyfishDumps:
 				d_mat2[kmer] = freqs
 			if tot_freq:
 				tot_freqs += [tot_freq]
-		
+		remain, total = len(d_mat2), len(tot_freqs)
+		logger.info('After filtering, remained {} ({:.2%}) differential and {} ({:.2%}) \
+candidate kmers'.format(remain, remain/i, total, total/i))
 		# plot
 		if outfig is not None:
+			if total == 0:
+				raise ValueError('0 kmer with fold > {}. Please reset the filter options.'.format(min_fold))
 			logger.info('Plot ' + outfig)
 			plot_histogram(tot_freqs, outfig, vline=None)
 		return d_mat2
@@ -180,7 +184,7 @@ dev.off()
 		return outfig
 		
 def _filter_kmer(arg):
-	(kmer, counts, d_lens, sgs, outfig, 
+	(kmer, counts, d_lens, sgs, outfig, by_count, 
 		min_freq, max_freq, min_fold, baseline) = arg
 	labels = d_lens.keys()
 	lengths = d_lens.values()
@@ -200,11 +204,11 @@ def _filter_kmer(arg):
 				chr = chrs[0]
 				count = d_counts[chr]
 				lens = d_lens[chr]
-				freq = count/lens
+				freq = count/lens if not by_count else count
 			else:
 				count = [d_counts[chr] for chr in chrs]
 				lens = [d_lens[chr] for chr in chrs]
-				freq = sum(count) / sum(lens)
+				freq = sum(count) / sum(lens) if not by_count else sum(count)
 			freqs += [freq]
 		freqs = sorted(freqs, reverse=1)
 		_max_freq = freqs[0]

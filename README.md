@@ -29,7 +29,7 @@ bash test_wheat.sh
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenome. 
 Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "genomic signatures". 
-We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insights to the evolutionary history of allopolyploid.
+We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insights to the evolutionary history of allopolyploidation.
 
 There are mainly three modules:
 
@@ -42,7 +42,7 @@ There are mainly three modules:
 2. LTR module to identify and analysis subgenome-specific LTR-RT elements (disbale by `-disable_ltr`) .
    - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
-   - Identify subgenome-specific LTR-RTs by test the enrichment subgenome-specific kmers.
+   - Identify subgenome-specific LTR-RTs by test the enrichment of subgenome-specific kmers.
    - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization peroid(s).
    - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolution history of these LTR-RTs (disbale by `-disable_ltrtree`, time-consuming for large genome).
 3. Visualization module to visualize genome-wide data (disbale by `-disable_circos`) .
@@ -52,16 +52,16 @@ There are mainly three modules:
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure. Phased subgenomes in allohexaploid bread wheat genome.** Colors are unified for each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
-* (**A**) The histgram of differential k-mers among homoeologous chromosome sets. 
+**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified for each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
+* (**A**) The histgram of differential k-mers among homologous chromosome sets. 
 * (**B**) Clustering and (**C**) principal component analysis of differential k-mers that enables the consistent partitioning of the genome into three subgenomes. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
-   - (**1**) Karyotypes of subgenome assignments by k-Means algorithm. 
+   - (**1**) Karyotypes of subgenome assignments by a k-Means algorithm. 
    - (**2**) Significant enrichment of subgenome-specific k-mers. 
    - (**3**) Normalized proportion of subgenome-specific k-mers. 
    - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
    - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (the most outer, in grey color). 
-   - (**8**) Homoeologous blocks among each homoeologous chromosome set.
+   - (**8**) Homologous blocks among each homoeologous chromosome set.
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
@@ -85,11 +85,11 @@ Run with just core algorithm enabled:
 ```
 subphaser -i genome.fasta.gz -c sg.config -disable_ltr -disable_circos
 ```
-Change key parameters:
+Change key parameters when differential kmers are too few:
 ```
 subphaser -i genome.fasta.gz -c sg.config -k 13 -q 100 -f 2
 ```
-Mutiple genomes (e.g. two species):
+Mutiple genomes (e.g. two relative species):
 ```
 subphaser -i genomeA.fasta.gz genomeB.fasta.gz -c sg.config
 ```
@@ -97,7 +97,10 @@ Mutiple config files:
 ```
 subphaser -i genome.fasta.gz -c sg1.config sg2.config
 ```
-
+When constructing tree with a mass of LTR-RTs, `FastTree` is recommended (much faster than `iqtree` but maybe less accurate):
+```
+subphaser -i genome.fasta.gz -c sg.config  -subsample 0 -tree_method FastTree -tree_options ""
+```
 ### Outputs ###
 ```
 phase-results/

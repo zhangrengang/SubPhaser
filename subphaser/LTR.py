@@ -145,6 +145,7 @@ class LTRtree:
 	tree_template = {
 		'iqtree': 'iqtree -s {alnfile}.trimal -pre {alnfile} {tree_options} -nt {ncpu} -redo',
 		'FastTree': 'FastTree {tree_options} {alnfile}.trimal  > {alnfile}.treefile'}
+	tree_template['fasttree'] = tree_template['FastTree']
 	def __init__(self, ltrs, domains, domfile, prefix='ltrtree', 
 			overwrite=False, ncpu=10, subsample=None, 
 			categories=[('LTR', 'Copia', None), ('LTR', 'Gypsy', None)],
@@ -378,7 +379,7 @@ with complete protein domains'.format(i, i/ltr_count, j, j/i))
 			with open(int_seqs, 'w') as fout:
 				self.get_int_seqs(ltrs, fout)
 				
-			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -nocln -tmp {tmpdir} > \
+			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -tmp {tmpdir} > \
 {seqfile}.tesort.log'.format(
 					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
 			if self.intact and '-dp2' not in cmd and "--disable-pass2" not in cmd:
