@@ -27,18 +27,18 @@ bash test_wheat.sh
    * [Full Usage and Default Parameters](#Full-Usage-and-Default-Parameters)
 
 ### Introduction ###
-For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenome. 
-Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "genomic signatures". 
-We also identify genome-wide subgenome-specific regions and LTR-RTs, which will provide insights to the evolutionary history of allopolyploidation.
+For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenomes. 
+Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "differential signatures". 
+The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights to the evolutionary history of allopolyploidation.
 
 There are mainly three modules:
 
 1. The core module to partition and phase subgenomes:
    - Count kmers by `jellyfish`.
-   - Identify the differential kmers among homologous chromosome set.
-   - Cluster into subgenomes by K-Means algorithm and perform bootstrap.
+   - Identify the differential kmers among homologous chromosome sets.
+   - Cluster into subgenomes by a K-Means algorithm and estimate confidence level by the bootstrap.
    - Identify subgenome-specific kmers.
-   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange.
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange(s).
 2. The LTR module to identify and analysis subgenome-specific LTR-RT elements (disbale by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
@@ -52,7 +52,7 @@ There are mainly three modules:
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified for each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
+**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified for each subgenome in subplots `C-F`, i.e. the same color means the same subgenome.
 * (**A**) The histgram of differential k-mers among homologous chromosome sets. 
 * (**B**) Clustering and (**C**) principal component analysis of differential k-mers that enables the consistent partitioning of the genome into three subgenomes. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
@@ -81,7 +81,7 @@ Run with default parameters:
 ```
 subphaser -i genome.fasta.gz -c sg.config
 ```
-Run with just core algorithm enabled:
+Run with just the core algorithm enabled:
 ```
 subphaser -i genome.fasta.gz -c sg.config -disable_ltr -disable_circos
 ```
@@ -97,19 +97,24 @@ Mutiple config files:
 ```
 subphaser -i genome.fasta.gz -c sg1.config sg2.config
 ```
-When constructing tree with a mass of LTR-RTs, `FastTree` is recommended (much faster than `iqtree` but maybe less accurate):
+When constructing a tree with a mass of LTR-RTs, `FastTree` is recommended (much faster than `iqtree` but maybe less accurate):
 ```
 subphaser -i genome.fasta.gz -c sg.config  -subsample 0 -tree_method FastTree -tree_options ""
 ```
+Input custom feature (e.g. transposable element, gene) sequences for subgenome-specific enrichments:
+```
+subphaser -i genome.fasta.gz -c sg.config -custom_features TEs.fasta genes.fasta
+```
+
 ### Outputs ###
 ```
 phase-results/
-├── k15_q200_f2.circos/                # config and data files for circos plot, developer may re-plot with some custom modification
+├── k15_q200_f2.circos/                # config and data files for circos plot, so developers are able to re-plot with some custom modification
 ├── k15_q200_f2.kmer_freq.pdf          # histogram of differential kmers, useful to adjust option `-q`
-├── k15_q200_f2.kmer.mat               # differential kmer matrix (m kmer x n chromosome)
+├── k15_q200_f2.kmer.mat               # differential kmer matrix (m kmer × n chromosome)
 ├── k15_q200_f2.kmer.mat.pdf           # heatmap of the kmer matrix
 ├── k15_q200_f2.kmer.mat.R             # R script for the heatmap plot
-├── k15_q200_f2.kmer_pca.pdf           # PCA plot of the kmer matrix, developer may re-plot with some custom modification
+├── k15_q200_f2.kmer_pca.pdf           # PCA plot of the kmer matrix
 ├── k15_q200_f2.chrom-subgenome.tsv    # subgenome assignments and bootstrap values
 ├── k15_q200_f2.sig.kmer-subgenome.tsv # subgenome-specific kmers
 ├── k15_q200_f2.bin.enrich             # subgenome-specific enrichments by genome window/bin
@@ -123,12 +128,13 @@ phase-results/
 ├── k15_q200_f2.circos.pdf             # final circos plot
 ├── k15_q200_f2.circos.png
 ├── circos_legend.txt                  # legend of the circos plot
+.....
 
 tmp/
 ├── LTR.scn                 # identification of LTR-RTs by LTRhavest and/or LTRfinder
 ├── LTR.inner.fa            # inner sequences of LTR-RTs
 ├── LTR.inner.fa.cls.*      # classfication of LTR-RTs by TEsorter
-├── LTR.filtered.LTR.fa     # full sequences of filtered LTR-RTs
+├── LTR.filtered.LTR.fa     # full sequences of the filtered LTR-RTs
 ├── LTR.LTR_*.aln           # alignments of LTR-RTs' protein domains for the below tree
 ├── LTR.LTR_*.rooted.tre    # phylogenetic tree files
 ├── LTR.LTR_*.map           # information of tip nodes on the above tree
@@ -139,13 +145,14 @@ tmp/
 ```
 usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-labels LABEL [LABEL ...]] [-no_label]
-                         [-target FILE] [-sep STR] [-pre STR] [-o DIR]
-                         [-tmpdir DIR] [-k INT] [-f FLOAT] [-q INT]
+                         [-target FILE] [-sep STR]
+                         [-custom_features FASTA [FASTA ...]] [-pre STR]
+                         [-o DIR] [-tmpdir DIR] [-k INT] [-f FLOAT] [-q INT]
                          [-baseline BASELINE] [-lower_count INT]
                          [-min_prop FLOAT] [-max_freq INT] [-max_prop FLOAT]
-                         [-low_mem] [-re_filter] [-nsg INT] [-replicates INT]
-                         [-jackknife FLOAT] [-max_pval FLOAT]
-                         [-figfmt {pdf,png}]
+                         [-low_mem] [-by_count] [-re_filter] [-nsg INT]
+                         [-replicates INT] [-jackknife FLOAT]
+                         [-max_pval FLOAT] [-figfmt {pdf,png}]
                          [-heatmap_colors COLOR [COLOR ...]]
                          [-heatmap_options STR] [-disable_ltr]
                          [-ltr_detectors {ltr_finder,ltr_harvest} [{ltr_finder,ltr_harvest} ...]]
@@ -153,11 +160,14 @@ usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-tesorter_options STR] [-all_ltr] [-intact_ltr]
                          [-mu FLOAT] [-disable_ltrtree] [-subsample INT]
                          [-ltr_domains {GAG,PROT,INT,RT,RH,AP,RNaseH} [{GAG,PROT,INT,RT,RH,AP,RNaseH} ...]]
-                         [-trimal_options STR] [-iqtree_options STR]
+                         [-trimal_options STR]
+                         [-tree_method {iqtree,FastTree}] [-tree_options STR]
                          [-ggtree_options STR] [-disable_circos]
                          [-window_size INT] [-disable_blocks] [-aligner PROG]
                          [-aligner_options STR] [-min_block INT] [-p INT]
-                         [-max_memory MEM] [-cleanup] [-overwrite]
+                         [-max_memory MEM] [-cleanup] [-overwrite] [-v]
+
+Phase and visualize subgenomes of allopolyploid or hybrid based on repeatitive features.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -182,6 +192,9 @@ Input:
                         this chromosome set is for cluster and phase [default:
                         the same chromosome set as `-sg_cfgs`]
   -sep STR              Seperator for chromosome ID [default="|"]
+  -custom_features FASTA [FASTA ...]
+                        Custom features in fasta format to enrich subgenome-
+                        specific kmers, such as TE and gene [default: None]
 
 Output:
   -pre STR, -prefix STR
@@ -210,6 +223,8 @@ Kmer:
                         [default=None]
   -low_mem              Low MEMory but slower [default: True if genome size >
                         3G, else False]
+  -by_count             Calculate fold by count instead of by propor
+                        [default=False]
   -re_filter            Re-filter with subset of chromosomes (subgenome
                         assignments are expected to change) [default=False]
 
@@ -260,7 +275,8 @@ LTR:
                         for estimating age of LTR insertion [default=1.3e-08]
   -disable_ltrtree      Disable subgenome-specific LTR tree (this step is
                         time-consuming when subgenome-specific LTRs are too
-                        much) [default=False]
+                        many, so `-subsample` is enabled by defualt)
+                        [default=False]
   -subsample INT        Subsample LTRs to avoid too many to construct a tree
                         [default=1000] (0 to disable)
   -ltr_domains {GAG,PROT,INT,RT,RH,AP,RNaseH} [{GAG,PROT,INT,RT,RH,AP,RNaseH} ...]
@@ -269,8 +285,12 @@ LTR:
                         RNaseH (gydb)) [default=['INT', 'RT', 'RH']]
   -trimal_options STR   Options for `trimal` to trim alignment (see more with
                         `trimal -h`) [default="-automated1"]
-  -iqtree_options STR   Options for `iqtree` to construct phylogenetic trees
-                        (see more with `iqtree -h`) [default="-mset JTT"]
+  -tree_method {iqtree,FastTree}
+                        Programs to construct phylogenetic trees
+                        [default=iqtree]
+  -tree_options STR     Options for `-tree_method` to construct phylogenetic
+                        trees (see more with `iqtree -h` or `FastTree
+                        -expert`) [default="-mset JTT"]
   -ggtree_options STR   Options for `ggtree` to show phylogenetic trees (see
                         more from `https://yulab-smu.top/treedata-book`)
                         [default="branch.length='none', layout='circular'"]
@@ -279,19 +299,20 @@ Circos:
   Options for circos plot
 
   -disable_circos       Disable this step [default=False]
-  -window_size INT      Window size for circos plot [default=1000000]
+  -window_size INT      Window size (bp) for circos plot [default=1000000]
   -disable_blocks       Disable to plot homologous blocks [default=False]
   -aligner PROG         Programs to identify homologous blocks
                         [default=minimap2]
   -aligner_options STR  Options for `-aligner` to align chromosome sequences
                         [default="-x asm20 -n 10"]
-  -min_block INT        Minimum block size to show [default=100000]
+  -min_block INT        Minimum block size (bp) to show [default=100000]
 
 Other options:
   -p INT, -ncpu INT     Maximum number of processors to use [default=32]
   -max_memory MEM       Maximum memory to use where limiting can be enabled.
-                        [default=65.4G]
+                        [default=65.5G]
   -cleanup              Remove the temporary directory [default=False]
   -overwrite            Overwrite even if check point files existed
                         [default=False]
+  -v, -version          show program's version number and exit
 ```

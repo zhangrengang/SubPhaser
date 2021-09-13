@@ -27,7 +27,8 @@ MEM = available_memory()
 def makeArgparse():
 	parser = argparse.ArgumentParser( 
 		formatter_class=argparse.RawDescriptionHelpFormatter,
-		description='Phase and visualize subgenomes of allopolyploidy or hybrid based on repeatitive features.',
+		description='Phase and visualize subgenomes of an allopolyploid or hybrid \
+based on the repeatitive kmers.',
 		)
 	# input
 	group_in = parser.add_argument_group('Input', 'Input genome and config files')
@@ -99,7 +100,7 @@ if `-max_prop` is specified [default=%(default)s]")
 	group_clst.add_argument('-jackknife', type=float, default=50, metavar='FLOAT',
 					help="Percent of kmers to resample for bootstrap [default=%(default)s]")
 	group_clst.add_argument('-max_pval', type=float, default=0.05, metavar='FLOAT',
-					help="Maximum P value for hypothesis test [default=%(default)s]")
+					help="Maximum P value for all hypothesis tests [default=%(default)s]")
 	
 	group_clst.add_argument("-figfmt", default='pdf', type=str, 
 					choices=['pdf', 'png', ], # 'svg','tiff', 'jpeg', 'bmp'],
