@@ -33,19 +33,19 @@ We also identify genome-wide subgenome-specific regions and LTR-RTs, which will 
 
 There are mainly three modules:
 
-1. The core module to partition and phase subgenomes.
+1. The core module to partition and phase subgenomes:
    - Count kmers by `jellyfish`.
    - Identify the differential kmers among homologous chromosome set.
    - Cluster into subgenomes by K-Means algorithm and perform bootstrap.
    - Identify subgenome-specific kmers.
    - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange.
-2. LTR module to identify and analysis subgenome-specific LTR-RT elements (disbale by `-disable_ltr`) .
+2. The LTR module to identify and analysis subgenome-specific LTR-RT elements (disbale by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
    - Identify subgenome-specific LTR-RTs by test the enrichment of subgenome-specific kmers.
    - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization peroid(s).
    - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolution history of these LTR-RTs (disbale by `-disable_ltrtree`, time-consuming for large genome).
-3. Visualization module to visualize genome-wide data (disbale by `-disable_circos`) .
+3. The visualization module to visualize genome-wide data (disbale by `-disable_circos`):
    - Identify the homologous blocks by `minimap2` simply (disbale by `-disable_blocks`, time-consuming for large genome).
    - Integrate and visualize the whole genome-wide data by `circos`.
 

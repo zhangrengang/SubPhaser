@@ -17,14 +17,18 @@ from . import Circos
 from . import Blocks
 from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
 from .RunCmdsMP import logger, available_memory, limit_memory
+from .__version__ import version
+
 
 bindir = os.path.dirname(os.path.realpath(__file__))
 NCPU = multiprocessing.cpu_count()
 MEM = available_memory()
 
 def makeArgparse():
-	parser = argparse.ArgumentParser( \
-		formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser = argparse.ArgumentParser( 
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+		description='Phase and visualize subgenomes of allopolyploidy or hybrid based on repeatitive features.',
+		)
 	# input
 	group_in = parser.add_argument_group('Input', 'Input genome and config files')
 	group_in.add_argument('-i', "-genomes", dest='genomes', nargs='+', metavar='GENOME', required=True,
@@ -45,6 +49,9 @@ this chromosome set is for cluster and phase \
 [default: the same chromosome set as `-sg_cfgs`]")
 	group_in.add_argument("-sep", default="|", type=str, metavar='STR',
 					help='Seperator for chromosome ID [default="%(default)s"]')
+	group_in.add_argument('-custom_features', nargs='+', metavar='FASTA', default=None, 
+					help="Custom features in fasta format to enrich subgenome-specific kmers, \
+such as TE and gene [default: %(default)s]")
 	# output
 	group_out = parser.add_argument_group('Output')
 	group_out.add_argument('-pre', '-prefix', default=None, dest='prefix', metavar='STR',
@@ -197,6 +204,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
 					help="Remove the temporary directory [default=%(default)s]")	
 	group_other.add_argument('-overwrite', action="store_true", default=False,
 					help="Overwrite even if check point files existed [default=%(default)s]")
+	group_other.add_argument('-v', '-version', action='version', version=version)
 	
 	args = parser.parse_args()
 	if args.prefix is not None:
@@ -285,7 +293,7 @@ class Pipeline:
 			mk_ckp(ckp_file, *data)
 		labels, chromfiles = self.sort_labels(d_targets.values(), labels, chromfiles)
 		logger.info('Chromosomes: {}'.format(labels))
-		logger.info('Chromosome No.: {}'.format(len(labels)))
+		logger.info('Chromosome Number: {}'.format(len(labels)))
 		
 		self.chromfiles = chromfiles	# ordered as the genome files
 		# update
@@ -395,6 +403,30 @@ class Pipeline:
 			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
 					max_pval=self.max_pval, ncpu=self.ncpu)
 
+		# custom
+		if self.custom_features is not None:
+	#		for i, feature in enumerate(self.custom_features):
+			feat_map = self.para_prefix + '.features.bin.count'
+			logger.info('Mapping subgenome-specific kmers to custom {}'.format(self.custom_features))
+			pool_method = self.pool_method
+			chunksize = None if pool_method == 'map' else 2000
+			with open(feat_map, 'w') as fout:	# multiprocessing by LTR
+				Seqs.map_kmer3(self.custom_features, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
+								bin_size=10000000, sg_names=self.sg_names,
+								chunk=False, log=False, method=pool_method, chunksize=chunksize)
+			# enrich SG by feature
+			logger.info('Enriching subgenome-specific features')
+			bins, counts = Circos.stack_matrix(feat_map, window_size=100000000)
+			feat_enrich = self.para_prefix + '.features.enrich'
+			with open(feat_enrich, 'w') as fout:
+				d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
+						max_pval=self.max_pval, ncpu=self.ncpu)
+			
+			logger.info('{} significant subgenome-specific features'.format(len(d_enriched)))
+			for sg, count in sorted(Counter(d_enriched.values()).items()):
+				suffix = {'shared':''}.get(sg, '-specific')
+				logger.info('\t{} {}{} features'.format(count, sg, suffix))
+		
 		# LTR
 		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else ([],[])
 
@@ -607,6 +639,7 @@ def add_prefix(val, prefix=None, sep='|'):
 def main():
 	args = makeArgparse()
 	logger.info('Command: {}'.format(' '.join(sys.argv)))
+	logger.info('Version: {}'.format(' '.join(version)))
 	logger.info('Arguments: {}'.format(args.__dict__))
 	pipeline = Pipeline(**args.__dict__)
 	pipeline.run()

@@ -19,7 +19,7 @@ def fisher_test(each, total):
 
 def enrich_ltr(fout, *args, **kargs):
 	'''Output LTR enrichments'''
-	line = ['#ltr', 'SG', 'pval', 'counts']
+	line = ['#id', 'SG', 'pval', 'counts']
 	fout.write('\t'.join(line)+'\n')
 	d_enriched = {}
 	for res in enrich(*args, **kargs):
