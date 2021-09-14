@@ -13,7 +13,12 @@ def fisher_test(each, total):
 		x12 = sum_each - x11
 		x21 = total[i] - x11
 		x22 = sum_total-x21 - x12
-		pval = fisher.pvalue(x11, x12, x21, x22).right_tail
+		x21 = min(x21, 2147483647)
+		x22 = min(x22, 2147483647)
+		try: pval = fisher.pvalue(x11, x12, x21, x22).right_tail
+		except OverflowError as e:
+			print(each, total, (x11, x12, x21, x22))
+			raise OverflowError(e)
 		pvals += [pval]
 	return pvals
 

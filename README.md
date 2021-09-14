@@ -29,7 +29,7 @@ bash test_wheat.sh
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenomes. 
 Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "differential signatures". 
-The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights to the evolutionary history of allopolyploidation.
+The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights into the evolutionary history of allopolyploidization.
 
 There are mainly three modules:
 
@@ -39,21 +39,21 @@ There are mainly three modules:
    - Cluster into subgenomes by a K-Means algorithm and estimate confidence level by the bootstrap.
    - Identify subgenome-specific kmers.
    - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange(s).
-2. The LTR module to identify and analysis subgenome-specific LTR-RT elements (disbale by `-disable_ltr`):
-   - Identify the LTR-RTs by `LTRhavest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
+2. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
+   - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
-   - Identify subgenome-specific LTR-RTs by test the enrichment of subgenome-specific kmers.
-   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization peroid(s).
-   - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolution history of these LTR-RTs (disbale by `-disable_ltrtree`, time-consuming for large genome).
-3. The visualization module to visualize genome-wide data (disbale by `-disable_circos`):
-   - Identify the homologous blocks by `minimap2` simply (disbale by `-disable_blocks`, time-consuming for large genome).
+   - Identify subgenome-specific LTR-RTs by testing the enrichment of subgenome-specific kmers.
+   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization period(s).
+   - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolutionary history of these LTR-RTs (disable by `-disable_ltrtree`, time-consuming for large genome).
+3. The visualization module to visualize genome-wide data (disable by `-disable_circos`):
+   - Identify the homologous blocks by `minimap2` simply (disable by `-disable_blocks`, time-consuming for large genome).
    - Integrate and visualize the whole genome-wide data by `circos`.
 
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified for each subgenome in subplots `C-F`, i.e. the same color means the same subgenome.
-* (**A**) The histgram of differential k-mers among homologous chromosome sets. 
+**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `C-F`, i.e. the same color means the same subgenome.
+* (**A**) The histogram of differential k-mers among homologous chromosome sets. 
 * (**B**) Clustering and (**C**) principal component analysis of differential k-mers that enables the consistent partitioning of the genome into three subgenomes. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
    - (**1**) Karyotypes of subgenome assignments by a k-Means algorithm. 
@@ -61,7 +61,7 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
    - (**3**) Normalized proportion of subgenome-specific k-mers. 
    - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
    - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (the most outer, in grey color). 
-   - (**8**) Homologous blocks among each homoeologous chromosome set.
+   - (**8**) Homologous blocks of each homoeologous chromosome set.
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
@@ -70,10 +70,10 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 2. Configuration of homologous chromosome sets, e.g. 
 ```
 Chr1A   Chr1B   Chr1D                      # each row is one homologous chromosome set
-Chr2B   Chr2A   Chr2D                      # seperate with blank chracter(s)
+Chr2B   Chr2A   Chr2D                      # seperate with blank character(s)
 Chr3D   Chr3B   Chr3A                      # chromosome order is arbitrary
 Chr4A   Chr4B   Chr4D
-5A|Chr5A   5B|Chr5B   5D|Chr5D             # will rename chromosome id as 5A, 5B and 5D, respectively
+5A|Chr5A   5B|Chr5B   5D|Chr5D             # will rename chromosome id to 5A, 5B and 5D, respectively
 Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # treat multiple chromosomes together using ","
 ```
 ### Run SubPhaser ###
@@ -131,7 +131,7 @@ phase-results/
 .....
 
 tmp/
-├── LTR.scn                 # identification of LTR-RTs by LTRhavest and/or LTRfinder
+├── LTR.scn                 # identification of LTR-RTs by LTRharvest and/or LTRfinder
 ├── LTR.inner.fa            # inner sequences of LTR-RTs
 ├── LTR.inner.fa.cls.*      # classfication of LTR-RTs by TEsorter
 ├── LTR.filtered.LTR.fa     # full sequences of the filtered LTR-RTs
@@ -167,7 +167,7 @@ usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-aligner_options STR] [-min_block INT] [-p INT]
                          [-max_memory MEM] [-cleanup] [-overwrite] [-v]
 
-Phase and visualize subgenomes of allopolyploid or hybrid based on repeatitive features.
+Phase and visualize subgenomes of allopolyploid or hybrid based on repetitive features.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -229,7 +229,7 @@ Kmer:
                         assignments are expected to change) [default=False]
 
 Cluster:
-  Options for cluster to phase
+  Options for clustering to phase
 
   -nsg INT              Number of subgenomes (>1) [default: auto]
   -replicates INT       Number of replicates for bootstrap [default=1000]

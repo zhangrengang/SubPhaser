@@ -28,7 +28,7 @@ def makeArgparse():
 	parser = argparse.ArgumentParser( 
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 		description='Phase and visualize subgenomes of an allopolyploid or hybrid \
-based on the repeatitive kmers.',
+based on the repetitive kmers.',
 		)
 	# input
 	group_in = parser.add_argument_group('Input', 'Input genome and config files')
@@ -92,7 +92,7 @@ if `-max_prop` is specified [default=%(default)s]")
  [default=%(default)s]")
  
 	# cluster
-	group_clst = parser.add_argument_group('Cluster', 'Options for cluster to phase')
+	group_clst = parser.add_argument_group('Cluster', 'Options for clustering to phase')
 	group_clst.add_argument('-nsg', type=int, default=None, metavar='INT',
 					help="Number of subgenomes (>1) [default: auto]")
 	group_clst.add_argument('-replicates', type=int, default=1000, metavar='INT',
@@ -408,9 +408,9 @@ class Pipeline:
 		if self.custom_features is not None:
 	#		for i, feature in enumerate(self.custom_features):
 			feat_map = self.para_prefix + '.features.bin.count'
-			logger.info('Mapping subgenome-specific kmers to custom {}'.format(self.custom_features))
+			logger.info('Mapping subgenome-specific kmers to custom features: {}'.format(self.custom_features))
 			pool_method = self.pool_method
-			chunksize = None if pool_method == 'map' else 2000
+			chunksize = None if pool_method == 'map' else 10000
 			with open(feat_map, 'w') as fout:	# multiprocessing by LTR
 				Seqs.map_kmer3(self.custom_features, d_kmers, fout=fout, k=self.k, ncpu=self.ncpu, 
 								bin_size=10000000, sg_names=self.sg_names,
