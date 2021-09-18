@@ -61,7 +61,7 @@ class JellyfishDumps:
 		self.chunksize = chunksize
 	def __len__(self):
 		return len(self.dumpfiles)
-	def to_matrix(self):
+	def to_matrix(self, array=False):
 		ncol = len(self)
 		lengths = [0] * ncol
 		d_idx = dict(zip(self.dumpfiles, range(ncol)))
@@ -75,7 +75,10 @@ class JellyfishDumps:
 			logger.info('Loading '+ dumpfile)
 			for seq, freq in zip(seqs, freqs):
 				if seq not in d_mat:
-					d_mat[seq] = [0] * ncol
+					if array:
+						d_mat[seq] = np.array([0] * ncol)
+					else:
+						d_mat[seq] = [0] * ncol
 				d_mat[seq][i] = freq
 			del seqs, freqs
 		self.lengths = lengths
@@ -260,15 +263,18 @@ def _run_jellyfish_dump(arg):
 	seqfile, kargs = arg
 	return run_jellyfish_dump(seqfile, **kargs)
 def run_jellyfish_dump(seqfile, threads=4, k=17, prefix=None, lower_count=2, overwrite=False):
-	if prefix is None:
-		prefix = seqfile
+	if isinstance(seqfile, (list, tuple, set)):
+		seqfile = ' '.join(seqfile)
+	else: # str
+		if prefix is None:
+			prefix = seqfile
 	output = '{prefix}_{KMER}.fa'.format(KMER=k, prefix=prefix)
 	ckp_file = output + '.ok'
 	if not overwrite and check_ckp(ckp_file):
 		pass
 	else:
 		xcat = 'zcat' if is_gz(seqfile) else 'cat'
-		cmd = '{XCAT} "{seqfile}" | jellyfish count -t {NCPU} -m {KMER} -s 100000000  --canonical /dev/stdin -o "{prefix}_{KMER}.jf" && \
+		cmd = '{XCAT} {seqfile} | jellyfish count -t {NCPU} -m {KMER} -s 100000000  --canonical /dev/stdin -o "{prefix}_{KMER}.jf" && \
 	jellyfish dump -c -o "{prefix}_{KMER}.fa" "{prefix}_{KMER}.jf" -L {lower_count} && touch "{ckp_file}" \
 	&& rm "{prefix}_{KMER}.jf"'.format(
 			XCAT=xcat, seqfile=seqfile, NCPU=threads, KMER=k, prefix=prefix, 

@@ -3,6 +3,8 @@ import copy
 import numpy as np
 from .RunCmdsMP import logger, pool_func
 
+MAX_INT = 2147483647 // 10
+
 def fisher_test(each, total):
 	assert len(each) == len(total)
 	pvals = []
@@ -13,8 +15,8 @@ def fisher_test(each, total):
 		x12 = sum_each - x11
 		x21 = total[i] - x11
 		x22 = sum_total-x21 - x12
-		x21 = min(x21, 2147483647)
-		x22 = min(x22, 2147483647)
+		x21 = min(x21, MAX_INT)
+		x22 = min(x22, MAX_INT)
 		try: pval = fisher.pvalue(x11, x12, x21, x22).right_tail
 		except OverflowError as e:
 			print(each, total, (x11, x12, x21, x22))
@@ -24,7 +26,7 @@ def fisher_test(each, total):
 
 def enrich_ltr(fout, *args, **kargs):
 	'''Output LTR enrichments'''
-	line = ['#id', 'SG', 'pval', 'counts']
+	line = ['#id', 'subgenome', 'p_value', 'counts']
 	fout.write('\t'.join(line)+'\n')
 	d_enriched = {}
 	for res in enrich(*args, **kargs):
@@ -41,7 +43,7 @@ def enrich_ltr(fout, *args, **kargs):
 
 def enrich_bin(fout, *args, **kargs):
 	'''Enrich by chromosome bins'''
-	line = ['#chrom', 'start', 'end', 'SG', 'pval', 'counts', 'ratios', 'enrich','pvals']
+	line = ['#chrom', 'start', 'end', 'subgenome', 'p_value', 'counts', 'ratios', 'enrich','pvals']
 	fout.write('\t'.join(line)+'\n')
 #	last_end = 0
 	lines = []

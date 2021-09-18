@@ -9,6 +9,7 @@ from collections import OrderedDict, Counter
 from xopen import xopen as open
 from Bio import SeqIO
 from . import Seqs
+from . import Jellyfish
 from .Jellyfish import run_jellyfish_dumps, JellyfishDumps
 from .Cluster import Cluster
 from . import LTR
@@ -143,6 +144,8 @@ of `gplots` package) [default="%(default)s"]')
 	group_ltr.add_argument('-intact_ltr', action="store_true", default=False,
                     help="Use completed LTR as classified by `TEsorter` (less LTRs but faster) \
 [default: the same as `-all_ltr`]")
+	group_ltr.add_argument('-shared_ltr', action="store_true", default=False,
+                    help="Identify shared LTRs among subgenomes (experimental) [default=%(default)s]")
 	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
 					help='Substitution rate per year in the intergenic region, \
 for estimating age of LTR insertion \
@@ -356,7 +359,7 @@ class Pipeline:
 		logger.info('###Step: Cluster')
 		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG',
 				replicates=self.replicates, jackknife=self.jackknife)
-		d_sg = cluster.d_sg	# chrom -> SG
+		self.d_sg = d_sg = cluster.d_sg	# chrom -> SG
 		logger.info('Subgenome assignments: {}'.format(d_sg))
 		self.sg_names = cluster.sg_names
 		sg_chrs = self.para_prefix + '.chrom-subgenome.tsv'
@@ -407,7 +410,7 @@ class Pipeline:
 		# custom
 		if self.custom_features is not None:
 	#		for i, feature in enumerate(self.custom_features):
-			feat_map = self.para_prefix + '.features.bin.count'
+			feat_map = self.para_prefix + '.custom.bin.count'
 			logger.info('Mapping subgenome-specific kmers to custom features: {}'.format(self.custom_features))
 			pool_method = self.pool_method
 			chunksize = None if pool_method == 'map' else 10000
@@ -418,7 +421,7 @@ class Pipeline:
 			# enrich SG by feature
 			logger.info('Enriching subgenome-specific features')
 			bins, counts = Circos.stack_matrix(feat_map, window_size=100000000)
-			feat_enrich = self.para_prefix + '.features.enrich'
+			feat_enrich = self.para_prefix + '.custom.enrich'
 			with open(feat_enrich, 'w') as fout:
 				d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
 						max_pval=self.max_pval, ncpu=self.ncpu)
@@ -486,6 +489,7 @@ class Pipeline:
 		bins, counts = Circos.stack_matrix(ltr_map, window_size=100000000)
 		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
+			# ltr_id -> SG
 			d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
 					max_pval=self.max_pval, ncpu=self.ncpu)
 		
@@ -493,10 +497,23 @@ class Pipeline:
 		for sg, count in sorted(Counter(d_enriched.values()).items()):
 			suffix = {'shared':''}.get(sg, '-specific')
 			logger.info('\t{} {}{} LTR-RTs'.format(count, sg, suffix))
-			
+		
+		# shared
+		if self.shared_ltr:
+			ckp_file = tmpdir + '.' + self.basename + '.shared.ok'
+			ckp = check_ckp(ckp_file)
+			if self.overwrite or self.re_filter or not ckp:
+				d_shared = self.identify_shared_ltrs(self.d_sg, self.d_chromfiles, ltrfile, d_enriched)
+				mk_ckp(ckp_file, d_shared)
+			else:
+				d_shared, *_ = ckp
+		else:
+			d_shared = {}
+		
 		# plot insert age
 		prefix = self.para_prefix + '.ltr.insert'
-		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, mu=self.mu, figfmt=self.figfmt)
+		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, shared=d_shared, 
+						mu=self.mu, figfmt=self.figfmt)
 		
 		# ltr tree
 		if not self.disable_ltrtree:
@@ -525,7 +542,36 @@ class Pipeline:
 		#enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
 		enrich_ltr_bedlines = [v for k,v in sorted(d_enrich_ltr_bedlines.items())]
 		return ltr_bedlines, enrich_ltr_bedlines
-
+	def identify_shared_ltrs(self, d_sg, d_chromfiles, ltrfile, d_enriched):
+		d_chromfiles_sg = {}
+		for chrom, sg in d_sg.items():
+			chromfile = d_chromfiles[chrom]
+			try: d_chromfiles_sg[sg] += [chromfile]
+			except KeyError: d_chromfiles_sg[sg] = [chromfile]
+		sgs = sorted(d_chromfiles_sg.keys())
+		dumpfiles = []
+		for sg, chromfiles in sorted(d_chromfiles_sg.items()):
+			prefix = '{}{}.{}'.format(self.tmpdir, self.basename, sg)
+			dumpfile = Jellyfish.run_jellyfish_dump(chromfiles, threads=self.ncpu, k=self.k, 
+				prefix=prefix, lower_count=self.lower_count*2, overwrite=self.overwrite)
+			dumpfiles += [dumpfile]
+		chunksize = None if self.pool_method == 'map' else 10000
+		dumps = Jellyfish.JellyfishDumps(dumpfiles, sgs, ncpu=self.ncpu,
+                            method=self.pool_method, chunksize=chunksize)
+		d_mat = dumps.to_matrix(array=False)
+		
+		# count kmer freq
+		logger.info('Identifying shared LTR-RTs')
+		pool_method = 'map' #self.pool_method
+		chunksize = 2000 #None if pool_method == 'map' else 2000
+		out = self.tmpdir + 'LTR.' + self.basename + '.shared'
+		with open(out, 'w') as fout:
+			d_shared = Seqs.count_kmer([ltrfile], d_mat, lengths=dumps.lengths, k=self.k, ncpu=self.ncpu,
+                                exclude=d_enriched, min_prob=0.75, min_count=10, max_fold=1.05, fout=fout,
+                                method=pool_method, chunksize=chunksize)
+		logger.info('{} shared LTR-RTs'.format(len(d_shared)))
+		return d_shared
+		
 	def step_circos(self, *args, **kargs):
 		logger.info('###Step: Circos')
 		# blocks
@@ -640,7 +686,7 @@ def add_prefix(val, prefix=None, sep='|'):
 def main():
 	args = makeArgparse()
 	logger.info('Command: {}'.format(' '.join(sys.argv)))
-	logger.info('Version: {}'.format(' '.join(version)))
+	logger.info('Version: {}'.format(version))
 	logger.info('Arguments: {}'.format(args.__dict__))
 	pipeline = Pipeline(**args.__dict__)
 	pipeline.run()

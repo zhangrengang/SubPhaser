@@ -39,6 +39,7 @@ There are mainly three modules:
    - Cluster into subgenomes by a K-Means algorithm and estimate confidence level by the bootstrap.
    - Identify subgenome-specific kmers.
    - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange(s).
+   - Identify subgenome-specific enrichments with user-defined features (e.g. transposable elements, genes) via `-custom_features`.
 2. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
@@ -54,7 +55,8 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 ![wheat](example_data/wheat_figures.png)
 **Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `C-F`, i.e. the same color means the same subgenome.
 * (**A**) The histogram of differential k-mers among homologous chromosome sets. 
-* (**B**) Clustering and (**C**) principal component analysis of differential k-mers that enables the consistent partitioning of the genome into three subgenomes. 
+* (**B**) Heatmap and clustering of differential k-mers. The x-axis, k-mers; y-axis, chromosomes.
+* (**C**) Principal component analysis (PCA) of differential k-mers. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
    - (**1**) Karyotypes of subgenome assignments by a k-Means algorithm. 
    - (**2**) Significant enrichment of subgenome-specific k-mers. 

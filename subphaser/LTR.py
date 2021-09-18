@@ -463,7 +463,7 @@ def is_completed(ltr):
 	completed = getattr(ltr, 'completed', None)
 	return True if completed == 'yes' else False
 
-def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
+def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, shared={}, figfmt='pdf'):
 	datfile = prefix + '.data'
 	fout = open(datfile, 'w')
 	line = ['ltr', 'sg', 'age']
@@ -472,8 +472,14 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, figfmt='pdf'):
 	enriched_ltrs = []
 	for ltr in ltrs:
 		age = ltr.estimate_age(mu=mu)
-		try: sg = d_enriched[ltr.id]
-		except KeyError: continue
+		if ltr.id in d_enriched:
+			sg = d_enriched[ltr.id]
+		elif ltr.id in shared:
+			sg = 'shared'
+		else:
+			continue
+#		try: sg = d_enriched[ltr.id]
+#		except KeyError: continue
 		ltr.sg = sg
 		age = age/1e6
 		enriched_ltrs += [ltr]
@@ -517,7 +523,7 @@ ggsave('{outfig}', p, width=7, height=7, dpi=300, units="in")
 	return enriched_ltrs
 
 def summary_ltr_time(d_data, fout):
-	fout.write('# Summary of LTR insertion age (million years)')
+	fout.write('# Summary of LTR insertion age (million years)\n')
 	line = ['#subgenome', 'mean', 'median', 'standard_deviation', '95%-CI', '75%-CI']
 	fout.write('\t'.join(line) + '\n')
 	d_info = {}
