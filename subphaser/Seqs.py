@@ -117,7 +117,7 @@ def chunk_chromfiles(chromfiles, window_size=10e6, overlap=0):
 				yield rc.id, start, seq	# offset
 		#	logger.info('Chunk of {}: {}'.format(rc.id, x))
 	logger.info('Chunk {} by window size {}'.format(j, window_size))
-def unchunk_chromfiles(chromfiles, exclude=None, rc=False):
+def unchunk_chromfiles(chromfiles, exclude=None, rv=False):
 	j = 0
 	for chromfile in chromfiles:
 		for rc in SeqIO.parse(open(chromfile), 'fasta'):
@@ -125,7 +125,7 @@ def unchunk_chromfiles(chromfiles, exclude=None, rc=False):
 				continue
 			j += 1
 			seq = str(rc.seq).upper()	#.replace('U', 'T')
-			if rc:
+			if rv:
 				rc_seq = str(rc.seq.reverse_complement()).upper()
 				yield rc.id, 0, (seq, rc_seq)
 			else:
@@ -140,7 +140,7 @@ def count_kmer(chromfiles, d_kmers, lengths, fout=sys.stdout, k=None,
 		for key in d_kmers.keys():
 			k = len(key)
 			break
-	chunks = unchunk_chromfiles(chromfiles, exclude=exclude, rc=True)
+	chunks = unchunk_chromfiles(chromfiles, exclude=exclude, rv=True)
 	iterable = ((id, seqs, k, d_kmers,lengths, min_prob, min_count, max_fold) for id, _, seqs in chunks)
 	i,j = 0,0
 	d_counts = {}
@@ -193,6 +193,7 @@ def map_kmer_each4(args):
 	mapped_kmers = set([])
 	c = 0	# mapped kmers
 	d_bin = OrderedDict()
+#	logger.info( (id, size))
 	for s, kmer in _get_kmer(seq, k):
 		try: sg = d_kmers[kmer]
 		except KeyError: continue
