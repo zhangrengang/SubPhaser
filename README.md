@@ -145,7 +145,7 @@ tmp/
 
 ### Full Usage and Default Parameters ###
 ```
-usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
+usage: test_subphaser.py [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-labels LABEL [LABEL ...]] [-no_label]
                          [-target FILE] [-sep STR]
                          [-custom_features FASTA [FASTA ...]] [-pre STR]
@@ -160,7 +160,8 @@ usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-ltr_detectors {ltr_finder,ltr_harvest} [{ltr_finder,ltr_harvest} ...]]
                          [-ltr_finder_options STR] [-ltr_harvest_options STR]
                          [-tesorter_options STR] [-all_ltr] [-intact_ltr]
-                         [-mu FLOAT] [-disable_ltrtree] [-subsample INT]
+                         [-shared_ltr] [-mu FLOAT] [-disable_ltrtree]
+                         [-subsample INT]
                          [-ltr_domains {GAG,PROT,INT,RT,RH,AP,RNaseH} [{GAG,PROT,INT,RT,RH,AP,RNaseH} ...]]
                          [-trimal_options STR]
                          [-tree_method {iqtree,FastTree}] [-tree_options STR]
@@ -169,7 +170,7 @@ usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-aligner_options STR] [-min_block INT] [-p INT]
                          [-max_memory MEM] [-cleanup] [-overwrite] [-v]
 
-Phase and visualize subgenomes of allopolyploid or hybrid based on repetitive features.
+Phase and visualize subgenomes of an allopolyploid or hybrid based on the repetitive kmers.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -237,7 +238,8 @@ Cluster:
   -replicates INT       Number of replicates for bootstrap [default=1000]
   -jackknife FLOAT      Percent of kmers to resample for bootstrap
                         [default=50]
-  -max_pval FLOAT       Maximum P value for hypothesis test [default=0.05]
+  -max_pval FLOAT       Maximum P value for all hypothesis tests
+                        [default=0.05]
   -figfmt {pdf,png}     Format of figures [default=pdf]
   -heatmap_colors COLOR [COLOR ...]
                         Color panel (2 or 3 colors) for heatmap plot
@@ -258,13 +260,14 @@ LTR:
                         'ltr_finder']]
   -ltr_finder_options STR
                         Options for `ltr_finder` to identify LTR-RTs (see more
-                        with `ltr_finder -h`) [default="-w 2 -D 15000 -d 1000
-                        -L 7000 -l 100 -p 20 -C -M 0.8"]
+                        with `ltr_finder -h`) [default="-w 2 -D 20000 -d 1000
+                        -L 7000 -l 100 -p 20 -C -M 0.6"]
   -ltr_harvest_options STR
                         Options for `gt ltrharvest` to identify LTR-RTs (see
-                        more with `gt ltrharvest -help`) [default="-similar 80
-                        -vic 10 -seed 20 -seqids yes -minlenltr 100 -maxlenltr
-                        7000 -mintsd 4 -maxtsd 6"]
+                        more with `gt ltrharvest -help`) [default="-seqids yes
+                        -similar 60 -vic 10 -seed 20 -minlenltr 100 -maxlenltr
+                        7000 -maxdistltr 20000 -mindistltr 1000 -mintsd 4
+                        -maxtsd 20"]
   -tesorter_options STR
                         Options for `TEsorter` to classify LTR-RTs (see more
                         with `TEsorter -h`) [default="-db rexdb-plant -dp2"]
@@ -273,6 +276,8 @@ LTR:
                         `TEsorter`]
   -intact_ltr           Use completed LTR as classified by `TEsorter` (less
                         LTRs but faster) [default: the same as `-all_ltr`]
+  -shared_ltr           Identify shared LTRs among subgenomes (experimental)
+                        [default=False]
   -mu FLOAT             Substitution rate per year in the intergenic region,
                         for estimating age of LTR insertion [default=1.3e-08]
   -disable_ltrtree      Disable subgenome-specific LTR tree (this step is
@@ -312,7 +317,7 @@ Circos:
 Other options:
   -p INT, -ncpu INT     Maximum number of processors to use [default=32]
   -max_memory MEM       Maximum memory to use where limiting can be enabled.
-                        [default=65.5G]
+                        [default=65.1G]
   -cleanup              Remove the temporary directory [default=False]
   -overwrite            Overwrite even if check point files existed
                         [default=False]

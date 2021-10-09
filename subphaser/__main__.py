@@ -125,12 +125,12 @@ of `gplots` package) [default="%(default)s"]')
 					choices=['ltr_finder', 'ltr_harvest'],
 					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
-					default='-w 2 -D 15000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.8',
+					default='-w 2 -D 20000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.6',
 					help='Options for `ltr_finder` to identify LTR-RTs (see more with \
 `ltr_finder -h`) [default="%(default)s"]')
 	group_ltr.add_argument("-ltr_harvest_options", metavar='STR',
-					default='-similar 80 -vic 10 -seed 20 -seqids yes -minlenltr 100 \
--maxlenltr 7000 -mintsd 4 -maxtsd 6',
+					default='-seqids yes -similar 60 -vic 10 -seed 20 -minlenltr 100 \
+-maxlenltr 7000 -maxdistltr 20000 -mindistltr 1000 -mintsd 4 -maxtsd 20',
 					help='Options for `gt ltrharvest` to identify LTR-RTs (see more with \
 `gt ltrharvest -help`) [default="%(default)s"]')
 	group_ltr.add_argument("-tesorter_options", metavar='STR',

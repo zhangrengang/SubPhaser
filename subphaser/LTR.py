@@ -253,7 +253,7 @@ if (branch_color == 'Clade') {{
 	map3 = data.frame(label=map$label, Subgenome=map$Subgenome)
 	p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
-	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1.1, color='white') +
+	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1.1, color='#00000000') +
 	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades) +
 	  scale_fill_hue(l=35) +
 	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
@@ -272,7 +272,7 @@ if (branch_color == 'Clade') {{
 	p = ggtree(tree3 , aes(color=Subgenome) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
 	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes) +
-	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.2, color='white') +
+	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.2, color='#00000000') +
 	  scale_fill_hue(l=35) +
 	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
 
@@ -623,7 +623,7 @@ class LTRHarvestRecord(object):
 		if div >= 0.75:
 			dist = div
 		else:
-			dist = -3/4* math.log(1-4*div/3, 10)
+			dist = -3/4* math.log(1-4*div/3)
 		return dist / (mu *2)
 	@property
 	def lltr_e(self):	# compitable with ltrfinder

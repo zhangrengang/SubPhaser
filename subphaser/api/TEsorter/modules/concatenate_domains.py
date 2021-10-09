@@ -105,7 +105,7 @@ format_id: format seq id for compatibility with iqtree'''
 	try:
 		outSeq.close()
 		return outSeqfile, d_idmap
-	except: return None, None
+	except: return None, d_idmap
 	
 
 def catAln(inALNs, outALN, unique=False):
