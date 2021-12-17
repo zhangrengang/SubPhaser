@@ -131,7 +131,7 @@ class Cluster:
 			line = [chr, sg, self.d_bs[chr]]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
-	def output_kmers(self, fout=sys.stdout, max_pval=0.05, ncpu=4, method='map'):
+	def output_kmers(self, fout=sys.stdout, max_pval=0.05, ncpu=4, method='map', test='ttest_ind'):
 		d_groups = {}
 		for i, (chr,sg) in enumerate(self.d_sg.items()):
 			try: d_groups[sg] += [i]
@@ -139,7 +139,8 @@ class Cluster:
 		d_ksg = {}
 		line = ['#kmer', 'subgenome', 'p_value']
 		print('\t'.join(line), file=fout)
-		iterable = ((kmer, array, d_groups) for kmer, array in self.d_kmers.items())
+		test_method = eval('stats.{}'.format(test))
+		iterable = ((kmer, array, d_groups, test_method) for kmer, array in self.d_kmers.items())
 		jobs = pool_func(_output_kmers, iterable, processors=ncpu, method='map', )
 		#jobs = list(jobs)
 		i = 0
@@ -156,7 +157,7 @@ class Cluster:
 		return d_ksg
 #	def _output_kmers(self, args):
 def _output_kmers(args):
-		kmer, array, d_groups = args
+		kmer, array, d_groups, test_method = args
 		grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
 		sgs = sorted(d_groups.keys())
 		xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
@@ -165,6 +166,9 @@ def _output_kmers(args):
 		max_freqs = grouped[0]
 		min_freqs = grouped[1]
 		max_sg = sgs[0]
-		ttest = stats.ttest_ind(max_freqs, min_freqs)
+		#ttest = stats.ttest_ind(max_freqs, min_freqs)
+		#test = stats.kruskal(max_freqs, min_freqs)
+		test = test_method(max_freqs, min_freqs)
+		pvalue = test.pvalue
 		rc_kmer = str(Seq(kmer).reverse_complement())
-		return kmer, max_sg, ttest.pvalue, rc_kmer
+		return kmer, max_sg, pvalue, rc_kmer

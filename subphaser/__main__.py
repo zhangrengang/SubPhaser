@@ -102,7 +102,10 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Percent of kmers to resample for bootstrap [default=%(default)s]")
 	group_clst.add_argument('-max_pval', type=float, default=0.05, metavar='FLOAT',
 					help="Maximum P value for all hypothesis tests [default=%(default)s]")
-	
+	group_clst.add_argument("-test_method", default='ttest_ind', 
+					choices=['ttest_ind', 'kruskal', 'wilcoxon', 'mannwhitneyu'],
+					help="The test method to identify differiential kmers[default=%(default)s]")
+					
 	group_clst.add_argument("-figfmt", default='pdf', type=str, 
 					choices=['pdf', 'png', ], # 'svg','tiff', 'jpeg', 'bmp'],
 					help="Format of figures [default=%(default)s]")
@@ -110,7 +113,7 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
 	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
-key=T,key.title=NA,density.info='density',main=NA,xlab='kmer',margins=c(2.5,8)",
+key=T,key.title=NA,density.info='density',main=NA,xlab='kmers',margins=c(2.5,8)",
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
 
@@ -379,7 +382,8 @@ class Pipeline:
 		logger.info('Outputing significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
 		with open(sg_kmers, 'w') as fout:	# multiprocessing by kmer
 			# kmer -> SG
-			d_kmers = cluster.output_kmers(fout, max_pval=self.max_pval, ncpu=self.ncpu)
+			d_kmers = cluster.output_kmers(fout, max_pval=self.max_pval, ncpu=self.ncpu
+							test_method=self.test_method)
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
 		for sg, count in sorted(Counter(d_kmers.values()).items()):
 			logger.info('\t{} {}-specific kmers'.format(count//2, sg))
