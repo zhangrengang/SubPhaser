@@ -6,6 +6,7 @@ from xopen import xopen as open
 from .RunCmdsMP import run_cmd, logger, pool_func
 from .small_tools import is_gz, mk_ckp, check_ckp
 from .fonts import fonts
+from .colors import colors_r
 
 class JellyfishDump(object):
 	def __init__(self, column, ncpu=4, ):
@@ -141,7 +142,7 @@ candidate kmers'.format(remain, remain/i, total, total/i))
 			line = map(str, line)
 			fout.write( '\t'.join(line) + '\n')
 
-	def heatmap(self, matfile, mapfile=None, figfmt='pdf', color=('green', 'black', 'red'), 
+	def heatmap(self, matfile, mapfile=None, kmermapfile=None, figfmt='pdf', color=('green', 'black', 'red'), 
 			heatmap_options='scale="row", key=TRUE, density.info="density", trace="none", labRow=F, main="",xlab=""'):
 		if len(color) == 3:
 			color = 'colorpanel(100, low="{}", mid="{}", high="{}")'.format(*color)
@@ -153,31 +154,64 @@ candidate kmers'.format(remain, remain/i, total, total/i))
 		rsrc = r'''
 data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F, nrows=10000)
 map = read.table('{mapfile}', sep='\t', ,colClasses = "character")
+kmermap = read.table('{kmermapfile}', sep='\t', ,colClasses = "character")
+colors = {colors}
 
+# Z scale and transpose
 data = as.matrix(data)
 z.scale <- function(x) (x - mean(x))/ sqrt(var(x))
 data = apply(data, 1, z.scale)	# transpose
 
-# map to SG
+# map: sg -> color
+cmap = list()
+sgs = sort(unique(map[,2]))
+for (i in 1:length(sgs)) {{
+        color= colors[i]
+        sg = sgs[i]
+        cmap[[sg]] = color
+}}
+
+# map: chrom -> SG -> color
 idmap = list()
 for (i in 1:nrow(map)) {{
         chrom = as.character(map[i, 1])
         sg = as.character(map[i, 2])
-        idmap[[chrom]] = paste(sg, chrom, sep='|')
+        idmap[[chrom]] = cmap[[sg]] #paste(sg, chrom, sep='|')
 }}
 
+# map: kmer -> SG -> color
+kimap = list()
+for (i in 1:nrow(kmermap)) {{
+        kmer = as.character(kmermap[i, 1])
+        sg = as.character(kmermap[i, 2])
+        kimap[[kmer]] = cmap[[sg]]
+}}
+
+# map: rownames (chrom) -> color
 names = vector()
 for (name in rownames(data)){{
         new_name = idmap[[name]]
         names = c(names, new_name)
 }}
-rownames(data) = names
+
+# map: colnames (kmer) -> color
+knames = vector()
+for (name in colnames(data)){{
+        new_name = kimap[[name]]
+                if (is.null(new_name)) {{new_name=NA}}
+        knames = c(knames, new_name)
+}}
+
+#rownames(data) = names
+
+nr = nrow(data)
 
 library("gplots")
 {dev}('{outfig}')
-heatmap.2(data, col={color}, {heatmap_options}, )
+heatmap.2(data, col={color}, {heatmap_options}, RowSideColors=names, ColSideColors=knames, cexRow = 25/nr)
 dev.off()
-'''.format(matfile=matfile, mapfile=mapfile, dev=figfmt, outfig=outfig, 
+'''.format(matfile=matfile, mapfile=mapfile, kmermapfile=kmermapfile,
+			dev=figfmt, outfig=outfig, colors=colors_r, # colors by SG
 			color=color, heatmap_options=heatmap_options, )
 		rsrc_file = matfile + '.R'
 		with open(rsrc_file, 'w') as f:

@@ -110,7 +110,7 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
 	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
-key=T,key.title=NA,density.info='density',main=NA,xlab=NA,margins=c(4,8)",
+key=T,key.title=NA,density.info='density',main=NA,xlab='kmer',margins=c(2.5,8)",
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
 
@@ -125,16 +125,16 @@ of `gplots` package) [default="%(default)s"]')
 					choices=['ltr_finder', 'ltr_harvest'],
 					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
-					default='-w 2 -D 20000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.6',
+					default='-w 2 -D 20000 -d 1000 -L 7000 -l 100 -p 20 -C -M 0.8',
 					help='Options for `ltr_finder` to identify LTR-RTs (see more with \
 `ltr_finder -h`) [default="%(default)s"]')
 	group_ltr.add_argument("-ltr_harvest_options", metavar='STR',
-					default='-seqids yes -similar 60 -vic 10 -seed 20 -minlenltr 100 \
+					default='-seqids yes -similar 80 -vic 10 -seed 20 -minlenltr 100 \
 -maxlenltr 7000 -maxdistltr 20000 -mindistltr 1000 -mintsd 4 -maxtsd 20',
 					help='Options for `gt ltrharvest` to identify LTR-RTs (see more with \
 `gt ltrharvest -help`) [default="%(default)s"]')
 	group_ltr.add_argument("-tesorter_options", metavar='STR',
-					default='-db rexdb-plant -dp2',
+					default='-db rexdb -dp2',
 					help='Options for `TEsorter` to classify LTR-RTs (see more with `TEsorter -h`) \
 [default="%(default)s"]')
 					
@@ -367,9 +367,6 @@ class Pipeline:
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)  # multiprocessing by kmer
 			
-		# heatmap	# static method
-		outfig = dumps.heatmap(matfile, mapfile=sg_chrs, figfmt=self.figfmt, color=self.heatmap_colors, 
-					heatmap_options=self.heatmap_options)
 					
 		# PCA
 		outfig = self.para_prefix + '.kmer_pca.' + self.figfmt
@@ -386,6 +383,11 @@ class Pipeline:
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
 		for sg, count in sorted(Counter(d_kmers.values()).items()):
 			logger.info('\t{} {}-specific kmers'.format(count//2, sg))
+			
+		# heatmap	# static method
+		outfig = dumps.heatmap(matfile, mapfile=sg_chrs, kmermapfile=sg_kmers,
+					figfmt=self.figfmt, color=self.heatmap_colors, 
+					heatmap_options=self.heatmap_options)
 		
 		sg_map = self.para_prefix + '.subgenome.bin.count'
 		ckp_file = self.mk_ckpfile(sg_map)

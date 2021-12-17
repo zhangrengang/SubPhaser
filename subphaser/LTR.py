@@ -474,6 +474,7 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, shared={}, figfmt='pdf'):
 		age = ltr.estimate_age(mu=mu)
 		if ltr.id in d_enriched:
 			sg = d_enriched[ltr.id]
+			enriched_ltrs += [ltr]
 		elif ltr.id in shared:
 			sg = 'shared'
 		else:
@@ -482,7 +483,7 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, shared={}, figfmt='pdf'):
 #		except KeyError: continue
 		ltr.sg = sg
 		age = age/1e6
-		enriched_ltrs += [ltr]
+#		enriched_ltrs += [ltr]
 		line = [ltr.id, sg, age]
 		line = map(str, line)
 		fout.write('\t'.join(line) + '\n')

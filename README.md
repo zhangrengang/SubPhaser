@@ -35,10 +35,10 @@ There are mainly three modules:
 
 1. The core module to partition and phase subgenomes:
    - Count kmers by `jellyfish`.
-   - Identify the differential kmers among homologous chromosome sets.
+   - Identify the differential kmers among homoeologous chromosome sets.
    - Cluster into subgenomes by a K-Means algorithm and estimate confidence level by the bootstrap.
    - Identify subgenome-specific kmers.
-   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homologous exchange(s).
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchange(s).
    - Identify subgenome-specific enrichments with user-defined features (e.g. transposable elements, genes) via `-custom_features`.
 2. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
@@ -47,14 +47,14 @@ There are mainly three modules:
    - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization period(s).
    - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolutionary history of these LTR-RTs (disable by `-disable_ltrtree`, time-consuming for large genome).
 3. The visualization module to visualize genome-wide data (disable by `-disable_circos`):
-   - Identify the homologous blocks by `minimap2` simply (disable by `-disable_blocks`, time-consuming for large genome).
+   - Identify the homoeologous blocks by `minimap2` simply (disable by `-disable_blocks`, time-consuming for large genome).
    - Integrate and visualize the whole genome-wide data by `circos`.
 
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
 **Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `C-F`, i.e. the same color means the same subgenome.
-* (**A**) The histogram of differential k-mers among homologous chromosome sets. 
+* (**A**) The histogram of differential k-mers among homoeologous chromosome sets. 
 * (**B**) Heatmap and clustering of differential k-mers. The x-axis, k-mers; y-axis, chromosomes.
 * (**C**) Principal component analysis (PCA) of differential k-mers. 
 * (**D**) Chromosomal characteristics. Rings from outer to inner: 
@@ -69,9 +69,9 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
-2. Configuration of homologous chromosome sets, e.g. 
+2. Configuration of homoeologous chromosome sets, e.g. 
 ```
-Chr1A   Chr1B   Chr1D                      # each row is one homologous chromosome set
+Chr1A   Chr1B   Chr1D                      # each row is one homoeologous chromosome set
 Chr2B   Chr2A   Chr2D                      # seperate with blank character(s)
 Chr3D   Chr3B   Chr3A                      # chromosome order is arbitrary
 Chr4A   Chr4B   Chr4D
@@ -181,7 +181,7 @@ Input:
   -i GENOME [GENOME ...], -genomes GENOME [GENOME ...]
                         Input genome sequences in fasta format [required]
   -c CFGFILE [CFGFILE ...], -sg_cfgs CFGFILE [CFGFILE ...]
-                        Subgenomes config file (one homologous group per
+                        Subgenomes config file (one homoeologous group per
                         line); this chromosome set is for identifying
                         differential kmers [required]
   -labels LABEL [LABEL ...]
@@ -307,8 +307,8 @@ Circos:
 
   -disable_circos       Disable this step [default=False]
   -window_size INT      Window size (bp) for circos plot [default=1000000]
-  -disable_blocks       Disable to plot homologous blocks [default=False]
-  -aligner PROG         Programs to identify homologous blocks
+  -disable_blocks       Disable to plot homoeologous blocks [default=False]
+  -aligner PROG         Programs to identify homoeologous blocks
                         [default=minimap2]
   -aligner_options STR  Options for `-aligner` to align chromosome sequences
                         [default="-x asm20 -n 10"]
