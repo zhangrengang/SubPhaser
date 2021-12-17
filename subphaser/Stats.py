@@ -1,4 +1,5 @@
 import fisher
+import re
 import copy
 import numpy as np
 from .RunCmdsMP import logger, pool_func
@@ -24,42 +25,72 @@ def fisher_test(each, total):
 		pvals += [pval]
 	return pvals
 
-def enrich_ltr(fout, *args, **kargs):
+def enrich_ltr(fout, d_sg, *args, **kargs):
 	'''Output LTR enrichments'''
-	line = ['#id', 'subgenome', 'p_value', 'counts']
+	line = ['#id', 'subgenome', 'p_value', 'counts', 'potential_exchange']
 	fout.write('\t'.join(line)+'\n')
+	total, consistent, exchange = 0,0,0
 	d_enriched = {}
 	for res in enrich(*args, **kargs):
 		ltr, *_ = res.rowname
-		if not res.sig:
+		try: chrom = re.compile(r'(\S+?):\d+\-\d+').match(ltr).groups()[0]
+		except TypeError: chrom = None
+		obs_sg = d_sg.get(chrom)
+		sg = res.key if res.sig else None
 #			d_enriched[ltr] = 'shared'
-			continue
+#			continue
+		potential_exchange = is_exchange(obs_sg, sg)
 		counts = ','.join(map(str, res.counts))
-		line = [ltr, res.key, res.pval, counts]
+		line = [ltr, sg, res.pval, counts, potential_exchange]
 		line = map(str, line)
 		fout.write('\t'.join(line)+'\n')
-		d_enriched[ltr] = res.key
+		if sg:
+			d_enriched[ltr] = sg #res.key
+		total += 1
+		if potential_exchange == 'yes':
+			exchange += 1
+		elif potential_exchange == 'no':
+			consistent += 1
+	if exchange>0 and consistent>0:
+		logger.info('Consistent with subgenome assignment: {} ({:.2%}); potential exchange: {} ({:.2%})'.format(
+			consistent, consistent/total, exchange, exchange/total))
 	return d_enriched	# significant results
 
-def enrich_bin(fout, *args, **kargs):
+def enrich_bin(fout, d_sg, *args, **kargs):
 	'''Enrich by chromosome bins'''
-	line = ['#chrom', 'start', 'end', 'subgenome', 'p_value', 'counts', 'ratios', 'enrich','pvals']
+	line = ['#chrom', 'start', 'end', 'subgenome', 'p_value', 'counts', 'ratios', 'enrich','pvals',
+				'potential_exchange']
 	fout.write('\t'.join(line)+'\n')
-#	last_end = 0
+	total, consistent, exchange = 0,0,0
 	lines = []
 	for res in enrich(*args, **kargs):
 		chrom, start, end = res.rowname
-		key = res.key if res.sig else None
+		key = res.key if res.sig else None	# expected SG
+		obs_sg = d_sg.get(chrom)
+		potential_exchange = is_exchange(obs_sg, key)
 		counts = ','.join(map(str, res.counts))
 		enrichs = ','.join(map(str, res.enrich))
 		ratios = ','.join(map(str, res.ratios))
 		pvals = ','.join(map(str, res.pvals))
-		line = [chrom, start, end, key, res.pval, counts, ratios, enrichs, pvals]
+		line = [chrom, start, end, key, res.pval, counts, ratios, enrichs, pvals, potential_exchange]
 		line = list(map(str, line))
 		fout.write('\t'.join(line)+'\n')
 		lines += [line]
+		total += 1
+		if potential_exchange == 'yes':
+			exchange += 1
+		elif potential_exchange == 'no':
+			consistent += 1
+	logger.info('Consistent with subgenome assignment: {} ({:.2%}); potential exchange: {} ({:.2%})'.format(
+		consistent, consistent/total, exchange, exchange/total))
 	return lines
-
+def is_exchange(obs_sg, exp_sg):
+	if not exp_sg or not obs_sg:
+		return 'none'
+	if obs_sg == exp_sg:
+		return 'no'
+	return 'yes'
+	
 def enrich(matrix, colnames=None, rownames=None, ncpu=4, min_ratio=0.5, **kargs):	# kargs: max_pval
 	arr = np.array(matrix)
 	if colnames is not None and rownames is not None:

@@ -131,7 +131,8 @@ class Cluster:
 			line = [chr, sg, self.d_bs[chr]]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
-	def output_kmers(self, fout=sys.stdout, max_pval=0.05, ncpu=4, method='map', test='ttest_ind'):
+	def output_kmers(self, fout=sys.stdout, max_pval=0.05, ncpu=4, method='map', test_method='ttest_ind'):
+		'''test_method: kruskal, '''
 		d_groups = {}
 		for i, (chr,sg) in enumerate(self.d_sg.items()):
 			try: d_groups[sg] += [i]
@@ -139,7 +140,7 @@ class Cluster:
 		d_ksg = {}
 		line = ['#kmer', 'subgenome', 'p_value']
 		print('\t'.join(line), file=fout)
-		test_method = eval('stats.{}'.format(test))
+		test_method = eval('stats.{}'.format(test_method))
 		iterable = ((kmer, array, d_groups, test_method) for kmer, array in self.d_kmers.items())
 		jobs = pool_func(_output_kmers, iterable, processors=ncpu, method='map', )
 		#jobs = list(jobs)

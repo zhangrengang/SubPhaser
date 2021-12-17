@@ -324,7 +324,7 @@ intact: only use completed LTR as classified by TEsorter'''
 				ltrs = self.identify(fout)
 			mk_ckp(ckp)
 		ltr_count = len(ltrs)
-		logger.info('{} LTRs Identified'.format(ltr_count))
+		logger.info('{} LTRs identified'.format(ltr_count))
 		
 		d_class = self.classfify(ltrs)
 

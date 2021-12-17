@@ -382,7 +382,7 @@ class Pipeline:
 		logger.info('Outputing significant differiential `kmer` - `subgenome` maps to `{}`'.format(sg_kmers))
 		with open(sg_kmers, 'w') as fout:	# multiprocessing by kmer
 			# kmer -> SG
-			d_kmers = cluster.output_kmers(fout, max_pval=self.max_pval, ncpu=self.ncpu
+			d_kmers = cluster.output_kmers(fout, max_pval=self.max_pval, ncpu=self.ncpu,
 							test_method=self.test_method)
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
 		for sg, count in sorted(Counter(d_kmers.values()).items()):
@@ -404,14 +404,15 @@ class Pipeline:
 					ncpu=self.ncpu, method=self.pool_method, chunksize=chunksize)
 			mk_ckp(ckp_file)
 		# enrich by BIN
-		logger.info('Enriching subgenome by chromosome window')
+		logger.info('Enriching subgenome by chromosome window (size: {})'.format(self.window_size))
 	#	bins, counts = Circos.counts2matrix(sg_map, keys=self.sg_names, keycol=3, window_size=self.window_size)
 		bins, counts = Circos.stack_matrix(sg_map, window_size=self.window_size)
 	#	logger.info('Matrix loaded')
 		bin_enrich = self.para_prefix + '.bin.enrich'
 		with open(bin_enrich, 'w') as fout:	# multiprocessing by chrom bin
-			sg_lines = Stats.enrich_bin(fout, counts, colnames=self.sg_names, rownames=bins,
+			sg_lines = Stats.enrich_bin(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins,
 					max_pval=self.max_pval, ncpu=self.ncpu)
+		logger.info('Output: {}'.format(bin_enrich))
 
 		# custom
 		if self.custom_features is not None:
@@ -429,8 +430,9 @@ class Pipeline:
 			bins, counts = Circos.stack_matrix(feat_map, window_size=100000000)
 			feat_enrich = self.para_prefix + '.custom.enrich'
 			with open(feat_enrich, 'w') as fout:
-				d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
+				d_enriched = Stats.enrich_ltr(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins, 
 						max_pval=self.max_pval, ncpu=self.ncpu)
+			logger.info('Output: {}'.format(feat_enrich))
 			
 			logger.info('{} significant subgenome-specific features'.format(len(d_enriched)))
 			for sg, count in sorted(Counter(d_enriched.values()).items()):
@@ -496,8 +498,9 @@ class Pipeline:
 		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
 			# ltr_id -> SG
-			d_enriched = Stats.enrich_ltr(fout, counts, colnames=self.sg_names, rownames=bins, 
+			d_enriched = Stats.enrich_ltr(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins, 
 					max_pval=self.max_pval, ncpu=self.ncpu)
+		logger.info('Output: {}'.format(ltr_enrich))
 		
 		logger.info('{} significant subgenome-specific LTR-RTs'.format(len(d_enriched)))
 		for sg, count in sorted(Counter(d_enriched.values()).items()):
@@ -546,7 +549,7 @@ class Pipeline:
 			try: d_enrich_ltr_bedlines[ltr.sg] += [ltr.to_bed()]
 			except KeyError: d_enrich_ltr_bedlines[ltr.sg] = [ltr.to_bed()]
 		#enrich_ltr_bedlines = [ltr.to_bed() for ltr in enrich_ltrs]
-		enrich_ltr_bedlines = [v for k,v in sorted(d_enrich_ltr_bedlines.items())]
+		enrich_ltr_bedlines = [v for k,v in sorted(d_enrich_ltr_bedlines.items()) if v]
 		return ltr_bedlines, enrich_ltr_bedlines
 	def identify_shared_ltrs(self, d_sg, d_chromfiles, ltrfile, d_enriched):
 		d_chromfiles_sg = {}
