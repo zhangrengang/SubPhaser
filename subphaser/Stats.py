@@ -2,10 +2,14 @@ import fisher
 import re
 import copy
 import numpy as np
+from statsmodels.stats.multitest import multipletests
 from .RunCmdsMP import logger, pool_func
 
 MAX_INT = 2147483647 // 10
 
+def correct_pvals(pvals, method='fdr_bh'):
+	return multipletests(pvals, method=method)[1]
+	
 def fisher_test(each, total):
 	assert len(each) == len(total)
 	pvals = []
@@ -31,6 +35,8 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 	fout.write('\t'.join(line)+'\n')
 	total, consistent, exchange = 0,0,0
 	d_enriched = {}
+	lines = []
+	pvalues = []
 	for res in enrich(*args, **kargs):
 		ltr, *_ = res.rowname
 		try: chrom = re.compile(r'(\S+?):\d+\-\d+').match(ltr).groups()[0]
@@ -42,8 +48,8 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 		potential_exchange = is_exchange(obs_sg, sg)
 		counts = ','.join(map(str, res.counts))
 		line = [ltr, sg, res.pval, counts, potential_exchange]
-		line = map(str, line)
-		fout.write('\t'.join(line)+'\n')
+		lines += [line]
+		pvalues += [res.pval]
 		if sg:
 			d_enriched[ltr] = sg #res.key
 		total += 1
@@ -54,15 +60,23 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 	if exchange>0 and consistent>0:
 		logger.info('Consistent with subgenome assignment: {} ({:.2%}); potential exchange: {} ({:.2%})'.format(
 			consistent, consistent/total, exchange, exchange/total))
+	# correct p values
+	qvals = correct_pvals(pvalues)
+	# output
+	line = ['#id', 'subgenome', 'p_value', 'counts', 'potential_exchange', 'p_corrected']
+	fout.write('\t'.join(line)+'\n')
+	for line, qval in zip(lines, qvals):
+		line += [qval]
+		line = list(map(str, line))
+		fout.write('\t'.join(line)+'\n')
 	return d_enriched	# significant results
 
 def enrich_bin(fout, d_sg, *args, **kargs):
 	'''Enrich by chromosome bins'''
-	line = ['#chrom', 'start', 'end', 'subgenome', 'p_value', 'counts', 'ratios', 'enrich','pvals',
-				'potential_exchange']
-	fout.write('\t'.join(line)+'\n')
+	
 	total, consistent, exchange = 0,0,0
 	lines = []
+	pvalues = []
 	for res in enrich(*args, **kargs):
 		chrom, start, end = res.rowname
 		key = res.key if res.sig else None	# expected SG
@@ -73,9 +87,9 @@ def enrich_bin(fout, d_sg, *args, **kargs):
 		ratios = ','.join(map(str, res.ratios))
 		pvals = ','.join(map(str, res.pvals))
 		line = [chrom, start, end, key, res.pval, counts, ratios, enrichs, pvals, potential_exchange]
-		line = list(map(str, line))
-		fout.write('\t'.join(line)+'\n')
+		
 		lines += [line]
+		pvalues += [res.pval]
 		total += 1
 		if potential_exchange == 'yes':
 			exchange += 1
@@ -83,6 +97,16 @@ def enrich_bin(fout, d_sg, *args, **kargs):
 			consistent += 1
 	logger.info('Consistent with subgenome assignment: {} ({:.2%}); potential exchange: {} ({:.2%})'.format(
 		consistent, consistent/total, exchange, exchange/total))
+	# correct p values
+	qvals = correct_pvals(pvalues)
+	# output
+	line = ['#chrom', 'start', 'end', 'subgenome', 'p_value', 'counts', 'ratios', 'enrich','pvals',
+				'potential_exchange', 'p_corrected']
+	fout.write('\t'.join(line)+'\n')
+	for line, qval in zip(lines, qvals):
+		line += [qval]
+		line = list(map(str, line))
+		fout.write('\t'.join(line)+'\n')
 	return lines
 def is_exchange(obs_sg, exp_sg):
 	if not exp_sg or not obs_sg:

@@ -138,18 +138,19 @@ class Cluster:
 			try: d_groups[sg] += [i]
 			except KeyError: d_groups[sg] = [i]
 		d_ksg = {}
-		line = ['#kmer', 'subgenome', 'p_value']
+		line = ['#kmer', 'subgenome', 'p_value', 'ratios']
 		print('\t'.join(line), file=fout)
 		test_method = eval('stats.{}'.format(test_method))
 		iterable = ((kmer, array, d_groups, test_method) for kmer, array in self.d_kmers.items())
 		jobs = pool_func(_output_kmers, iterable, processors=ncpu, method='map', )
 		#jobs = list(jobs)
 		i = 0
-		for kmer, max_sg, pvalue, rc_kmer in jobs:
+		for kmer, max_sg, pvalue, rc_kmer, mean_vals in jobs:
 			i += 1
 			if pvalue > max_pval:
 				continue
-			line = [kmer, max_sg, pvalue]
+			ratios = ','.join(map(str, mean_vals))
+			line = [kmer, max_sg, pvalue, ratios]
 			line = map(str, line)
 			print('\t'.join(line), file=fout)
 #			kmer = tuple(kmer)
@@ -160,6 +161,7 @@ class Cluster:
 def _output_kmers(args):
 		kmer, array, d_groups, test_method = args
 		grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
+		mean_vals = [np.mean(x) for x in grouped]
 		sgs = sorted(d_groups.keys())
 		xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
 		grouped = [x[0] for x in xgrouped]  # sorted with the same order
@@ -172,4 +174,4 @@ def _output_kmers(args):
 		test = test_method(max_freqs, min_freqs)
 		pvalue = test.pvalue
 		rc_kmer = str(Seq(kmer).reverse_complement())
-		return kmer, max_sg, pvalue, rc_kmer
+		return kmer, max_sg, pvalue, rc_kmer, mean_vals
