@@ -180,6 +180,7 @@ for (i in 1:nrow(map)) {{
 }}
 
 # map: kmer -> SG -> color
+kmermap = kmermap[kmermap[,1] %in% colnames(data),]	# reduce size
 kimap = list()
 for (i in 1:nrow(kmermap)) {{
         kmer = as.character(kmermap[i, 1])
