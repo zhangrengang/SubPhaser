@@ -31,22 +31,24 @@ For many allopolyploid species, their diploid progenitors are unknown or extinct
 Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "differential signatures". 
 The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights into the evolutionary history of allopolyploidization.
 
-There are mainly three modules:
+There are mainly four modules:
 
 1. The core module to partition and phase subgenomes:
    - Count kmers by `jellyfish`.
    - Identify the differential kmers among homoeologous chromosome sets.
    - Cluster into subgenomes by a K-Means algorithm and estimate confidence level by the bootstrap.
+   - Evaluate whether subgenomes are successfully phased by hierarchical clustering and principal component analysis (PCA).
+2. The module to identify and test the enrichments of subgenome-specific kmers:
    - Identify subgenome-specific kmers.
-   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchange(s).
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchange(s) and/or assembly errors (e.g. switch errors and hamming errors).
    - Identify subgenome-specific enrichments with user-defined features (e.g. transposable elements, genes) via `-custom_features`.
-2. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
+3. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
    - Identify subgenome-specific LTR-RTs by testing the enrichment of subgenome-specific kmers.
-   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the divergence–hybridization period(s).
+   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the time of divergence–hybridization period(s).
    - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolutionary history of these LTR-RTs (disable by `-disable_ltrtree`, time-consuming for large genome).
-3. The visualization module to visualize genome-wide data (disable by `-disable_circos`):
+4. The visualization module to visualize genome-wide data (disable by `-disable_circos`):
    - Identify the homoeologous blocks by `minimap2` simply (disable by `-disable_blocks`, time-consuming for large genome).
    - Integrate and visualize the whole genome-wide data by `circos`.
 
@@ -63,7 +65,7 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
    - (**3**) Normalized proportion of subgenome-specific k-mers. 
    - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
    - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (the most outer, in grey color). 
-   - (**8**) Homologous blocks of each homoeologous chromosome set.
+   - (**8**) Homoeologous blocks of each homoeologous chromosome set.
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
