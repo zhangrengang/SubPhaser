@@ -53,7 +53,7 @@ There are mainly three modules:
 The below is an example of output figures of wheat (ABD, 1n=3x=21):
 
 ![wheat](example_data/wheat_figures.png)
-**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `C-F`, i.e. the same color means the same subgenome.
+**Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
 * (**A**) The histogram of differential k-mers among homoeologous chromosome sets. 
 * (**B**) Heatmap and clustering of differential k-mers. The x-axis, k-mers; y-axis, chromosomes.
 * (**C**) Principal component analysis (PCA) of differential k-mers. 
