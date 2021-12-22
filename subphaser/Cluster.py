@@ -66,7 +66,7 @@ class Cluster:
 		return (data-mean)/std
 
 	def bootstrap(self, replicates=1000, jackknife=80):
-		logger.info('Performing bootstrap of {} replicates, resampling {}% data\
+		logger.info('Performing bootstrap of {} replicates, with each replicate resampling {}% data\
  with replacement'.format(replicates, jackknife))
 		jackknife = max(int(jackknife/100 * len(self.kmers)), 100)
 		xlabels = []

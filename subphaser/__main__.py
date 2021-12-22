@@ -113,7 +113,7 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
 	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
-key=T,key.title=NA,density.info='density',main=NA,xlab='Differential k-mers',margins=c(2.5,8)",
+key=T,key.title=NA,density.info='density',main=NA,xlab='Differential kmers',margins=c(2.5,8)",
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
 	group_clst.add_argument('-just_core', action="store_true", default=False,
@@ -375,12 +375,6 @@ class Pipeline:
 		with open(sg_chrs, 'w') as fout:
 			cluster.output_subgenomes(fout)  # multiprocessing by kmer
 			
-					
-		# PCA
-		outfig = self.para_prefix + '.kmer_pca.' + self.figfmt
-		logger.info('Outputing PCA plot to `{}`'.format(outfig))
-		cluster.pca(outfig, n_components=self.nsg)
-
 
 		# specific kmers and location
 		sg_kmers = self.para_prefix + '.sig.kmer-subgenome.tsv'
@@ -392,12 +386,19 @@ class Pipeline:
 		logger.info('{} significant subgenome-specific kmers'.format(len(d_kmers)//2))
 		for sg, count in sorted(Counter(d_kmers.values()).items()):
 			logger.info('\t{} {}-specific kmers'.format(count//2, sg))
-			
+		
+		
 		# heatmap	# static method
 		outfig = dumps.heatmap(matfile, mapfile=sg_chrs, kmermapfile=sg_kmers,
 					figfmt=self.figfmt, color=self.heatmap_colors, 
 					heatmap_options=self.heatmap_options)
 		
+		# PCA
+		outfig = self.para_prefix + '.kmer_pca.' + self.figfmt
+		logger.info('Outputing PCA plot to `{}`'.format(outfig))
+		cluster.pca(outfig, n_components=self.nsg)
+
+
 		if self.just_core:
 			self.step_final()
 			logger.info('Pipeline completed early')
@@ -684,7 +685,7 @@ class SGConfig:
 			if self.nsg == 0:
 				self.nsg = len(chrs)
 			if len(chrs) != self.nsg:
-				logger.warn('Number of subgenome is different in line {}: \
+				logger.warn('Number of column is different in line {}: \
 {} in this line but {} in previous line'.format(temp, len(chrs), self.nsg))
 			for xchr in chrs:
 				for xxchr in xchr:

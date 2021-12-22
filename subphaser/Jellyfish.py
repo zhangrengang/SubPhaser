@@ -124,8 +124,8 @@ class JellyfishDumps:
 			if tot_freq:
 				tot_freqs += [tot_freq]
 		remain, total = len(d_mat2), len(tot_freqs)
-		logger.info('After filtering, remained {} ({:.2%}) differential and {} ({:.2%}) \
-candidate kmers'.format(remain, remain/i, total, total/i))
+		logger.info('After filtering, remained {} ({:.2%}) differential (freq >= {}) and {} ({:.2%}) \
+candidate (freq > 0) kmers'.format(remain, remain/i, min_freq, total, total/i))
 		# plot
 		if outfig is not None:
 			if total == 0:
@@ -152,10 +152,17 @@ candidate kmers'.format(remain, remain/i, total, total/i))
 			logger.error('Colors must 2 or 3 in size but {} ({}) got'.format(len(color), color))
 		outfig = matfile+ '.'+ figfmt
 		rsrc = r'''
-data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F, nrows=10000)
+data = read.table('{matfile}',fill=T,header=T, row.names=1, sep='\t', check.names=F)
 map = read.table('{mapfile}', sep='\t', ,colClasses = "character")
 kmermap = read.table('{kmermapfile}', sep='\t', ,colClasses = "character")
 colors = {colors}
+
+# subsample
+size = 10000
+if (nrow(data) > size) {{
+        sampels = sample(1:nrow(data), size)
+        data = data[sampels,]
+}}
 
 # Z scale and transpose
 data = as.matrix(data)
@@ -206,10 +213,11 @@ for (name in colnames(data)){{
 #rownames(data) = names
 
 nr = nrow(data)
+cex = min(2, 33/nr)
 
 library("gplots")
 {dev}('{outfig}')
-heatmap.2(data, col={color}, {heatmap_options}, RowSideColors=names, ColSideColors=knames, cexRow = 25/nr)
+heatmap.2(data, col={color}, {heatmap_options}, RowSideColors=names, ColSideColors=knames, cexRow = cex)
 dev.off()
 '''.format(matfile=matfile, mapfile=mapfile, kmermapfile=kmermapfile,
 			dev=figfmt, outfig=outfig, colors=colors_r, # colors by SG

@@ -528,16 +528,24 @@ def summary_ltr_time(d_data, fout):
 	line = ['#subgenome', 'mean', 'median', 'standard_deviation', '95%-CI', '75%-CI']
 	fout.write('\t'.join(line) + '\n')
 	d_info = {}
+	xages = []
+	_medians = []
+	_tile2_5s = []
+	_tile97_5s = []
 	for sg, ages in sorted(d_data.items()):
+		xages += ages
 		ages = np.array(ages)
 		_mean = ages.mean()
 		_median = np.median(ages)
+		_medians += [_median]
 		_std = np.std(ages)
 		_mean = '{:.3f}'.format(_mean)
 		_median = '{:.3f}'.format(_median)
 		_std = '{:.3f}'.format(_std)
 		_tile2_5 = np.percentile(ages, 2.5)
+		_tile2_5s += [_tile2_5]
 		_tile97_5 = np.percentile(ages, 97.5)
+		_tile97_5s += [_tile97_5]
 		_tile12_5 = np.percentile(ages, 12.5)
 		_tile87_5 = np.percentile(ages, 87.5)
 		_ci95 = '{:.3f}-{:.3f}'.format(abs(_tile2_5), _tile97_5)
@@ -545,6 +553,11 @@ def summary_ltr_time(d_data, fout):
 		line = [sg, _mean, _median, _std, _ci95, _ci75]
 		fout.write('\t'.join(line) + '\n')
 		d_info[sg] = '{} ({})'.format(_median, _ci95)
+	logger.info('Summary of overall LTR insertion age (million years):')
+	logger.info('\tmedian: {:.3f}\t95% CI (percentile-based): {:.3f}-{:.3f}'.format(
+		np.median(xages), abs(np.percentile(xages, 2.5)), np.percentile(xages, 97.5)))
+	logger.info('A rough estimation of the divergence–hybridization period: {:.3f}-{:.3f} ({:.3f})'.format(
+		np.mean(_tile2_5s), np.mean(_tile97_5s), np.mean(_medians)))
 	return d_info
 
 
