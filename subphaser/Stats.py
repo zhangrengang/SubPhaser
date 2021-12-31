@@ -31,8 +31,6 @@ def fisher_test(each, total):
 
 def enrich_ltr(fout, d_sg, *args, **kargs):
 	'''Output LTR enrichments'''
-	line = ['#id', 'subgenome', 'p_value', 'counts', 'potential_exchange']
-	fout.write('\t'.join(line)+'\n')
 	total, consistent, exchange = 0,0,0
 	d_enriched = {}
 	lines = []
