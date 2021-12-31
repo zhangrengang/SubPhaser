@@ -80,6 +80,15 @@ Chr4B   Chr4D   Chr4A
 5A|Chr5A   5B|Chr5B   5D|Chr5D             # rename chromosome id to 5A, 5B and 5D, respectively
 Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # treat multiple chromosomes together using ","
 ```
+If some homoeologous relatinships are ambiguous, they can be placed as singletons that will not used to identify differential kmers. For example:
+```
+Chr1A   Chr1B   Chr1D
+Chr2B   Chr2A   Chr2D
+Chr3D   Chr3B   Chr3A
+Chr4B   Chr4D
+Chr4A					# singleton(s) will skip the step to identify differential kmers
+...
+```
 3. [Optional] Sequences of genomic features (**fasta** format, with `-custom_features`): Any sequences of genomic features, such as transposable elements (TEs), long terminal repeat retrotransposons (LTR-RTs), simple repeats and genes, could be fed to identify the subgenome-specific ones.
 
 ### Run SubPhaser ###
