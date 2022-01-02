@@ -80,7 +80,7 @@ Chr4B   Chr4D   Chr4A
 5A|Chr5A   5B|Chr5B   5D|Chr5D             # rename chromosome id to 5A, 5B and 5D, respectively
 Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # treat multiple chromosomes together using ","
 ```
-If some homoeologous relatinships are ambiguous, they can be placed as singletons that will not used to identify differential kmers. For example:
+If some homoeologous relationships are ambiguous, they can be placed as singletons that will not used to identify differential kmers. For example:
 ```
 Chr1A   Chr1B   Chr1D
 Chr2B   Chr2A   Chr2D
@@ -97,6 +97,10 @@ Run with default parameters:
 subphaser -i genome.fasta.gz -c sg.config
 ```
 Run with just the core algorithm enabled:
+```
+subphaser -i genome.fasta.gz -c sg.config -just_core
+```
+or
 ```
 subphaser -i genome.fasta.gz -c sg.config -disable_ltr -disable_circos
 ```
@@ -158,7 +162,7 @@ tmp/
 
 ### Full Usage and Default Parameters ###
 ```
-usage: test_subphaser.py [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
+usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-labels LABEL [LABEL ...]] [-no_label]
                          [-target FILE] [-sep STR]
                          [-custom_features FASTA [FASTA ...]] [-pre STR]

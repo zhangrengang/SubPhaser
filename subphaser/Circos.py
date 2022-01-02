@@ -746,7 +746,7 @@ def abnormal(data, k=1.5):
 	q3 = np.percentile(data, 75)
 	iqr = q3 - q1
 	upper = q3 + iqr*k
-	upper = np.percentile(data, 99)
+	upper = np.percentile(data, 95)
 	lower = np.percentile(data, 1)
 	return upper, lower
 def gene_density(gene_gff3, outfile, window_size=None, featurs=None, by_sites=False):

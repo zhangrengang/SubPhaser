@@ -87,7 +87,7 @@ if `-max_prop` is specified [default=%(default)s]")
 	group_kmer.add_argument('-low_mem', action="store_true", default=None,
 					help="Low MEMory but slower [default: True if genome size > 3G, else False]")
 	group_kmer.add_argument('-by_count', action="store_true", default=False,
-					help="Calculate fold by count instead of by propor [default=%(default)s]")
+					help="Calculate fold by count instead of by proportion [default=%(default)s]")
 	group_kmer.add_argument('-re_filter', action="store_true", default=False,
 					help="Re-filter with subset of chromosomes (subgenome assignments are expected to change)\
  [default=%(default)s]")
@@ -110,7 +110,7 @@ if `-max_prop` is specified [default=%(default)s]")
 					choices=['pdf', 'png', ], # 'svg','tiff', 'jpeg', 'bmp'],
 					help="Format of figures [default=%(default)s]")
 	group_clst.add_argument('-heatmap_colors', nargs='+', default=('green', 'black', 'red'), metavar='COLOR',
-					help="Color panel (2 or 3 colors) for heatmap plot [default=%(default)s]")
+					help="Color panel (2 or 3 colors) for heatmap plot [default: %(default)s]")
 	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
 key=T,key.title=NA,density.info='density',main=NA,xlab='Differential kmers',margins=c(2.5,8)",
@@ -147,29 +147,29 @@ of `gplots` package) [default="%(default)s"]')
 [default="%(default)s"]')
 					
 	group_ltr.add_argument('-all_ltr', action="store_true", default=False,
-                    help="Use all LTR identified by `-ltr_detectors` (more LTRs but slower) \
+                    help="Use all LTR-RTs identified by `-ltr_detectors` (more LTR-RTs but slower) \
 [default: only use LTR as classified by `TEsorter`]")
 	group_ltr.add_argument('-intact_ltr', action="store_true", default=False,
-                    help="Use completed LTR as classified by `TEsorter` (less LTRs but faster) \
+                    help="Use completed LTR-RTs classified by `TEsorter` (less LTR-RTs but faster) \
 [default: the same as `-all_ltr`]")
 	group_ltr.add_argument('-shared_ltr', action="store_true", default=False,
-                    help="Identify shared LTRs among subgenomes (experimental) [default=%(default)s]")
+                    help="Identify shared LTR-RTs among subgenomes (experimental) [default=%(default)s]")
 	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
 					help='Substitution rate per year in the intergenic region, \
 for estimating age of LTR insertion \
 [default=%(default)s]')
 	group_ltr.add_argument('-disable_ltrtree', action="store_true", default=False,
 					help="Disable subgenome-specific LTR tree (this step is time-consuming when \
-subgenome-specific LTRs are too many, so `-subsample` is enabled by defualt)\
+subgenome-specific LTR-RTs are too many, so `-subsample` is enabled by defualt)\
  [default=%(default)s]")
 	group_ltr.add_argument('-subsample', type=int, default=1000, metavar='INT',
-					help="Subsample LTRs to avoid too many to construct a tree \
+					help="Subsample LTR-RTs to avoid too many to construct a tree \
 [default=%(default)s] (0 to disable)")
 	group_ltr.add_argument("-ltr_domains", nargs='+', 
 					default=['INT', 'RT', 'RH'], 
 					choices=['GAG', 'PROT', 'INT', 'RT', 'RH', 'AP', 'RNaseH'],
 					help="Domains for LTR tree (Note:  for domains identified by `TEsorter`, \
-PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default=%(default)s]")
+PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default: %(default)s]")
 	group_ltr.add_argument("-trimal_options", metavar='STR',
 					default='-automated1',
 					help='Options for `trimal` to trim alignment (see more with `trimal -h`) \
@@ -420,8 +420,10 @@ class Pipeline:
 		bins, counts = Circos.stack_matrix(sg_map, window_size=self.window_size)
 	#	logger.info('Matrix loaded')
 		bin_enrich = self.para_prefix + '.bin.enrich'
+		bin_exchange = self.para_prefix + '.bin.potential_exchange'
 		with open(bin_enrich, 'w') as fout:	# multiprocessing by chrom bin
-			sg_lines = Stats.enrich_bin(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins,
+			with open(bin_exchange, 'w') as fout2:	# group exchanges
+				sg_lines = Stats.enrich_bin(fout, fout2, self.d_sg, counts, colnames=self.sg_names, rownames=bins,
 					max_pval=self.max_pval, ncpu=self.ncpu)
 		logger.info('Output: {}'.format(bin_enrich))
 

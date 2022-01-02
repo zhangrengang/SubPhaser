@@ -1,6 +1,7 @@
 import fisher
 import re
 import copy
+from itertools import groupby
 import numpy as np
 from statsmodels.stats.multitest import multipletests
 from .RunCmdsMP import logger, pool_func
@@ -69,7 +70,7 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 		fout.write('\t'.join(line)+'\n')
 	return d_enriched	# significant results
 
-def enrich_bin(fout, d_sg, *args, **kargs):
+def enrich_bin(fout, fout2, d_sg, *args, **kargs):
 	'''Enrich by chromosome bins'''
 	
 	total, consistent, exchange = 0,0,0
@@ -105,7 +106,27 @@ def enrich_bin(fout, d_sg, *args, **kargs):
 		line += [qval]
 		line = list(map(str, line))
 		fout.write('\t'.join(line)+'\n')
+	
+	# output2
+	line = ['#chrom', 'start', 'end', 'exchange_from', 'exchange_to', 'N_bins']
+	fout2.write('\t'.join(line)+'\n')
+	for line in group_exchanges(lines, d_sg):
+		line = list(map(str, line))
+		fout2.write('\t'.join(line)+'\n')
 	return lines
+def group_exchanges(lines, d_sg):
+	for chrom, items in groupby(lines, key=lambda x:x[0]):
+		obs_sg = d_sg.get(chrom)
+		items = [line for line in items if line[3] is not None]
+		items = sorted(items, key=lambda x:x[1])
+		for sg, xlines in groupby(items, key=lambda x:x[3]):
+			if obs_sg == sg:
+				continue
+			xlines = list(xlines)
+			start = xlines[0][1]
+			end = xlines[-1][2]
+			line = [chrom, start, end, obs_sg, sg, len(xlines), ]
+			yield line
 def is_exchange(obs_sg, exp_sg):
 	if not exp_sg or not obs_sg:
 		return 'none'

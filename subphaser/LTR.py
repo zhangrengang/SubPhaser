@@ -379,7 +379,7 @@ with complete protein domains'.format(i, i/ltr_count, j, j/i))
 			with open(int_seqs, 'w') as fout:
 				self.get_int_seqs(ltrs, fout)
 				
-			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -tmp {tmpdir} > \
+			cmd = 'TEsorter {seqfile} {options} -pre {seqfile} -tmp {tmpdir} &> \
 {seqfile}.tesort.log'.format(
 					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
 			if self.intact and '-dp2' not in cmd and "--disable-pass2" not in cmd:
