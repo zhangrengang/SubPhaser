@@ -421,7 +421,7 @@ class Pipeline:
 		bins, counts = Circos.stack_matrix(sg_map, window_size=self.window_size)
 	#	logger.info('Matrix loaded')
 		bin_enrich = self.para_prefix + '.bin.enrich'
-		bin_exchange = self.para_prefix + '.bin.potential_exchange'
+		bin_exchange = self.para_prefix + '.bin.group'
 		with open(bin_enrich, 'w') as fout:	# multiprocessing by chrom bin
 			with open(bin_exchange, 'w') as fout2:	# group exchanges
 				sg_lines = Stats.enrich_bin(fout, fout2, self.d_sg, counts, colnames=self.sg_names, rownames=bins,

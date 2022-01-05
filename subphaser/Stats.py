@@ -108,9 +108,9 @@ def enrich_bin(fout, fout2, d_sg, *args, **kargs):
 		fout.write('\t'.join(line)+'\n')
 	
 	# output2
-	line = ['#chrom', 'start', 'end', 'exchange_from', 'exchange_to', 'N_bins']
+	line = ['#chrom', 'start', 'end', 'exchange_from', 'exchange_to', 'N_bins', 'potential_exchange', ]
 	fout2.write('\t'.join(line)+'\n')
-	for line in group_exchanges(lines, d_sg):
+	for line in group_exchanges(lines, d_sg, out_):
 		line = list(map(str, line))
 		fout2.write('\t'.join(line)+'\n')
 	return lines
@@ -120,12 +120,13 @@ def group_exchanges(lines, d_sg):
 		items = [line for line in items if line[3] is not None]
 		items = sorted(items, key=lambda x:x[1])
 		for sg, xlines in groupby(items, key=lambda x:x[3]):
-			if obs_sg == sg:
-				continue
+			#if obs_sg == sg:
+			#	continue
+			potential_exchange = is_exchange(obs_sg, sg)
 			xlines = list(xlines)
 			start = xlines[0][1]
 			end = xlines[-1][2]
-			line = [chrom, start, end, sg, obs_sg, len(xlines), ]
+			line = [chrom, start, end, sg, obs_sg, len(xlines), potential_exchange]
 			yield line
 def is_exchange(obs_sg, exp_sg):
 	if not exp_sg or not obs_sg:
