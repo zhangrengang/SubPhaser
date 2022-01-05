@@ -479,7 +479,7 @@ def paf2blocks(paf_groups, linkfile, paf_offsets={}, min_block=10000, colors=Non
 
 def bed_density_minus(totBed, setBeds, outfile, window_size=10000, **kargs):
 	d_count = _bed_density_minus(totBed, setBeds, window_size=window_size, **kargs)
-	write_density(d_count, outfile, window_size, trim=False)
+	write_density(d_count, outfile, window_size, trim=True)
 	
 def _bed_density_minus(totBed, setBeds, **kargs):
 	import copy
@@ -564,14 +564,29 @@ def bed_density_by_col(inBed, outpre, keycol=3, window_size=100000, **kargs):
 		write_density(d_count, outfile, window_size)
 		d_outfiles[key] = outfile
 	return d_outfiles
-def stack_bed_density(inBedCount, outpre, colnames, window_size=100000):
+def stack_bed_density(inBedCount, outpre, colnames, window_size=100000, trim=True):
 	coords, counts = stack_matrix(inBedCount, window_size=window_size)
 	d_outfiles = {key: '{}.{}.txt'.format(outpre, key) for key in colnames}
 	d_handles = {key: open(d_outfiles[key], 'w') for key in colnames}
+	
+	# limit
+	if trim:
+		d_count = {key: [] for key in colnames}
+		for coord, _count in zip(coords, counts):
+			for key, count in zip(colnames, _count):
+				d_count[key] += [count]
+		d_upper = {}
+		for key, _count in d_count.items():
+			upper, lower = abnormal(_count)
+			d_upper[key] = upper
+			print('using cutoff: upper {} for {}'.format(upper,key), file=sys.stderr)
+	# 
 	for coord, _count in zip(coords, counts):
 		coord = list(coord)
 		assert len(colnames) == len(_count), '{} != {}'.format(len(colnames), len(_count))
 		for key, count in zip(colnames, _count):
+			if trim:
+				count = min(count, d_upper[key])
 			line = coord + [count]
 			line = map(str, line)
 			fout = d_handles[key]
@@ -727,8 +742,12 @@ def write_density(d_count, outfile, window_size, trim=None):
 					counts += [count]
 			last_BIN = BIN
 	if not _no_trim:
-		upper,lower = abnormal(counts)
-#		print('using cutoff: upper {} and lower {}'.format(upper,lower), file=sys.stderr)
+		try: 
+			upper,lower = abnormal(counts)
+		#	print('using cutoff: upper {} and lower {}'.format(upper,lower), file=sys.stderr)
+		except Exception as e: 
+			_no_trim = True
+		#	print('Exception: {} for output `{}`'.format(e, outfile), file=sys.stderr)
 	for CHR, d_bin in list(d_count.items()):
 		for BIN, count in sorted(d_bin.items()):
 			if not _no_trim and count > upper:
@@ -746,7 +765,7 @@ def abnormal(data, k=1.5):
 	q3 = np.percentile(data, 75)
 	iqr = q3 - q1
 	upper = q3 + iqr*k
-	upper = np.percentile(data, 95)
+	upper = np.percentile(data, 99)
 	lower = np.percentile(data, 1)
 	return upper, lower
 def gene_density(gene_gff3, outfile, window_size=None, featurs=None, by_sites=False):

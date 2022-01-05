@@ -253,10 +253,10 @@ if (branch_color == 'Clade') {{
 	map3 = data.frame(label=map$label, Subgenome=map$Subgenome)
 	p = ggtree(tree3 , aes(color=Clade) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
-	  geom_tippoint(aes(fill=Subgenome), pch=21, stroke=0, size=1.1, color='#00000000') +
+	  geom_tippoint(aes(fill=Subgenome, x=x+1), pch=21, stroke=0, size=2, color='#00000000') +
 	  scale_fill_manual(values={colors}) + scale_colour_discrete(limits=clades, labels=clades) +
-	  scale_fill_hue(l=35) +
-	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
+	  #scale_fill_hue(l=35) +
+	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2, override.aes=list(size=3,pch=21, stroke=0, color='#00000000')))
 
 }} else {{	# branch_color == 'Subgenome'
 	subgenomes = sort(unique(map$Subgenome))
@@ -272,9 +272,10 @@ if (branch_color == 'Clade') {{
 	p = ggtree(tree3 , aes(color=Subgenome) , {ggtree_options} ) %<+% map3 +
 	  theme(legend.position="right")  + 
 	  scale_colour_manual(values={colors},limits=subgenomes, labels=subgenomes) +
-	  geom_tippoint(aes(fill=Clade), pch=21, stroke=0, size=1.2, color='#00000000') +
-	  scale_fill_hue(l=35) +
-	  guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2))
+      geom_tippoint(aes(fill=Clade, x=x+1), pch=21, stroke=0, size=2, color='#00000000', ) + 
+      #scale_fill_hue(l=35) +
+      guides(colour=guide_legend(order = 1), fill=guide_legend(order = 2, override.aes=list(size=3,pch=21, stroke=0, color='#00000000')))
+
 
 }}
 p = p + theme(plot.margin=margin(0,0,0,0)) +

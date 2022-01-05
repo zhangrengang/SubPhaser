@@ -16,7 +16,7 @@ from . import LTR
 from . import Stats
 from . import Circos
 from . import Blocks
-from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
+from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp, test_s
 from .RunCmdsMP import logger, available_memory, limit_memory
 from .__version__ import version
 
@@ -343,7 +343,7 @@ class Pipeline:
 		self.para_prefix = '{}{}'.format(self.outdir, self.basename)
 		matfile = self.para_prefix + '.kmer.mat'
 		ckp_file = self.mk_ckpfile(matfile)
-		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
+		if self.overwrite or self.re_filter or not check_ckp(ckp_file) or not test_s(matfile):
 			d_mat = dumps.to_matrix()	# multiprocessing by chrom
 			kmer_count = len(d_mat)
 			logger.info('{} kmers in total'.format(kmer_count))
@@ -406,7 +406,8 @@ class Pipeline:
 		
 		sg_map = self.para_prefix + '.subgenome.bin.count'
 		ckp_file = self.mk_ckpfile(sg_map)
-		if self.overwrite or self.re_filter or not check_ckp(ckp_file):	# SG id should be stable
+		if self.overwrite or self.re_filter or not check_ckp(ckp_file) or not test_s(sg_map):	
+		# SG id should be stable
 			logger.info('Outputing `coordinate` - `subgenome` maps to `{}`'.format(sg_map))
 			chunksize = None if self.pool_method == 'map' else 10
 			with open(sg_map, 'w') as fout:	# multiprocessing by chrom chunk
@@ -493,7 +494,7 @@ class Pipeline:
 		
 		ltr_map = self.para_prefix + '.ltr.bin.count'
 		ckp_file = self.mk_ckpfile(ltr_map)
-		if self.overwrite or self.re_filter or not check_ckp(ckp_file):
+		if self.overwrite or self.re_filter or not check_ckp(ckp_file) or not test_s(ltr_map):
 			logger.info('Outputing `coordinate` - `LTR` maps to `{}`'.format(ltr_map))
 			pool_method = self.pool_method
 			chunksize = None if pool_method == 'map' else 2000

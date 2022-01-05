@@ -125,7 +125,7 @@ def group_exchanges(lines, d_sg):
 			xlines = list(xlines)
 			start = xlines[0][1]
 			end = xlines[-1][2]
-			line = [chrom, start, end, obs_sg, sg, len(xlines), ]
+			line = [chrom, start, end, sg, obs_sg, len(xlines), ]
 			yield line
 def is_exchange(obs_sg, exp_sg):
 	if not exp_sg or not obs_sg:
