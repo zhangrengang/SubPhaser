@@ -152,6 +152,9 @@ of `gplots` package) [default="%(default)s"]')
 	group_ltr.add_argument('-intact_ltr', action="store_true", default=False,
                     help="Use completed LTR-RTs classified by `TEsorter` (less LTR-RTs but faster) \
 [default: the same as `-all_ltr`]")
+	group_ltr.add_argument('-exclude_exchanges', action="store_true", default=False,
+                    help="Exclude potential exchanged LTRs for insertion age estimation and phylogenetic trees \
+[default=%(default)s]")
 	group_ltr.add_argument('-shared_ltr', action="store_true", default=False,
                     help="Identify shared LTR-RTs among subgenomes (experimental) [default=%(default)s]")
 	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
@@ -180,7 +183,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default: %(default)s]")
 					help="Programs to construct phylogenetic trees [default=%(default)s]")
 
 	group_ltr.add_argument("-tree_options", metavar='STR',
-					default='-mset JTT',
+					default='',
 					help='Options for `-tree_method` to construct phylogenetic trees \
 (see more with `iqtree -h` or `FastTree -expert`) [default="%(default)s"]')
 	group_ltr.add_argument("-ggtree_options", metavar='STR',
@@ -205,6 +208,9 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default: %(default)s]")
 					help='Options for `-aligner` to align chromosome sequences [default="%(default)s"]')
 	group_circ.add_argument('-min_block', type=int, default=100000, metavar='INT',
 					help="Minimum block size (bp) to show [default=%(default)s]")
+	group_circ.add_argument('-alt_cfgs', nargs='+', metavar='CFGFILE', default=None,
+					help="An alternative config file for identifying homologous blocks \
+[default=%(default)s]")
 
 	# others
 	group_other = parser.add_argument_group('Other options')
@@ -256,6 +262,13 @@ class Pipeline:
 			self.sgs += sgcfg.sgs
 			self.chrs += sgcfg.chrs
 			_nsg += sgcfg.nsg
+		if not self.alt_cfgs:
+			self.alt_sgs = self.sgs
+		else:
+			self.alt_sgs = []
+			for sgcfg in self.alt_cfgs:
+				sgcfg = SGConfig(sgcfg, sep=self.sep)
+				self.alt_sgs += sgcfg.sgs
 		if not self.nsg or self.nsg < 2:
 			self.nsg = _nsg
 		
@@ -311,6 +324,7 @@ class Pipeline:
 		# update
 		self.labels = labels
 		self.sgs = self.update_sgs(self.sgs, d_targets)
+		logger.info('CONFIG: {}'.format(self.sgs))
 		self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
 		self.d_size =  d_size
 #		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
@@ -444,7 +458,7 @@ class Pipeline:
 			bins, counts = Circos.stack_matrix(feat_map, window_size=100000000)
 			feat_enrich = self.para_prefix + '.custom.enrich'
 			with open(feat_enrich, 'w') as fout:
-				d_enriched = Stats.enrich_ltr(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins, 
+				d_enriched, *_ = Stats.enrich_ltr(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins, 
 						max_pval=self.max_pval, ncpu=self.ncpu)
 			logger.info('Output: {}'.format(feat_enrich))
 			
@@ -512,7 +526,8 @@ class Pipeline:
 		ltr_enrich = self.para_prefix + '.ltr.enrich'
 		with open(ltr_enrich, 'w') as fout:
 			# ltr_id -> SG
-			d_enriched = Stats.enrich_ltr(fout, self.d_sg, counts, colnames=self.sg_names, rownames=bins, 
+			d_enriched, d_exchange = Stats.enrich_ltr(fout, self.d_sg, counts, 
+					colnames=self.sg_names, rownames=bins, 
 					max_pval=self.max_pval, ncpu=self.ncpu)
 		logger.info('Output: {}'.format(ltr_enrich))
 		
@@ -536,6 +551,7 @@ class Pipeline:
 		# plot insert age
 		prefix = self.para_prefix + '.ltr.insert'
 		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, shared=d_shared, 
+						exclude_exchanges=self.exclude_exchanges, d_exchange=d_exchange, 
 						mu=self.mu, figfmt=self.figfmt)
 		
 		# ltr tree
@@ -625,7 +641,7 @@ class Pipeline:
 		thread = int(self.ncpu // ncpu)
 		
 		mkdirs(outdir)
-		pafs, paf_offsets = Blocks.run_align(self.sgs, self.d_chromfiles, outdir, aligner=self.aligner,
+		pafs, paf_offsets = Blocks.run_align(self.alt_sgs, self.d_chromfiles, outdir, aligner=self.aligner,
 						ncpu=ncpu, thread=thread, d_size=self.d_size, overlap=self.min_block*5,
 						opts=self.aligner_options, overwrite=self.overwrite)
 		#print(paf_offsets)

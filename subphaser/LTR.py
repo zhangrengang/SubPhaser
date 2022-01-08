@@ -464,17 +464,23 @@ def is_completed(ltr):
 	completed = getattr(ltr, 'completed', None)
 	return True if completed == 'yes' else False
 
-def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, shared={}, figfmt='pdf'):
+def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, exclude_exchanges=False, d_exchange={}, 
+		shared={}, figfmt='pdf'):
 	datfile = prefix + '.data'
 	fout = open(datfile, 'w')
 	line = ['ltr', 'sg', 'age']
 	fout.write('\t'.join(line) + '\n')
 	d_data = {}
 	enriched_ltrs = []
+	excluded = 0
 	for ltr in ltrs:
 		age = ltr.estimate_age(mu=mu)
 		if ltr.id in d_enriched:
 			sg = d_enriched[ltr.id]
+			
+			if exclude_exchanges and d_exchange.get(ltr.id) == 'yes':
+				excluded += 1
+				continue
 			enriched_ltrs += [ltr]
 		elif ltr.id in shared:
 			sg = 'shared'
@@ -491,6 +497,8 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, shared={}, figfmt='pdf'):
 		try: d_data[sg] += [age]
 		except KeyError: d_data[sg] = [age]
 	fout.close()
+	if exclude_exchanges:
+		logger.info('{} potentially exchanged LTR-RTs are excluded'.format(excluded))
 	# summary
 	sumfile = prefix + '.summary'
 	with open(sumfile, 'w') as fout:
@@ -526,7 +534,7 @@ ggsave('{outfig}', p, width=7, height=7, dpi=300, units="in")
 
 def summary_ltr_time(d_data, fout):
 	fout.write('# Summary of LTR insertion age (million years)\n')
-	line = ['#subgenome', 'mean', 'median', 'standard_deviation', '95%-CI', '75%-CI']
+	line = ['#subgenome', 'mean', 'median', 'standard_deviation', '75%-CI', '95%-CI', '99%-CI', ]
 	fout.write('\t'.join(line) + '\n')
 	d_info = {}
 	xages = []
@@ -547,18 +555,21 @@ def summary_ltr_time(d_data, fout):
 		_tile2_5s += [_tile2_5]
 		_tile97_5 = np.percentile(ages, 97.5)
 		_tile97_5s += [_tile97_5]
+		_tile0_5 = np.percentile(ages, 0.5)
+		_tile99_5 = np.percentile(ages, 99.5)
 		_tile12_5 = np.percentile(ages, 12.5)
 		_tile87_5 = np.percentile(ages, 87.5)
 		_ci95 = '{:.3f}-{:.3f}'.format(abs(_tile2_5), _tile97_5)
+		_ci99 = '{:.3f}-{:.3f}'.format(abs(_tile0_5), _tile99_5)
 		_ci75 = '{:.3f}-{:.3f}'.format(_tile12_5, _tile87_5)
-		line = [sg, _mean, _median, _std, _ci95, _ci75]
+		line = [sg, _mean, _median, _std,  _ci75, _ci95, _ci99]
 		fout.write('\t'.join(line) + '\n')
 		d_info[sg] = '{} ({})'.format(_median, _ci95)
 	logger.info('Summary of overall LTR insertion age (million years):')
 	logger.info('\tmedian: {:.3f}\t95% CI (percentile-based): {:.3f}-{:.3f}'.format(
 		np.median(xages), abs(np.percentile(xages, 2.5)), np.percentile(xages, 97.5)))
 	logger.info('A rough estimation of the divergence–hybridization period: {:.3f}-{:.3f} ({:.3f})'.format(
-		np.mean(_tile2_5s), np.mean(_tile97_5s), np.mean(_medians)))
+		np.mean(_tile97_5s), np.mean(_tile2_5s), np.mean(_medians)))
 	return d_info
 
 

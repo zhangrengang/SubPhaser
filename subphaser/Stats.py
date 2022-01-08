@@ -34,6 +34,7 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 	'''Output LTR enrichments'''
 	total, consistent, exchange = 0,0,0
 	d_enriched = {}
+	d_exchange = {}
 	lines = []
 	pvalues = []
 	for res in enrich(*args, **kargs):
@@ -51,6 +52,7 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 		pvalues += [res.pval]
 		if sg:
 			d_enriched[ltr] = sg #res.key
+		d_exchange[ltr] = potential_exchange
 		total += 1
 		if potential_exchange == 'yes':
 			exchange += 1
@@ -68,7 +70,7 @@ def enrich_ltr(fout, d_sg, *args, **kargs):
 		line += [qval]
 		line = list(map(str, line))
 		fout.write('\t'.join(line)+'\n')
-	return d_enriched	# significant results
+	return d_enriched, d_exchange	# significant results
 
 def enrich_bin(fout, fout2, d_sg, *args, **kargs):
 	'''Enrich by chromosome bins'''
@@ -110,7 +112,7 @@ def enrich_bin(fout, fout2, d_sg, *args, **kargs):
 	# output2
 	line = ['#chrom', 'start', 'end', 'exchange_from', 'exchange_to', 'N_bins', 'potential_exchange', ]
 	fout2.write('\t'.join(line)+'\n')
-	for line in group_exchanges(lines, d_sg, out_):
+	for line in group_exchanges(lines, d_sg, ):
 		line = list(map(str, line))
 		fout2.write('\t'.join(line)+'\n')
 	return lines

@@ -10,11 +10,15 @@ def run_align(sgs, d_chromfiles, outdir, ncpu=8, thread=2, overwrite=False,
 	cmds = []
 	paf_groups = []
 	d_offsets = {}
+	chr_pairs = set([])
 	d_ckp = {}
 	for sg in sgs:
 		paf_group = []
 		for sg1, sg2 in itertools.combinations(sg, 2):
 			for chr1, chr2 in itertools.product(sg1, sg2):
+				if (chr1,chr2) in chr_pairs:	# to avoid redundancy
+					continue
+				chr_pairs.add((chr1,chr2))
 				outpaf = '{}{}-{}.paf'.format(outdir, chr1, chr2)
 				paf_group += [outpaf]
 				ckp_file = outpaf + '.ok'
