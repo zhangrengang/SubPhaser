@@ -126,7 +126,7 @@ of `gplots` package) [default="%(default)s"]')
  [default=%(default)s]")
 
 	group_ltr.add_argument("-ltr_detectors", nargs='+',  
-					default=['ltr_harvest', 'ltr_finder'], 
+					default=['ltr_harvest'], 
 					choices=['ltr_finder', 'ltr_harvest'],
 					help="Programs to detect LTR-RTs [default=%(default)s]")
 	group_ltr.add_argument("-ltr_finder_options", metavar='STR',
@@ -178,7 +178,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default: %(default)s]")
 					help='Options for `trimal` to trim alignment (see more with `trimal -h`) \
 [default="%(default)s"]')
 	group_ltr.add_argument("-tree_method",  
-					default='iqtree', 
+					default='FastTree', 
 					choices=['iqtree', 'FastTree'],
 					help="Programs to construct phylogenetic trees [default=%(default)s]")
 
@@ -248,7 +248,7 @@ class Pipeline:
 			if len(genomes) == 1 or self.no_label:
 				self.labels = [''] * (len(genomes))
 			else:
-				self.labels = ['{}-'.format(i, ) for i in range(len(genomes))]
+				self.labels = ['{}-'.format(i+1, ) for i in range(len(genomes))]
 		else:
 			self.labels = labels
 		# config + label
@@ -324,6 +324,7 @@ class Pipeline:
 		# update
 		self.labels = labels
 		self.sgs = self.update_sgs(self.sgs, d_targets)
+		self.alt_sgs = self.update_sgs(self.alt_sgs, d_targets)
 		logger.info('CONFIG: {}'.format(self.sgs))
 		self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
 		self.d_size =  d_size
