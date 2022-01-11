@@ -44,11 +44,15 @@ to avoid conficts among chromosome id \
 [default: '1-, 2-, ..., n-']")
 	group_in.add_argument('-no_label', action="store_true", default=False,
 					help="Do not use default prefix labels for genome sequences as there is \
-no confict among chromosome id [default: %(default)s]")
+no confict among chromosome id [default=%(default)s]")
 	group_in.add_argument("-target", default=None, type=str, metavar='FILE',
 					help="Target chromosomes to output; id mapping is allowed; \
 this chromosome set is for cluster and phase \
 [default: the same chromosome set as `-sg_cfgs`]")
+	group_in.add_argument("-sg_assigned", default=None, type=str, metavar='FILE',
+					help="Provide subgenome assignments to skip k-means clustering and \
+to identify subgenome-specific features \
+[default=%(default)s]")
 	group_in.add_argument("-sep", default="|", type=str, metavar='STR',
 					help='Seperator for chromosome ID [default="%(default)s"]')
 	group_in.add_argument('-custom_features', nargs='+', metavar='FASTA', default=None, 
@@ -211,6 +215,9 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default: %(default)s]")
 	group_circ.add_argument('-alt_cfgs', nargs='+', metavar='CFGFILE', default=None,
 					help="An alternative config file for identifying homologous blocks \
 [default=%(default)s]")
+	group_circ.add_argument("-chr_ordered", default=None, type=str, metavar='FILE',
+					help="Provide a chromosome order to plot circos \
+[default=%(default)s]")
 
 	# others
 	group_other = parser.add_argument_group('Other options')
@@ -287,7 +294,29 @@ class Pipeline:
 				chrs = [d_targets.get(chr, chr) for chr in chrs]
 				sg[i] = chrs
 		return sgs
-	
+	def parse_assigned(self, d_targets):
+		d_assigned = {}
+		if not self.sg_assigned:
+			return d_assigned
+		for line in open(self.sg_assigned):
+			if line.startswith('#'):
+				continue
+			chr, sg = line.strip().split()[:2]
+			chr = d_targets.get(chr, chr)
+			d_assigned[chr] = sg
+		return d_assigned
+	def parse_ordered(self, d_targets):
+		chroms = []
+		if not self.chr_ordered:
+			return chroms
+		for line in open(self.chr_ordered):
+			if line.startswith('#'):
+				continue
+			chr = line.strip().split()[0]
+			chr = d_targets.get(chr, chr)
+			chroms += [chr]
+		return chroms
+		
 	def run(self):
 		
 		# mkdir
@@ -305,11 +334,20 @@ class Pipeline:
 		# split genome
 		logger.info('Target chromosomes: {}'.format(self.chrs))
 		logger.info('Splitting genomes by chromosome into `{}`'.format(self.tmpdir))
+		split = False
 		ckp_file = self.mk_ckpfile('split')
 		ckp = check_ckp(ckp_file)
 		if isinstance(ckp, list) and len(ckp) ==4 and not self.overwrite:
 			chromfiles, labels, d_targets, d_size = data = ckp
+			if set(d_targets) != set(self.chrs):
+				self.re_filter = True
+				#if set(self.chrs)-set(d_targets):	# new chrs, have to re-split
+				#	logger.info('Chromosome set is not equal to the checkpoint, re-splitting..')
+				split = True
 		else:
+			split = True
+		
+		if split:
 			d_targets = parse_idmap(self.target)
 			outdir = '{}chromosomes/'.format(self.tmpdir)
 			mkdirs(outdir)
@@ -325,8 +363,14 @@ class Pipeline:
 		self.labels = labels
 		self.sgs = self.update_sgs(self.sgs, d_targets)
 		self.alt_sgs = self.update_sgs(self.alt_sgs, d_targets)
+		self.sg_assigned = self.parse_assigned(d_targets)
 		logger.info('CONFIG: {}'.format(self.sgs))
 		self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
+		self.chr_ordered = self.parse_ordered(d_targets)
+		# if self.chr_ordered:
+			# labels = self.chr_ordered
+			# chromfiles = [self.d_chromfiles[label] for chr in self.chr_ordered]
+			# self.d_chromfiles = OrderedDict(zip(labels, chromfiles))
 		self.d_size =  d_size
 #		logger.info('Split chromosomes {} with {}'.format(chromfiles, labels))
 #		logger.info('ID map: {}'.format(d_targets))
@@ -380,7 +424,7 @@ class Pipeline:
 		
 		# kmeans cluster
 		logger.info('###Step: Cluster')
-		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG',
+		cluster = Cluster(matfile, n_clusters=self.nsg, sg_prefix='SG', sg_assigned=self.sg_assigned,
 				replicates=self.replicates, jackknife=self.jackknife)
 		self.d_sg = d_sg = cluster.d_sg	# chrom -> SG
 		logger.info('Subgenome assignments: {}'.format(d_sg))
@@ -472,6 +516,8 @@ class Pipeline:
 		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else ([],[])
 
 		# circos
+		if self.chr_ordered:
+			self.chromfiles = [self.d_chromfiles[chr] for chr in self.chr_ordered]
 		if not self.disable_circos:
 			self.step_circos(
 				bedfile=sg_map, # chrom - coord - SG			circles 3 - n+2
@@ -665,6 +711,7 @@ class Pipeline:
 		return labels, chromfiles
 
 def parse_idmap(mapfile=None):
+	'''idmap: old_id new_id'''
 	if not mapfile:
 		return None
 	d_map = OrderedDict()

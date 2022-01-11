@@ -14,7 +14,8 @@ from .fonts import fonts
 from .RunCmdsMP import logger, pool_func
 
 class Cluster:
-	def __init__(self, datafile, n_clusters, sg_prefix='SG', replicates=1000, jackknife=80, **kargs):
+	def __init__(self, datafile, n_clusters, sg_prefix='SG', sg_assigned={}, 
+						replicates=1000, jackknife=80, **kargs):
 		data = LoadData(datafile)
 		data.load_matrix()
 		# normalize
@@ -25,11 +26,18 @@ class Cluster:
 		self.chrs = data.colnames
 		self.kmers = data.rownames
 		self.d_kmers = data.d_rows
-		self.kmean = self.fit(self.data, n_clusters, **kargs)
+		
 		self.n_clusters = n_clusters
 		self.sg_prefix = sg_prefix
 		self.kargs = kargs
-		self.d_sg = self.assign_subgenomes()
+		if sg_assigned:
+			logger.info('Skip k-means clustering')
+			labels = [sg_assigned[chr] for chr in self.chrs]
+			self.n_clusters = len(set(sg_assigned.values()))
+			self.d_sg = self.assign_subgenomes(labels=labels)
+		else:
+			self.kmean = self.fit(self.data, n_clusters, **kargs)
+			self.d_sg = self.assign_subgenomes()
 		self.d_bs = self.bootstrap(replicates, jackknife)
 	def pca(self, outfig, n_components=2, ):
 		pca = PCA(n_components=n_components)
@@ -111,12 +119,15 @@ class Cluster:
 				except ValueError: d_map[label] = 0
 		return [d_map[label] for label in labels]
 
-	def assign_subgenomes(self, base=1):
+	def assign_subgenomes(self, base=1, labels=None):
+		'''labels is the same order as self.chrs'''
+		if labels is None:
+			labels = self.kmean.labels_
 		max_len = len(str(self.n_clusters))
 		fmtstr = '{{}}{{:0>{}d}}'.format(max_len)
 		d_sg = OrderedDict()
 		sg_names = set([])
-		self.labels = labels = self.sort_subgenomes(self.kmean.labels_)
+		self.labels = labels = self.sort_subgenomes(labels)
 		assert len(self.chrs) == len(labels)
 		for label, chr in zip(labels, self.chrs):
 			sg = fmtstr.format(self.sg_prefix, label+base)
