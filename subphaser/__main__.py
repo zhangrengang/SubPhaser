@@ -117,7 +117,7 @@ if `-max_prop` is specified [default=%(default)s]")
 					help="Color panel (2 or 3 colors) for heatmap plot [default: %(default)s]")
 	group_clst.add_argument('-heatmap_options', metavar='STR',
 					default="Rowv=T,Colv=T,scale='col',dendrogram='row',labCol=F,trace='none',\
-key=T,key.title=NA,density.info='density',main=NA,xlab='Differential kmers',margins=c(2.5,8)",
+key=T,key.title=NA,density.info='density',main=NA,xlab='Differential kmers',margins=c(2.5,12)",
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
 	group_clst.add_argument('-just_core', action="store_true", default=False,
@@ -609,7 +609,7 @@ class Pipeline:
 			tree = LTR.LTRtree(enrich_ltrs, domains=self.ltr_domains, domfile=domfile, prefix=prefix,
 					trimal_options=self.trimal_options, 
 					tree_method=self.tree_method, tree_options=self.tree_options, 
-					subsample=self.subsample, 
+					subsample=self.subsample, exclude_exchanges=self.exclude_exchanges,
 					ncpu=self.ncpu, overwrite=overwrite)
 			job_args['cont'] = not (self.overwrite or self.re_filter)
 			d_files = tree.build(job_args=job_args)
@@ -746,7 +746,7 @@ class SGConfig:
 			temp = line.split('#')[0].strip().split()
 			if not temp:
 				continue
-			chrs = [list(map(lambda x: add_prefix(x, **self.kargs), v.split(','))) 
+			chrs = [list(map(lambda x: add_prefix(x, **self.kargs), v.strip(',').split(','))) 
 						for v in temp]
 			self.nsgs += [len(chrs)]
 			if self.nsg == 0:
@@ -765,7 +765,7 @@ class SGConfig:
 
 def add_prefix(val, prefix=None, sep='|'):
 	if prefix:
-		vals = ['{}{}'.format(prefix, v) for v in val.split(sep)]
+		vals = ['{}{}'.format(prefix, v) for v in val.split(sep) if v]
 		return ''.join(vals)
 	else:
 		return val

@@ -213,7 +213,7 @@ for (name in colnames(data)){{
 #rownames(data) = names
 
 nr = nrow(data)
-cex = min(2, 33/nr)
+cex = min(1.5, 30/nr)
 
 library("gplots")
 {dev}('{outfig}')
@@ -268,7 +268,7 @@ def _filter_kmer(arg):
 		return kmer, False, tot
 	return kmer, [c/l for c,l in zip(counts, lengths)], tot
 		
-def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer Frequency', ylabel='Count', vline=None):
+def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer occurrence', ylabel='Count', vline=None):
 	from matplotlib import pyplot as plt
 	_min, _max = 0, max(data)
 	nbins = int((_max-_min)/step)

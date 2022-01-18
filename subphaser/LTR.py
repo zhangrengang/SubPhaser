@@ -149,7 +149,7 @@ class LTRtree:
 	def __init__(self, ltrs, domains, domfile, prefix='ltrtree', 
 			overwrite=False, ncpu=10, subsample=None, 
 			categories=[('LTR', 'Copia', None), ('LTR', 'Gypsy', None)],
-			trimal_options='-automated1', 
+			trimal_options='-automated1', exclude_exchanges=False,
 			tree_method='iqtree', tree_options='-mset JTT -nt AUTO'):
 		'''ltrs: enrich_ltrs (list)'''
 		self.ltrs = ltrs
@@ -163,9 +163,10 @@ class LTRtree:
 		self.overwrite = overwrite
 		self.ncpu = ncpu
 		self.subsample = subsample
+		self.exclude_exchanges = exclude_exchanges
 	
 	def build(self, job_args):
-		d_ltrs = {ltr.id: ltr for ltr in self.ltrs}
+		d_ltrs = {ltr.id: ltr for ltr in self.ltrs if not (self.exclude_exchanges and ltr.exchange=='yes')}
 #		ltr_ids = {ltr.id for ltr in ltrs}
 		subsample = self.subsample
 		nseqs = []
@@ -477,18 +478,21 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, exclude_exchanges=False, 
 		age = ltr.estimate_age(mu=mu)
 		if ltr.id in d_enriched:
 			sg = d_enriched[ltr.id]
-			
-			if exclude_exchanges and d_exchange.get(ltr.id) == 'yes':
+			ltr.sg = sg
+			ltr.exchange = d_exchange.get(ltr.id)
+			enriched_ltrs += [ltr]
+			if exclude_exchanges and ltr.exchange == 'yes':
 				excluded += 1
 				continue
-			enriched_ltrs += [ltr]
+			
 		elif ltr.id in shared:
 			sg = 'shared'
+			ltr.sg = sg
 		else:
 			continue
 #		try: sg = d_enriched[ltr.id]
 #		except KeyError: continue
-		ltr.sg = sg
+#		ltr.sg = sg
 		age = age/1e6
 #		enriched_ltrs += [ltr]
 		line = [ltr.id, sg, age]
