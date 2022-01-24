@@ -121,7 +121,7 @@ key=T,key.title=NA,density.info='density',main=NA,xlab='Differential kmers',marg
 					help='Options for heatmap plot (see more in R shell with `?heatmap.2` \
 of `gplots` package) [default="%(default)s"]')
 	group_clst.add_argument('-just_core', action="store_true", default=False,
-					help="Exit after after the core phasing module [default=%(default)s]")
+					help="Exit after the core phasing module [default=%(default)s]")
 
 	# LTR
 	group_ltr = parser.add_argument_group('LTR', 'Options for LTR analyses')

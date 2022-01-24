@@ -57,14 +57,14 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 ![wheat](example_data/wheat_figures.png)
 **Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
 * (**A**) The histogram of differential k-mers among homoeologous chromosome sets. 
-* (**B**) Heatmap and clustering of differential k-mers. The x-axis, k-mers; y-axis, chromosomes.
+* (**B**) Heatmap and clustering of differential k-mers. The x-axis, differential k-mers; y-axis, chromosomes. The vertical color bar, each chromosome is assigned to which subgenome; the horizontal color bar, each k-mer is specific to which subgenome (blank for non-specific kmers).
 * (**C**) Principal component analysis (PCA) of differential k-mers. 
-* (**D**) Chromosomal characteristics. Rings from outer to inner: 
-   - (**1**) Karyotypes of subgenome assignments by a k-Means algorithm. 
-   - (**2**) Significant enrichment of subgenome-specific k-mers. 
+* (**D**) Chromosomal characteristics (window size: 1 Mb). Rings from outer to inner: 
+   - (**1**) Subgenome assignments by a k-Means algorithm. 
+   - (**2**) Significant enrichment of subgenome-specific k-mers (blank for non-enriched windows). 
    - (**3**) Normalized proportion of subgenome-specific k-mers. 
-   - (**4-6**) Density distribution of each subgenome-specific k-mer set. 
-   - (**7**) Density distribution of subgenome-specific LTR-RTs and other LTR-RTs (the most outer, in grey color). 
+   - (**4-6**) Density distribution (count) of each subgenome-specific k-mer set. 
+   - (**7**) Density distribution (count) of subgenome-specific LTR-RTs and other LTR-RTs (the most outer, in grey color). 
    - (**8**) Homoeologous blocks of each homoeologous chromosome set.
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
@@ -137,6 +137,7 @@ phase-results/
 ├── k15_q200_f2.chrom-subgenome.tsv    # subgenome assignments and bootstrap values
 ├── k15_q200_f2.sig.kmer-subgenome.tsv # subgenome-specific kmers
 ├── k15_q200_f2.bin.enrich             # subgenome-specific enrichments by genome window/bin
+├── k15_q200_f2.bin.group              # grouped bins by potential exchanges based on enrichments
 ├── k15_q200_f2.ltr.enrich             # subgenome-specific LTR-RTs
 ├── k15_q200_f2.ltr.insert.pdf         # density plot of insertion age of subgenome-specific LTR-RTs
 ├── k15_q200_f2.ltr.insert.R           # R script for the density plot
@@ -164,28 +165,32 @@ tmp/
 ```
 usage: subphaser [-h] -i GENOME [GENOME ...] -c CFGFILE [CFGFILE ...]
                          [-labels LABEL [LABEL ...]] [-no_label]
-                         [-target FILE] [-sep STR]
+                         [-target FILE] [-sg_assigned FILE] [-sep STR]
                          [-custom_features FASTA [FASTA ...]] [-pre STR]
                          [-o DIR] [-tmpdir DIR] [-k INT] [-f FLOAT] [-q INT]
                          [-baseline BASELINE] [-lower_count INT]
                          [-min_prop FLOAT] [-max_freq INT] [-max_prop FLOAT]
                          [-low_mem] [-by_count] [-re_filter] [-nsg INT]
                          [-replicates INT] [-jackknife FLOAT]
-                         [-max_pval FLOAT] [-figfmt {pdf,png}]
+                         [-max_pval FLOAT]
+                         [-test_method {ttest_ind,kruskal,wilcoxon,mannwhitneyu}]
+                         [-figfmt {pdf,png}]
                          [-heatmap_colors COLOR [COLOR ...]]
-                         [-heatmap_options STR] [-disable_ltr]
+                         [-heatmap_options STR] [-just_core] [-disable_ltr]
                          [-ltr_detectors {ltr_finder,ltr_harvest} [{ltr_finder,ltr_harvest} ...]]
                          [-ltr_finder_options STR] [-ltr_harvest_options STR]
                          [-tesorter_options STR] [-all_ltr] [-intact_ltr]
-                         [-shared_ltr] [-mu FLOAT] [-disable_ltrtree]
-                         [-subsample INT]
+                         [-exclude_exchanges] [-shared_ltr] [-mu FLOAT]
+                         [-disable_ltrtree] [-subsample INT]
                          [-ltr_domains {GAG,PROT,INT,RT,RH,AP,RNaseH} [{GAG,PROT,INT,RT,RH,AP,RNaseH} ...]]
                          [-trimal_options STR]
                          [-tree_method {iqtree,FastTree}] [-tree_options STR]
                          [-ggtree_options STR] [-disable_circos]
                          [-window_size INT] [-disable_blocks] [-aligner PROG]
-                         [-aligner_options STR] [-min_block INT] [-p INT]
-                         [-max_memory MEM] [-cleanup] [-overwrite] [-v]
+                         [-aligner_options STR] [-min_block INT]
+                         [-alt_cfgs CFGFILE [CFGFILE ...]] [-chr_ordered FILE]
+                         [-p INT] [-max_memory MEM] [-cleanup] [-overwrite]
+                         [-v]
 
 Phase and visualize subgenomes of an allopolyploid or hybrid based on the repetitive kmers.
 
@@ -198,7 +203,7 @@ Input:
   -i GENOME [GENOME ...], -genomes GENOME [GENOME ...]
                         Input genome sequences in fasta format [required]
   -c CFGFILE [CFGFILE ...], -sg_cfgs CFGFILE [CFGFILE ...]
-                        Subgenomes config file (one homoeologous group per
+                        Subgenomes config file (one homologous group per
                         line); this chromosome set is for identifying
                         differential kmers [required]
   -labels LABEL [LABEL ...]
@@ -206,11 +211,14 @@ Input:
                         genome sequence to avoid conficts among chromosome id
                         [default: '1-, 2-, ..., n-']
   -no_label             Do not use default prefix labels for genome sequences
-                        as there is no confict among chromosome id [default:
-                        False]
+                        as there is no confict among chromosome id
+                        [default=False]
   -target FILE          Target chromosomes to output; id mapping is allowed;
                         this chromosome set is for cluster and phase [default:
                         the same chromosome set as `-sg_cfgs`]
+  -sg_assigned FILE     Provide subgenome assignments to skip k-means
+                        clustering and to identify subgenome-specific features
+                        [default=None]
   -sep STR              Seperator for chromosome ID [default="|"]
   -custom_features FASTA [FASTA ...]
                         Custom features in fasta format to enrich subgenome-
@@ -243,7 +251,7 @@ Kmer:
                         [default=None]
   -low_mem              Low MEMory but slower [default: True if genome size >
                         3G, else False]
-  -by_count             Calculate fold by count instead of by propor
+  -by_count             Calculate fold by count instead of by proportion
                         [default=False]
   -re_filter            Re-filter with subset of chromosomes (subgenome
                         assignments are expected to change) [default=False]
@@ -253,19 +261,24 @@ Cluster:
 
   -nsg INT              Number of subgenomes (>1) [default: auto]
   -replicates INT       Number of replicates for bootstrap [default=1000]
-  -jackknife FLOAT      Percent of kmers to resample for bootstrap
+  -jackknife FLOAT      Percent of kmers to resample for each bootstrap
                         [default=50]
   -max_pval FLOAT       Maximum P value for all hypothesis tests
                         [default=0.05]
+  -test_method {ttest_ind,kruskal,wilcoxon,mannwhitneyu}
+                        The test method to identify differiential
+                        kmers[default=ttest_ind]
   -figfmt {pdf,png}     Format of figures [default=pdf]
   -heatmap_colors COLOR [COLOR ...]
-                        Color panel (2 or 3 colors) for heatmap plot
-                        [default=('green', 'black', 'red')]
+                        Color panel (2 or 3 colors) for heatmap plot [default:
+                        ('green', 'black', 'red')]
   -heatmap_options STR  Options for heatmap plot (see more in R shell with
                         `?heatmap.2` of `gplots` package) [default="Rowv=T,Col
                         v=T,scale='col',dendrogram='row',labCol=F,trace='none'
                         ,key=T,key.title=NA,density.info='density',main=NA,xla
-                        b=NA,margins=c(4,8)"]
+                        b='Differential kmers',margins=c(2.5,12)"]
+  -just_core            Exit after the core phasing module
+                        [default=False]
 
 LTR:
   Options for LTR analyses
@@ -273,48 +286,48 @@ LTR:
   -disable_ltr          Disable this step (this step is time-consuming for
                         large genome) [default=False]
   -ltr_detectors {ltr_finder,ltr_harvest} [{ltr_finder,ltr_harvest} ...]
-                        Programs to detect LTR-RTs [default=['ltr_harvest',
-                        'ltr_finder']]
+                        Programs to detect LTR-RTs [default=['ltr_harvest']]
   -ltr_finder_options STR
                         Options for `ltr_finder` to identify LTR-RTs (see more
-                        with `ltr_finder -h`) [default="-w 2 -D 20000 -d 1000
-                        -L 7000 -l 100 -p 20 -C -M 0.6"]
+                        with `ltr_finder -h`) [default="-w 2 -D 15000 -d 1000
+                        -L 7000 -l 100 -p 20 -C -M 0.8"]
   -ltr_harvest_options STR
                         Options for `gt ltrharvest` to identify LTR-RTs (see
                         more with `gt ltrharvest -help`) [default="-seqids yes
-                        -similar 60 -vic 10 -seed 20 -minlenltr 100 -maxlenltr
-                        7000 -maxdistltr 20000 -mindistltr 1000 -mintsd 4
-                        -maxtsd 20"]
+                        -similar 80 -vic 10 -seed 20 -minlenltr 100 -maxlenltr
+                        7000 -mintsd 4 -maxtsd 6"]
   -tesorter_options STR
                         Options for `TEsorter` to classify LTR-RTs (see more
-                        with `TEsorter -h`) [default="-db rexdb-plant -dp2"]
-  -all_ltr              Use all LTR identified by `-ltr_detectors` (more LTRs
-                        but slower) [default: only use LTR as classified by
-                        `TEsorter`]
-  -intact_ltr           Use completed LTR as classified by `TEsorter` (less
-                        LTRs but faster) [default: the same as `-all_ltr`]
-  -shared_ltr           Identify shared LTRs among subgenomes (experimental)
-                        [default=False]
+                        with `TEsorter -h`) [default="-db rexdb -dp2"]
+  -all_ltr              Use all LTR-RTs identified by `-ltr_detectors` (more
+                        LTR-RTs but slower) [default: only use LTR as
+                        classified by `TEsorter`]
+  -intact_ltr           Use completed LTR-RTs classified by `TEsorter` (less
+                        LTR-RTs but faster) [default: the same as `-all_ltr`]
+  -exclude_exchanges    Exclude potential exchanged LTRs for insertion age
+                        estimation and phylogenetic trees [default=False]
+  -shared_ltr           Identify shared LTR-RTs among subgenomes
+                        (experimental) [default=False]
   -mu FLOAT             Substitution rate per year in the intergenic region,
                         for estimating age of LTR insertion [default=1.3e-08]
   -disable_ltrtree      Disable subgenome-specific LTR tree (this step is
-                        time-consuming when subgenome-specific LTRs are too
+                        time-consuming when subgenome-specific LTR-RTs are too
                         many, so `-subsample` is enabled by defualt)
                         [default=False]
-  -subsample INT        Subsample LTRs to avoid too many to construct a tree
-                        [default=1000] (0 to disable)
+  -subsample INT        Subsample LTR-RTs to avoid too many to construct a
+                        tree [default=1000] (0 to disable)
   -ltr_domains {GAG,PROT,INT,RT,RH,AP,RNaseH} [{GAG,PROT,INT,RT,RH,AP,RNaseH} ...]
                         Domains for LTR tree (Note: for domains identified by
                         `TEsorter`, PROT (rexdb) = AP (gydb), RH (rexdb) =
-                        RNaseH (gydb)) [default=['INT', 'RT', 'RH']]
+                        RNaseH (gydb)) [default: ['INT', 'RT', 'RH']]
   -trimal_options STR   Options for `trimal` to trim alignment (see more with
                         `trimal -h`) [default="-automated1"]
   -tree_method {iqtree,FastTree}
                         Programs to construct phylogenetic trees
-                        [default=iqtree]
+                        [default=FastTree]
   -tree_options STR     Options for `-tree_method` to construct phylogenetic
                         trees (see more with `iqtree -h` or `FastTree
-                        -expert`) [default="-mset JTT"]
+                        -expert`) [default=""]
   -ggtree_options STR   Options for `ggtree` to show phylogenetic trees (see
                         more from `https://yulab-smu.top/treedata-book`)
                         [default="branch.length='none', layout='circular'"]
@@ -324,17 +337,22 @@ Circos:
 
   -disable_circos       Disable this step [default=False]
   -window_size INT      Window size (bp) for circos plot [default=1000000]
-  -disable_blocks       Disable to plot homoeologous blocks [default=False]
-  -aligner PROG         Programs to identify homoeologous blocks
+  -disable_blocks       Disable to plot homologous blocks [default=False]
+  -aligner PROG         Programs to identify homologous blocks
                         [default=minimap2]
   -aligner_options STR  Options for `-aligner` to align chromosome sequences
                         [default="-x asm20 -n 10"]
   -min_block INT        Minimum block size (bp) to show [default=100000]
+  -alt_cfgs CFGFILE [CFGFILE ...]
+                        An alternative config file for identifying homologous
+                        blocks [default=None]
+  -chr_ordered FILE     Provide a chromosome order to plot circos
+                        [default=None]
 
 Other options:
   -p INT, -ncpu INT     Maximum number of processors to use [default=32]
   -max_memory MEM       Maximum memory to use where limiting can be enabled.
-                        [default=65.1G]
+                        [default=65.2G]
   -cleanup              Remove the temporary directory [default=False]
   -overwrite            Overwrite even if check point files existed
                         [default=False]
