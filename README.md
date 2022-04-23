@@ -24,12 +24,17 @@ bash test_wheat.sh
    * [Inputs](#Inputs)
    * [Run SubPhaser](#Run-SubPhaser)
    * [Outputs](#Outputs)
+   * [Citation](#Citation)
    * [Full Usage and Default Parameters](#Full-Usage-and-Default-Parameters)
 
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenomes. 
 Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "differential signatures". 
 The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights into the evolutionary history of allopolyploidization.
+
+For details of methods and benchmarking results of SubPhaser, please see [the paper in *New Phytologist*](https://doi.org/10.1111/nph.18173) and 
+its [Supplementary Material](https://nph.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Fnph.18173&file=nph18173-sup-0001-SupInfo.pdf) 
+including performances in dozens of chromosome-level neoallopolyploid/hybrid genomes published before October, 2021.
 
 There are mainly four modules:
 
@@ -116,10 +121,6 @@ Mutiple config files:
 ```
 subphaser -i genome.fasta.gz -c sg1.config sg2.config
 ```
-When constructing a tree with a mass of LTR-RTs, `FastTree` is recommended (much faster than `iqtree` but maybe less accurate):
-```
-subphaser -i genome.fasta.gz -c sg.config  -subsample 0 -tree_method FastTree -tree_options ""
-```
 Input custom feature (e.g. transposable element, gene) sequences for subgenome-specific enrichments:
 ```
 subphaser -i genome.fasta.gz -c sg.config -custom_features TEs.fasta genes.fasta
@@ -160,6 +161,9 @@ tmp/
 ├── LTR.LTR_*.map           # information of tip nodes on the above tree
 .....
 ```
+### Citation ###
+If you use `SubPhaser`, please cite:
+> Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, in press (DOI:10.1111/nph.18173)[https://doi.org/10.1111/nph.18173]
 
 ### Full Usage and Default Parameters ###
 ```

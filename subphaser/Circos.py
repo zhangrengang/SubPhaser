@@ -1,10 +1,11 @@
-import sys, os
+import sys, os, re
 import argparse
 #from xopen import xopen as open
 import collections
 from collections import OrderedDict
 import numpy as np
-from .small_tools import open_file as open
+#from .small_tools import open_file as open
+from xopen import xopen as open
 from .small_tools import lazy_open
 
 __version__='0.1'
@@ -180,7 +181,7 @@ def gff2dict(gene_gff3):
 		ID = d_info['ID']
 		d[ID] = [CHR, START, END]
 	return d
-def genome_base(genome_fasta, out_karyotype, out_gc, window_size=None, chr_mark=None, rechrom=False):
+def genome_base(genome_fasta, out_karyotype, out_gc, window_size=None, chr_mark=None, rechrom=False, color=None):
 	from Bio import SeqIO
 	from Bio.SeqUtils import GC
 	colors = ['chr'+ str(chr) for chr in list(range(1, 23))+['X', 'Y']]
@@ -197,15 +198,15 @@ def genome_base(genome_fasta, out_karyotype, out_gc, window_size=None, chr_mark=
 			line2 = [rc.id, start, end, gc]
 			line2 = list(map(str, line2))
 			print(' '.join(line2), file=f2)
-		if chr_mark is not None and not rc.id.lower().startswith(chr_mark.lower()):
+		if chr_mark is not None and not re.compile(chr_mark, re.I).match(rc.id):
 			continue
 		try:
-			color = colors[i]
+			chr_color = colors[i]
 		except IndexError:
-			color = colors[i-25]
+			chr_color = colors[i-25]
 		if rechrom and rc.id not in d_rechr:
 			continue
-		line1 = ['chr', '-', rechr(rc.id), rechr(rc.id), 0, seq_len, color]
+		line1 = ['chr', '-', rechr(rc.id), rechr(rc.id), 0, seq_len, chr_color]
 		line1 = list(map(str, line1))
 		print(' '.join(line1), file=f1)
 		i += 1
@@ -227,33 +228,6 @@ def genomes_base(genome_fastas, out_karyotype, d_cmap={}):
 			i += 1
 	f1.close()
 
-def out_sg_lines(sg_lines, datadir, ratio_col=6, enrich_col=7):
-	ratio_file = '{}/sg_ratio.txt'.format(datadir)
-	enrich_file = '{}/sg_enrich.txt'.format(datadir)
-	fr = open(ratio_file, 'w')
-	fe = open(enrich_file, 'w')
-	for line in sg_lines:
-		chrom, start, end = line[:3]
-		ratio = line[ratio_col]
-		enrich = line[enrich_col]
-		for f, dat in zip((fr, fe), (ratio, enrich)):
-			line = [chrom, start, end, dat]
-			line = map(str, line)
-			f.write('\t'.join(line) + '\n')
-	fr.close()
-	fe.close()
-	return ratio_file, enrich_file
-def fmt_color(sgs, color_set, white='white'):
-	if len(sgs) > len(color_set):
-		color_set = color_set * (len(sgs)//len(color_set) + 1)
-	colors, d_cmap = [], {}
-	for i, sg in enumerate(sgs):
-		cname = str(sg)
-		d_cmap[cname] = color_set[i]
-		colors += [cname]
-	colors += [white]
-#	d_cmap[white] = white
-	return colors, d_cmap
 
 		
 CIRCLE = '''<plot>
@@ -279,7 +253,130 @@ stroke_thickness = 0
 # </axes>
 
 </plot>\n\n'''
+def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='', 
+		prefix='circos', figfmt='pdf',
+		chr_prefix='chr', window_size=100000):
+	from .RunCmdsMP import run_cmd
+	from .small_tools import mkdirs
+	
+	datadir = '{}/data'.format(wddir)
+	mkdirs(datadir)
+	
+	# karyotype
+	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
+	gc_file = '{}/genome_gc.txt'.format(datadir, )
+	genome_base(genome, karyotype_file, gc_file, chr_mark=chr_prefix, window_size=window_size)
+	
+	# tr
+	tr_file = '{}/tr_density.txt'.format(datadir, )
+	n = stack_bed(tr_bed, tr_file, window_size=window_size)
+	
+	
+	# histogram
+	conf_file = '{}/histogram.conf'.format(wddir)
+	fout = open(conf_file, 'w')
+	fout.write('<plots>\n\n')
+	
+	n_circles = 1
+	if hic_bed:
+		n_circles += 1
+	if chip_bed:
+		n_circles += 1
+	start = 0.99
+	step = round(0.55/n_circles, 2)
+	
+	# circle 1
+	colors = ['chr{}'.format(i) for i in range(1, n+1)]
+	r1, r0 = start, start-step
+	color = ','.join(colors)
+	circle = CIRCLE.format(type='histogram', datafile=tr_file, r1=r1, r0=r0, color=color)
+	fout.write(circle)
+	start = r0-0.01
+		
+	# hic
+	if hic_bed:
+		hic_file = '{}/hic_density.txt'.format(datadir, )
+		stack_bed(hic_bed, hic_file, window_size=window_size)
+		r1, r0 = start, start-step
+		color = 'red'
+		circle = CIRCLE.format(type='histogram', datafile=hic_file, r1=r1, r0=r0, color=color)
+		fout.write(circle)
+		start = r0-0.01
+	
+	# chip
+	if chip_bed:
+		chip_file = '{}/chip_density.txt'.format(datadir, )
+		stack_bed(chip_bed, chip_file, window_size=window_size)
+		r1, r0 = start, start-step
+		color = 'green'
+		circle = CIRCLE.format(type='histogram', datafile=chip_file, r1=r1, r0=r0, color=color)
+		fout.write(circle)
+		start = r0-0.01
+	
+	fout.write('</plots>\n\n')
+	fout.close()
+	
+	# plot
+	cmd = 'cd {} && circos -conf ./circos.conf'.format(wddir)
+	exit = run_cmd(cmd, log=True)
+	
+	svgfile = '{}/circos.svg'.format(wddir)
+	fmt_svg(svgfile)
+	figfile = '{}/circos.{}'.format(wddir, figfmt)
+	if figfmt == 'pdf':
+		svg2pdf(svgfile, figfile)
+	figfmts = set([figfmt, 'png'])
+	for figfmt in figfmts:
+		# link file
+		figfile = '{}/circos.{}'.format(wddir, figfmt)
+		dstfig = '{}.{}'.format(prefix, figfmt)
+		try: os.remove(dstfig)
+		except FileNotFoundError: pass
+		os.link(figfile, dstfig)
+	
+	# legend
+	annofile = '{}/../circos_legend.txt'.format(wddir)
+	fout = open(annofile, 'w')
+	fout.write('Rings from outer to inner:\n\t1. Karyotypes\n')
+	ring = 2
+	legend = 'Density of tandem repeats'
+	fout.write('\t{}. {}\n'.format(ring, legend))
+	if hic_bed:
+		ring += 1
+		legend = 'Density of Hi-C links'
+		fout.write('\t{}. {}\n'.format(ring, legend))
+	if chip_bed:
+		ring += 1
+		legend = 'Density of ChIP reads'
+		fout.write('\t{}. {}\n'.format(ring, legend))
+	fout.close()
+	
+	
+def stack_bed(bedfile, outfile, window_size=100000, trim=True, high_tile=99, low_tile=0):
+	bins, counts = stack_matrix(bedfile, window_size=window_size)
+	# limit
+	if trim:
+		counts = np.array(counts)
+		uppers = []
+	#	print(counts.shape)
+		for i in range(counts.shape[1]):
+			_count = counts[:,i]
+			upper, lower = abnormal(_count, high_tile=high_tile, low_tile=low_tile)
+			uppers += [upper]
 
+	fout = open(outfile, 'w')
+	for bin, count in zip(bins, counts):
+		n = len(count)
+		count = limit_upper(count, uppers)
+		count = ','.join(map(str, count))
+		line = list(bin) + [count]
+		line = map(str, line)
+		print('\t'.join(line), file=fout)
+	fout.close()
+	return n
+def limit_upper(count, uppers):
+	return [min(c,u) for c,u in zip(count, uppers)]
+	
 def circos_plot(genomes, wddir='circos', bedfile='', 
 		sg_lines=[], d_sg={}, prefix='circos', figfmt='pdf',
 		ltr_lines=[], enrich_ltr_bedlines=[[]],	# list
@@ -298,10 +395,9 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	# karyotype
 	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
 	genomes_base(genomes, karyotype_file, d_cmap=d_sg)
-	outpre = '{}/subgenome'.format(datadir)
 
 	# bedfile, split by keys
-#	d_outfiles = bed_density_by_col(bedfile, outpre, window_size=window_size)	# SG density
+	outpre = '{}/subgenome'.format(datadir)
 	d_outfiles = stack_bed_density(bedfile, outpre, colnames=sgs, window_size=window_size)
 	
 	# colors
@@ -314,6 +410,8 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	
 	# histogram
 	conf_file = '{}/histogram.conf'.format(wddir)
+	
+	
 	fout = open(conf_file, 'w')
 	fout.write('<plots>\n\n')
 
@@ -428,6 +526,34 @@ file       = {}
 			fout.write('\t{}. {}\n'.format(ring, legend))
 		if pafs:
 			fout.write('Window size: {} bp\n'.format(window_size))
+			
+def out_sg_lines(sg_lines, datadir, ratio_col=6, enrich_col=7):
+	ratio_file = '{}/sg_ratio.txt'.format(datadir)
+	enrich_file = '{}/sg_enrich.txt'.format(datadir)
+	fr = open(ratio_file, 'w')
+	fe = open(enrich_file, 'w')
+	for line in sg_lines:
+		chrom, start, end = line[:3]
+		ratio = line[ratio_col]
+		enrich = line[enrich_col]
+		for f, dat in zip((fr, fe), (ratio, enrich)):
+			line = [chrom, start, end, dat]
+			line = map(str, line)
+			f.write('\t'.join(line) + '\n')
+	fr.close()
+	fe.close()
+	return ratio_file, enrich_file
+def fmt_color(sgs, color_set, white='white'):
+	if len(sgs) > len(color_set):
+		color_set = color_set * (len(sgs)//len(color_set) + 1)
+	colors, d_cmap = [], {}
+	for i, sg in enumerate(sgs):
+		cname = str(sg)
+		d_cmap[cname] = color_set[i]
+		colors += [cname]
+	colors += [white]
+#	d_cmap[white] = white
+	return colors, d_cmap
 
 def fmt_svg(svgfile):
 	import re
@@ -528,7 +654,7 @@ stack: stack short bins into long window
 		except IndexError: continue
 		except ValueError: continue
 		if stack:
-			values = list(map(int, temp[3:]))	# assume bed format
+			values = list(map(tr_numeric, temp[3:]))	# assume bed format
 			values = np.array(values)
 			BIN = int(START // window_size)
 			if CHR not in d_count:
@@ -556,6 +682,12 @@ stack: stack short bins into long window
 	if split_by:
 		return d_counts
 	return d_count
+def tr_numeric(val):
+    try: return int(val)
+    except:
+        try: return float(val)
+        except: return val
+
 def bed_density_by_col(inBed, outpre, keycol=3, window_size=100000, **kargs):
 	d_counts = _bed_density(inBed, window_size=window_size, split_by=keycol, **kargs)
 	d_outfiles = {}
@@ -760,13 +892,13 @@ def write_density(d_count, outfile, window_size, trim=None):
 			line = list(map(str, line))
 			print(' '.join(line), file=f)
 	f.close()
-def abnormal(data, k=1.5):
+def abnormal(data, k=1.5, high_tile=99, low_tile=1):
 	q1 = np.percentile(data, 25)
 	q3 = np.percentile(data, 75)
 	iqr = q3 - q1
 	upper = q3 + iqr*k
-	upper = np.percentile(data, 99)
-	lower = np.percentile(data, 1)
+	upper = np.percentile(data, high_tile)
+	lower = np.percentile(data, low_tile)
 	return upper, lower
 def gene_density(gene_gff3, outfile, window_size=None, featurs=None, by_sites=False):
 	d_count = OrderedDict()

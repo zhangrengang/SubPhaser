@@ -33,10 +33,15 @@ def mk_ckp(ckgfile, *data, log=True):
 			pickle.dump(dat, f)
 	if log:
 		logger.info('New check point file: `{}`'.format(ckgfile))
-def check_ckp(ckgfile, log=True):
+def check_ckp(ckgfile, log=True, overwrite=False):
 	if os.path.exists(ckgfile):
+		if overwrite:
+			if log:
+				logger.info('Check point file: `{}` exists; but overwrite'.format(ckgfile))
+			return False
 		if log:
 			logger.info('Check point file: `{}` exists; skip this step'.format(ckgfile))
+
 		if os.path.getsize(ckgfile) == 0:
 			return True
 		data = []

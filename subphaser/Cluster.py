@@ -14,8 +14,9 @@ from .fonts import fonts
 from .RunCmdsMP import logger, pool_func
 
 class Cluster:
-	def __init__(self, datafile, n_clusters, sg_prefix='SG', sg_assigned={}, 
-						replicates=1000, jackknife=80, **kargs):
+	def __init__(self, datafile, n_clusters, sg_prefix='SG', 
+						sg_assigned={}, re_assign=True, # use priors
+						bootstrap=True, replicates=1000, jackknife=80, **kargs):
 		data = LoadData(datafile)
 		data.load_matrix()
 		# normalize
@@ -34,11 +35,15 @@ class Cluster:
 			logger.info('Skip k-means clustering')
 			labels = [sg_assigned[chr] for chr in self.chrs]
 			self.n_clusters = len(set(sg_assigned.values()))
-			self.d_sg = self.assign_subgenomes(labels=labels)
+			if re_assign:
+				self.d_sg = self.assign_subgenomes(labels=labels)
+			else:
+				self.d_sg = sg_assigned
 		else:
 			self.kmean = self.fit(self.data, n_clusters, **kargs)
 			self.d_sg = self.assign_subgenomes()
-		self.d_bs = self.bootstrap(replicates, jackknife)
+		if bootstrap:
+			self.d_bs = self.bootstrap(replicates, jackknife)
 	def pca(self, outfig, n_components=2, ):
 		pca = PCA(n_components=n_components)
 		X_pca = pca.fit_transform(self.data)
@@ -170,19 +175,19 @@ class Cluster:
 		return d_ksg
 #	def _output_kmers(self, args):
 def _output_kmers(args):
-		kmer, array, d_groups, test_method = args
-		grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
-		mean_vals = [np.mean(x) for x in grouped]
-		sgs = sorted(d_groups.keys())
-		xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
-		grouped = [x[0] for x in xgrouped]  # sorted with the same order
-		sgs = [x[1] for x in xgrouped]
-		max_freqs = grouped[0]
-		min_freqs = grouped[1]
-		max_sg = sgs[0]
-		#ttest = stats.ttest_ind(max_freqs, min_freqs)
-		#test = stats.kruskal(max_freqs, min_freqs)
-		test = test_method(max_freqs, min_freqs)
-		pvalue = test.pvalue
-		rc_kmer = str(Seq(kmer).reverse_complement())
-		return kmer, max_sg, pvalue, rc_kmer, mean_vals
+	kmer, array, d_groups, test_method = args
+	grouped = [ [array[i] for i in idx] for sg, idx in sorted(d_groups.items())]
+	mean_vals = [np.mean(x) for x in grouped]
+	sgs = sorted(d_groups.keys())
+	xgrouped = sorted(zip(grouped, sgs), key=lambda x: -sum(x[0])/len(x[0]))
+	grouped = [x[0] for x in xgrouped]  # sorted with the same order
+	sgs = [x[1] for x in xgrouped]
+	max_freqs = grouped[0]
+	min_freqs = grouped[1]
+	max_sg = sgs[0]
+	#ttest = stats.ttest_ind(max_freqs, min_freqs)
+	#test = stats.kruskal(max_freqs, min_freqs)
+	test = test_method(max_freqs, min_freqs)
+	pvalue = test.pvalue
+	rc_kmer = str(Seq(kmer).reverse_complement())
+	return kmer, max_sg, pvalue, rc_kmer, mean_vals
