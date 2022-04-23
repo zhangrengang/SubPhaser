@@ -163,7 +163,7 @@ tmp/
 ```
 ### Citation ###
 If you use `SubPhaser`, please cite:
-> Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, in press (DOI:10.1111/nph.18173)[https://doi.org/10.1111/nph.18173]
+> Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, in press [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
 
 ### Full Usage and Default Parameters ###
 ```
