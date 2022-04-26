@@ -203,6 +203,10 @@ class LTRtree:
 		# assign CPU
 		prop = [v**2 for v in nseqs]
 		tprop = sum(prop)
+		if tprop == 0:
+			logger.error('Zero sequences to build trees. Please modify parameters or \
+skip this step by `-disable_ltrtree`')
+
 		ncpus = [max(1, int(self.ncpu*v/tprop)) for v in prop]
 		#print(ncpus)
 		

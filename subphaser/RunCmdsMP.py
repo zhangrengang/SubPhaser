@@ -280,7 +280,7 @@ def file2list(cmd_file, sep="\n"):
 			cmd_list = f.read().split(sep)
 	return [cmd for cmd in cmd_list if cmd.strip()]
 
-def run_cmd(cmd, log=False, logger=None, fail_exit=False):
+def run_cmd(cmd, log=False, logger=None, fail_exit=True):
 	if log and logger is None:
 		logger = LOGGER
 	if logger is not None:
