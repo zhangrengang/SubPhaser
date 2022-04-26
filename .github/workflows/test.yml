@@ -36,6 +36,6 @@ jobs:
     
     - name: run test
     # run test 
-      run: cd example_data
-      run: bash test_Arabidopsis.sh
+    - run: cd example_data
+    - run: bash test_Arabidopsis.sh
       
