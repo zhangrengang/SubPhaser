@@ -29,17 +29,15 @@ jobs:
     - run: conda env create -f SubPhaser.yaml
 
     - name: activate
-      run: conda activate SubPhaser
+      run: source /usr/share/miniconda/etc/profile.d/conda.sh
+    - run: conda activate SubPhaser
       
     - name: Install SubPhaser
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      uses: actions/checkout@v2
-    # install TEsorter
-    - run: python setup.py install
+      run: python setup.py install
     
     - name: run test
     # run test 
       run: cd example_data
-    - name: test
-      run: bash test_Arabidopsis.sh
+    - run: bash test_Arabidopsis.sh
       
