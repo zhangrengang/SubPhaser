@@ -30,6 +30,7 @@ jobs:
 
     - name: activate
       run: conda init bash
+    - run: cat /home/runner/.bashrc
     - run: conda activate SubPhaser
       
     - name: Install SubPhaser
