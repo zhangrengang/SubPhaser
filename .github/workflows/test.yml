@@ -29,7 +29,7 @@ jobs:
     - run: conda env create -f SubPhaser.yaml
 
     - name: activate
-      run: source /usr/share/miniconda/etc/profile.d/conda.sh
+      run: conda init bash
     - run: conda activate SubPhaser
       
     - name: Install SubPhaser
