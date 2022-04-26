@@ -25,11 +25,11 @@ try:
 	GRID = True
 	from tempfile import NamedTemporaryFile
 except (RuntimeError,ImportError,AttributeError) as e:
-	if "DRMAA_LIBRARY_PATH" in format(e):
-		logger.warning('Grid computing is not available because DRMAA not configured properly: {}'.format(e))
-	else:
-		logger.warning('Grid computing is not available because DRMAA not installed: {}'.format(e))
-		logger.info('No DRMAA, Switching to local/cluster mode.')
+#	if "DRMAA_LIBRARY_PATH" in format(e):
+#		logger.warning('Grid computing is not available because DRMAA not configured properly: {}'.format(e))
+#	else:
+#		logger.warning('Grid computing is not available because DRMAA not installed: {}'.format(e))
+#		logger.info('No DRMAA, Switching to local/cluster mode.')
 	GRID = False
 
 __version__ = '1.1'
