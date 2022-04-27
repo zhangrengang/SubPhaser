@@ -28,11 +28,11 @@ jobs:
     # install dependencies
     - run: conda env create -f SubPhaser.yaml
 
-    - name: activate
-      run: conda init bash
-    - run: cat /home/runner/.bashrc
+#    - name: activate
+#      run: conda init bash
+#    - run: cat /home/runner/.bashrc
     - run: conda env list
-    - run: export PATH=/usr/share/miniconda/envs/SubPhaser:$PATH
+    - run: export PATH=/usr/share/miniconda/envs/SubPhaser/bin:$PATH
 #    - run: . "/usr/share/miniconda/etc/profile.d/conda.sh"
     - run: which python   
 #    - run: conda activate SubPhaser
@@ -44,5 +44,7 @@ jobs:
     - name: run test
     # run test 
       run: cd example_data
+    - run: ls -al
+    - run: pwd
     - run: bash test_Arabidopsis.sh
       
