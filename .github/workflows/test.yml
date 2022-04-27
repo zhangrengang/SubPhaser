@@ -34,6 +34,7 @@ jobs:
     - run: conda env list
     - run: export PATH=/usr/share/miniconda/envs/SubPhaser/bin:$PATH
 #    - run: . "/usr/share/miniconda/etc/profile.d/conda.sh"
+    - run: ls -al /usr/share/miniconda/envs/SubPhaser/bin
     - run: which python   
 #    - run: conda activate SubPhaser
       
@@ -41,10 +42,10 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       run: python setup.py install
     
-    - name: run test
+#    - name: run test
     # run test 
-      run: cd example_data
+#      run: cd example_data
     - run: ls -al
     - run: pwd
-    - run: cd example_data && bash test_Arabidopsis.sh
+    - run: cd example_data && export PATH=/usr/share/miniconda/envs/SubPhaser/bin:$PATH && bash test_Arabidopsis.sh
       
