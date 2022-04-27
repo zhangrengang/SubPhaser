@@ -31,6 +31,9 @@ jobs:
     - name: activate
       run: conda init bash
     - run: cat /home/runner/.bashrc
+    - run: conda env list
+    - run: . "/usr/share/miniconda/etc/profile.d/conda.sh"
+    
     - run: conda activate SubPhaser
       
     - name: Install SubPhaser
