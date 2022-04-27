@@ -32,9 +32,10 @@ jobs:
       run: conda init bash
     - run: cat /home/runner/.bashrc
     - run: conda env list
-    - run: . "/usr/share/miniconda/etc/profile.d/conda.sh"
-    
-    - run: conda activate SubPhaser
+    - run: export PATH=/usr/share/miniconda/envs/SubPhaser:$PATH
+#    - run: . "/usr/share/miniconda/etc/profile.d/conda.sh"
+    - run: which python   
+#    - run: conda activate SubPhaser
       
     - name: Install SubPhaser
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
