@@ -40,7 +40,7 @@ jobs:
       
     - name: Install SubPhaser
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      run: python setup.py install
+      run: export PATH=/usr/share/miniconda/envs/SubPhaser/bin:$PATH && python setup.py install
     
 #    - name: run test
     # run test 
