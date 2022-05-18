@@ -279,7 +279,7 @@ def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='',
 	
 	n_circles = 1
 	if hic_bed:
-		n_circles += 1
+		n_circles += 2
 	if chip_bed:
 		n_circles += 1
 	start = 0.99
@@ -295,10 +295,20 @@ def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='',
 		
 	# hic
 	if hic_bed:
-		hic_file = '{}/hic_density.txt'.format(datadir, )
-		stack_bed(hic_bed, hic_file, window_size=window_size)
+		# inter
+		hic_file = '{}/hic_inter.density.txt'.format(datadir, )
+		stack_bed(hic_bed[0], hic_file, window_size=window_size)
 		r1, r0 = start, start-step
 		color = 'red'
+		circle = CIRCLE.format(type='histogram', datafile=hic_file, r1=r1, r0=r0, color=color)
+		fout.write(circle)
+		start = r0-0.01
+		
+		# intra
+		hic_file = '{}/hic_intra.density.txt'.format(datadir, )
+		stack_bed(hic_bed[1], hic_file, window_size=window_size)
+		r1, r0 = start, start-step
+		color = 'lred'
 		circle = CIRCLE.format(type='histogram', datafile=hic_file, r1=r1, r0=r0, color=color)
 		fout.write(circle)
 		start = r0-0.01
@@ -358,7 +368,7 @@ def stack_bed(bedfile, outfile, window_size=100000, trim=True, high_tile=99, low
 	if trim:
 		counts = np.array(counts)
 		uppers = []
-	#	print(counts.shape)
+	#	print(counts.shape, counts[:10])
 		for i in range(counts.shape[1]):
 			_count = counts[:,i]
 			upper, lower = abnormal(_count, high_tile=high_tile, low_tile=low_tile)

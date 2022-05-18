@@ -248,7 +248,7 @@ class KmerMatrix:
 		run_cmd(cmd, log=True)
 		outsam = prefix + '.sam'
 		cmd = '''bowtie {ref} {reads} -f  -p 10 -S --best --sam-nohead 2> {reads}.map.log \
-			| awk '{{if ($3=="*"){{$3="chr0";$4=NR}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
+			| awk '{{if ($3=="*"){{$3="chr0";$4=NR*10}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
 				ref=ref, reads=outfa, snp=outsnp)
 		run_cmd(cmd, log=True)
 

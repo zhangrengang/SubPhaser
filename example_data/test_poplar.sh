@@ -5,6 +5,6 @@ prefix=poplar
 	mv GCA_018804465.1_PTv2_genomic.fna.gz ${prefix}_genome.fasta.gz
 
 # run subphaser
-options="-pre ${prefix}_" # to avoid conficts
+options="-pre ${prefix}_" # to avoid conflicts
 subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options 2>&1 | tee ${prefix}.log
 	

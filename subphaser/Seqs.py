@@ -94,9 +94,12 @@ def map_kmer3(chromfiles, d_kmers, fout=sys.stdout, k=None, window_size=10e6,
 		if c > 0:
 			mapped_seqs += 1
 	logger.info('Processed {} sequences'.format(i))
-	logger.info('{} ({:.2%}) sequences contain subgenome-specific kmers'.format(mapped_seqs, mapped_seqs/i))
 	mapped_cat, total = len(mapped_cat), len(d_kmers)
-	logger.info('{:.2%} of {} subgenome-specific kmers are mapped'.format(mapped_cat/total, total//2))
+	try:
+		logger.info('{} ({:.2%}) sequences contain subgenome-specific kmers'.format(mapped_seqs, mapped_seqs/i))
+		logger.info('{:.2%} of {} subgenome-specific kmers are mapped'.format(mapped_cat/total, total//2))
+	except ZeroDivisionError:
+		logger.warn('None sequences, please check.')
 
 def chunk_chromfiles(chromfiles, window_size=10e6, overlap=0):
 	'''too large genome need to chunk'''

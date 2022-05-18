@@ -6,6 +6,6 @@ url=https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/018/446/385/GCA_018446385.1_Zo_
 	mv ${prefix}_genomic.fna.gz ${prefix}_genome.fasta.gz
 
 # run subphaser
-options="-pre ${prefix}_" # to avoid conficts
+options="-pre ${prefix}_" # to avoid conflicts
 subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options 2>&1 | tee ${prefix}.log
 	

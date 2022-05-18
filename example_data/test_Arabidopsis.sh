@@ -7,7 +7,7 @@ url=https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/019/202/805/GCA_019202805.1_ASM
 
 DT=`date +"%y%m%d%H%M"`
 # run subphaser
-options="-pre ${prefix}_" # to avoid conficts
+options="-pre ${prefix}_" # to avoid conflicts
 subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options 2>&1 | tee ${prefix}.log.$DT
 
 	

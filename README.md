@@ -75,8 +75,11 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
+**Note**: On the clustering heatmap (Fig. B) and PCA plot (Fig. C), a subgenome is defined as well-phased if it has clearly distinguishable patterns of both differential k-mers and homeologous chromosomes, indicating that each subgenome shares subgenome-specific features as expected. If the subgenomes are not well-phased, the downstream analyses are meaningless and should be ignored.
+
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
+**Note**: do not use hard-masked genome by RepeatMakser, as `subphaser` depends on repeat sequences.
 2. Configuration of homoeologous chromosome sets, e.g. 
 ```
 Chr1A   Chr1B   Chr1D                      # each row is one homoeologous chromosome set

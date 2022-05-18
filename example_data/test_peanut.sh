@@ -7,6 +7,6 @@ url=https://peanutbase.org/data/v2/Arachis/hypogaea/genomes/Tifrunner.gnm2.J5K5/
 
 DT=`date +"%y%m%d%H%M"`
 # run subphaser
-options="-pre ${prefix}_" # to avoid conficts
+options="-pre ${prefix}_" # to avoid conflicts
 subphaser -i ${prefix}_genome.fasta.gz -c ${prefix}_sg.config $options 2>&1 | tee ${prefix}.log.$DT
 	
