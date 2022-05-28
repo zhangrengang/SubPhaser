@@ -64,7 +64,7 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 **Figure. Phased subgenomes of allohexaploid bread wheat genome.** Colors are unified with each subgenome in subplots `B-F`, i.e. the same color means the same subgenome.
 * (**A**) The histogram of differential k-mers among homoeologous chromosome sets. 
 * (**B**) Heatmap and clustering of differential k-mers. The x-axis, differential k-mers; y-axis, chromosomes. The vertical color bar, each chromosome is assigned to which subgenome; the horizontal color bar, each k-mer is specific to which subgenome (blank for non-specific kmers).
-* (**C**) Principal component analysis (PCA) of differential k-mers. 
+* (**C**) Principal component analysis (PCA) of differential k-mers. Points indicate chromosomes.
 * (**D**) Chromosomal characteristics (window size: 1 Mb). Rings from outer to inner: 
    - (**1**) Subgenome assignments by a k-Means algorithm. 
    - (**2**) Significant enrichment of subgenome-specific k-mers (blank for non-enriched windows). 
@@ -86,10 +86,10 @@ Chr1A   Chr1B   Chr1D                      # each row is one homoeologous chromo
 Chr2B   Chr2A   Chr2D                      # chromosome order is arbitrary and useless
 Chr3D   Chr3B   Chr3A                      # seperate with blank character(s)
 Chr4B   Chr4D   Chr4A
-5A|Chr5A   5B|Chr5B   5D|Chr5D             # rename chromosome id to 5A, 5B and 5D, respectively
-Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # treat multiple chromosomes together using ","
+5A|Chr5A   5B|Chr5B   5D|Chr5D             # will rename chromosome id to 5A, 5B and 5D, respectively
+Chr6A,Chr7A   Chr6B,Chr7B   Chr6D,Chr7D    # will treat multiple chromosomes together using ","
 ```
-If some homoeologous relationships are ambiguous, they can be placed as singletons that will not used to identify differential kmers. For example:
+If some homoeologous relationships are ambiguous, they can be placed as singletons that will not be used to identify differential kmers. For example:
 ```
 Chr1A   Chr1B   Chr1D
 Chr2B   Chr2A   Chr2D
