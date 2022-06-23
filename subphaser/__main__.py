@@ -159,8 +159,10 @@ of `gplots` package) [default="%(default)s"]')
 	group_ltr.add_argument('-exclude_exchanges', action="store_true", default=False,
                     help="Exclude potential exchanged LTRs for insertion age estimation and phylogenetic trees \
 [default=%(default)s]")
-	group_ltr.add_argument('-shared_ltr', action="store_true", default=False,
-                    help="Identify shared LTR-RTs among subgenomes (experimental) [default=%(default)s]")
+#	group_ltr.add_argument('-shared_ltr', action="store_true", default=False,
+#                    help="Identify shared LTR-RTs among subgenomes (experimental) [default=%(default)s]")
+	group_ltr.add_argument('-non_specific', action="store_true", default=False,
+                    help="Plot non-specific LTRs [default=%(default)s]")
 	group_ltr.add_argument('-mu', metavar='FLOAT', type=float, default=13e-9,
 					help='Substitution rate per year in the intergenic region, \
 for estimating age of LTR insertion \
@@ -594,11 +596,14 @@ class Pipeline:
 				d_shared, *_ = ckp
 		else:
 			d_shared = {}
-		
+			
 		# plot insert age
 		prefix = self.para_prefix + '.ltr.insert'
-		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, shared=d_shared, 
-						exclude_exchanges=self.exclude_exchanges, d_exchange=d_exchange, 
+		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, 
+						shared=d_shared, # shared LTRs to plot
+						exclude_exchanges=self.exclude_exchanges, # exclude exchanges or not
+						d_exchange=d_exchange, # exchanged LTRs
+						non_specific=self.non_specific,	# plot non-specific LTRs
 						mu=self.mu, figfmt=self.figfmt)
 		
 		# ltr tree

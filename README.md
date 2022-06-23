@@ -133,7 +133,7 @@ subphaser -i genome.fasta.gz -c sg.config -custom_features TEs.fasta genes.fasta
 ### Outputs ###
 ```
 phase-results/
-├── k15_q200_f2.circos/                # config and data files for circos plot, so developers are able to re-plot with some custom modification
+├── k15_q200_f2.circos/                # config and data files for circos plot, so developers are able to re-plot with some custom modifications
 ├── k15_q200_f2.kmer_freq.pdf          # histogram of differential kmers, useful to adjust option `-q`
 ├── k15_q200_f2.kmer.mat               # differential kmer matrix (m kmer × n chromosome)
 ├── k15_q200_f2.kmer.mat.pdf           # heatmap of the kmer matrix

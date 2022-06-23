@@ -470,7 +470,7 @@ def is_completed(ltr):
 	return True if completed == 'yes' else False
 
 def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, exclude_exchanges=False, d_exchange={}, 
-		shared={}, figfmt='pdf'):
+		shared={}, non_specific=False, figfmt='pdf'):
 	datfile = prefix + '.data'
 	fout = open(datfile, 'w')
 	line = ['ltr', 'sg', 'age']
@@ -488,9 +488,11 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, exclude_exchanges=False, 
 			if exclude_exchanges and ltr.exchange == 'yes':
 				excluded += 1
 				continue
-			
 		elif ltr.id in shared:
 			sg = 'shared'
+			ltr.sg = sg
+		elif non_specific:
+			sg = 'non-specific'
 			ltr.sg = sg
 		else:
 			continue
@@ -514,11 +516,15 @@ def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, exclude_exchanges=False, 
 	text = 'Summary: median (95% CI)\\n'
 	for sg, info in sorted(d_info.items()):
 		text += '{}: {}\\n'.format(sg, info)
-		
+	
+	sorted_sg = ','.join(map(repr, sorted(d_info.keys())))
+
 	rsrc_file = prefix + '.R'
-	outfig = prefix + '.' + figfmt
+	outfig1 = prefix + '.density.' + figfmt
+	outfig2 = prefix + '.histo.' + figfmt
 	rsrc = '''library(ggplot2)
 data = read.table('{datfile}',fill=T,header=T, sep='\\t')
+data$sg = factor(data$sg, levels=c({sorted_sg}))
 p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) + 
 	xlab('LTR insertion age (million years)') + ylab('Density') + 
 	scale_colour_manual(values={colors}) + labs(color='Subgenome') + 
@@ -531,8 +537,25 @@ p <- ggplot(data, aes(x = age, color=sg)) + geom_line(stat="density", size=1.5) 
 		axis.text=element_text(size={tick_fontsize})) +
 	guides(color=guide_legend(title=NULL))
 
-ggsave('{outfig}', p, width=7, height=7, dpi=300, units="in") 
-'''.format(datfile=datfile, outfig=outfig, colors=colors_r, annotate=text, **fonts_r)
+ggsave('{outfig1}', p, width=7, height=7, dpi=300, units="in") 
+
+# histogram
+p <- ggplot(data, aes(x = age, fill=sg)) + geom_histogram() + 
+	xlab('LTR insertion age (million years)') + ylab('Frequence') + 
+	scale_fill_manual(values={colors}) + labs(fill='Subgenome') + 
+	annotate('text',x=Inf, y=Inf, label="{annotate}", hjust=1.1, vjust=1.1)+
+	theme_bw() + 
+	theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+	theme(legend.position=c(0.95,0.8), legend.justification=c(0.95,0.8)) +
+	theme(legend.background=element_blank(), legend.key=element_blank()) +
+	theme(legend.text=element_text(size={fontsize}), axis.title=element_text(size={fontsize}),
+		axis.text=element_text(size={tick_fontsize})) +
+	guides(fill=guide_legend(title=NULL))
+
+ggsave('{outfig2}', p, width=7, height=7, dpi=300, units="in") 
+
+'''.format(datfile=datfile, outfig1=outfig1, outfig2=outfig2, sorted_sg=sorted_sg, 
+			colors=colors_r, annotate=text, **fonts_r)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)
 	cmd = 'Rscript ' + rsrc_file
