@@ -586,7 +586,7 @@ class Pipeline:
 			logger.info('\t{} {}{} LTR-RTs'.format(count, sg, suffix))
 		
 		# shared
-		if self.shared_ltr:
+		if False: #self.shared_ltr:
 			ckp_file = tmpdir + '.' + self.basename + '.shared.ok'
 			ckp = check_ckp(ckp_file)
 			if self.overwrite or self.re_filter or not ckp:
