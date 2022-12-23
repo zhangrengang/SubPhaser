@@ -1,4 +1,5 @@
 import sys
+import re
 import copy
 from collections import OrderedDict
 from Bio import SeqIO
@@ -7,6 +8,22 @@ import numpy as np
 from xopen import xopen as open
 from .RunCmdsMP import logger, pp_func, pool_func
 
+def split_genomes(genomes, outdir, chr_mark=None, min_size=None):
+	d_targets, d_size = {}, {}
+	outfas = []
+	for genome in genomes:
+		for rc in SeqIO.parse(open(genome), 'fasta'):
+			if min_size and len(rc) < min_size:
+				continue
+			if chr_mark and not re.compile(chr_mark, re.I).search(rc.id):
+				continue
+			outfa = '{}{}.fasta'.format(outdir, rc.id)
+			with open(outfa, 'w') as fout:
+				SeqIO.write(rc, fout, 'fasta')
+			outfas += [outfa]
+			d_size[rc.id] = len(rc.seq)
+			d_targets[rc.id] = outfa
+	return outfas, d_targets, d_size
 def split_genomes(genomes, prefixes, targets, outdir, d_targets=None, sep='|'):
 	# allow renaming id split by `|`
 	d_targets2 = OrderedDict()

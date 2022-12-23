@@ -1,4 +1,4 @@
-import sys, os, re
+import sys, os, re, shutil
 import argparse
 #from xopen import xopen as open
 import collections
@@ -512,7 +512,8 @@ file       = {}
 		dstfig = '{}.{}'.format(prefix, figfmt)
 		try: os.remove(dstfig)
 		except FileNotFoundError: pass
-		os.link(figfile, dstfig)
+		try: os.link(figfile, dstfig)
+		except PermissionError: shutil.move(figfile, dstfig)
 	
 	# legend
 	annofile = '{}/../circos_legend.txt'.format(wddir)

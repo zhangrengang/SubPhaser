@@ -4,7 +4,7 @@ import numpy as np
 from Bio.Seq import Seq
 from scipy import stats
 from xopen import xopen as open
-from .RunCmdsMP import run_cmd, logger, pool_func
+from .RunCmdsMP import run_cmd, logger, pool_func, run_job
 from .small_tools import is_gz, mk_ckp, check_ckp
 from .fonts import fonts
 from .colors import colors_r
@@ -248,7 +248,7 @@ class KmerMatrix:
 		run_cmd(cmd, log=True)
 		outsam = prefix + '.sam'
 		cmd = '''bowtie {ref} {reads} -f  -p 10 -S --best --sam-nohead 2> {reads}.map.log \
-			| awk '{{if ($3=="*"){{$3="chr0";$4=NR*10}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
+			| awk '{{if ($3=="*"){{$3="chr0";$4=NR*1}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
 				ref=ref, reads=outfa, snp=outsnp)
 		run_cmd(cmd, log=True)
 
@@ -712,12 +712,13 @@ def run_kmc_sort(seqfile, threads=4, k=25, prefix=None, outdir='.',
 		cmd = 'realpath {seqfile} > {outdir}/{prefix}.list && cd {outdir} &&\
 	mkdir -p {prefix}_{KMER} && \
 	kmc -m58 -t{NCPU} -k{KMER} -ci{lower_count} -cs{upper_count} -{format} @{prefix}.list {prefix}_{KMER} {prefix}_{KMER} > {prefix}_{KMER}.stats &&\
-        kmc_tools transform {prefix}_{KMER} sort {prefix}_{KMER}.sorted && \
-		kmc_tools transform {prefix}_{KMER} histogram {prefix}_{KMER}.histo -cx100000 &&\
+        kmc_tools -t4 transform  {prefix}_{KMER} sort {prefix}_{KMER}.sorted && \
+		kmc_tools -t4 transform  {prefix}_{KMER} histogram {prefix}_{KMER}.histo -cx100000 &&\
 		rm {prefix}_{KMER}.kmc_* {prefix}_{KMER} -r && touch {ckp_file}'.format(
 		seqfile=seqfile, NCPU=threads, KMER=k, prefix=prefix, outdir=outdir, format=fmt,
 				ckp_file=ckp_file, lower_count=lower_count, upper_count=upper_count)
-		run_cmd(cmd, log=True)
+#		run_cmd(cmd, log=True)
+		return cmd
 	return output
 
 def kmc_matrix(dbs, samples=None, outMat=None, bin='matrixer',  overwrite=False):
@@ -738,12 +739,33 @@ def kmc_matrix(dbs, samples=None, outMat=None, bin='matrixer',  overwrite=False)
 		cmd = '{bin} {input} | pigz >> {output} && touch {ckp_file} && xrm {dbfiles}'.format(
 			bin=bin, input=input, output=outMat, ckp_file=ckp_file, dbfiles=' '.join(dbfiles))
 		run_cmd(cmd, log=True)
+
+job_args = {
+	'tc_tasks': 3,
+	'mode': 'grid',
+	'grid_opts': '-tc {tc} -l h_vmem={mem} -pe mpi {cpu} ',
+	'retry': 3,
+	'cont': 0,
+	'cpu': 1,
+	'mem': '100g',
+	'template': 'if [ $SGE_TASK_ID -eq {id} ]; then\n{cmd}\nfi',
+	}
 def run_kmc_dict(d_seqfiles, outdir='.', overwrite=False, **kargs):
 	dumpfiles = []
 	histofiles = []
+	cmds = []
+	for sample, seqfile in d_seqfiles.items():
+		cmd = run_kmc_sort(seqfile, prefix=sample, outdir=outdir, overwrite=overwrite, **kargs)
+		if not os.path.exists(cmd):
+			cmds += [cmd]
+	cmd_file = '{}/run_kmc.sh'.format(outdir)
+	job_args['cont'] = not overwrite
+	job_args['cpu'] = kargs.get('threads', 4)
+	run_job(cmd_file, cmds, **job_args)
+	
 	for sample, seqfile in d_seqfiles.items():
 		#logger.info('Count kmers of ' + sample)
-		dumpfile = run_kmc_sort(seqfile, prefix=sample, outdir=outdir, overwrite=overwrite, **kargs)
+		dumpfile = run_kmc_sort(seqfile, prefix=sample, outdir=outdir, overwrite=0, **kargs)
 		dumpfiles += [dumpfile]
 		histofile = os.path.splitext(dumpfile)[0] + '.histo'
 		histofiles += [histofile]
