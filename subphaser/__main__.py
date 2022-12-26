@@ -580,7 +580,8 @@ class Pipeline:
 					max_pval=self.max_pval, ncpu=self.ncpu)
 		logger.info('Output: {}'.format(ltr_enrich))
 		
-		logger.info('{} significant subgenome-specific LTR-RTs'.format(len(d_enriched)))
+		n_enriched_ltrs = len(d_enriched)
+		logger.info('{} significant subgenome-specific LTR-RTs'.format(n_enriched_ltrs))
 		for sg, count in sorted(Counter(d_enriched.values()).items()):
 			suffix = {'shared':''}.get(sg, '-specific')
 			logger.info('\t{} {}{} LTR-RTs'.format(count, sg, suffix))
@@ -599,7 +600,10 @@ class Pipeline:
 			
 		# plot insert age
 		prefix = self.para_prefix + '.ltr.insert'
-		enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, 
+		if n_enriched_ltrs == 0:
+			logger.warn('Because of none subgenome-specific LTR-RTs, plots of LTR-RTs are skipped.')
+		else:
+			enrich_ltrs = LTR.plot_insert_age(ltrs, d_enriched, prefix, 
 						shared=d_shared, # shared LTRs to plot
 						exclude_exchanges=self.exclude_exchanges, # exclude exchanges or not
 						d_exchange=d_exchange, # exchanged LTRs
@@ -607,7 +611,7 @@ class Pipeline:
 						mu=self.mu, figfmt=self.figfmt)
 		
 		# ltr tree
-		if not self.disable_ltrtree:
+		if not self.disable_ltrtree and not n_enriched_ltrs == 0:
 			domfile = pipeline.int_seqs + '.cls.pep'
 			overwrite = (self.overwrite or self.re_filter)
 			prefix = tmpdir + '.' + self.basename
