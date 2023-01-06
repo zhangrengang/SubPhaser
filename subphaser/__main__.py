@@ -78,7 +78,8 @@ if `-min_prop` is specified [default=%(default)s]")
 	group_kmer.add_argument('-baseline', type=int, default=1, 
 					 help="Use sub-maximum (1) or minimum (-1) as the baseline of fold \
 [default=%(default)s]")
-
+	group_kmer.add_argument('-ratio', type=float, default=1,
+                     help="Need `-min_fold` to be true in how many chromosome set [default=%(default)s]")
 	group_kmer.add_argument('-lower_count', type=int, default=3, metavar='INT',
 					 help="Don't output k-mer with count < lower-count [default=%(default)s]")
 	group_kmer.add_argument('-min_prop', type=float, default=None, metavar='FLOAT',
@@ -414,7 +415,8 @@ class Pipeline:
 			d_mat = dumps.filter(d_mat, lengths, self.sgs, outfig=histfig, #d_targets=d_targets, 
 					min_fold=self.min_fold, baseline=self.baseline,
 					min_freq=self.min_freq, max_freq=self.max_freq,
-					min_prop=self.min_prop, max_prop=self.max_prop)
+					min_prop=self.min_prop, max_prop=self.max_prop,
+					ratio=self.ratio)
 			kmer_count2 = len(d_mat)
 	#		logger.info('{} ({:.2%}) kmers remained after filtering'.format(kmer_count2, kmer_count2/kmer_count))
 			if len(d_mat) == 0:

@@ -457,7 +457,7 @@ class JellyfishDumps:
 
 	def filter(self, d_mat, lengths, sgs, outfig=None, by_count=False, 
 				min_freq=200, max_freq=10000, min_fold=2, baseline=1, 
-				min_prop=None, max_prop=None):
+				min_prop=None, max_prop=None, ratio=1):
 		#logger.info([min_freq, max_freq, min_fold])
 		#logger.info(sgs)
 		tot_lens = sum(self.lengths)
@@ -480,7 +480,7 @@ class JellyfishDumps:
 		
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
-		args = ((kmer, counts, d_lens, sgs, outfig, by_count, min_freq, max_freq, min_fold, baseline) \
+		args = ((kmer, counts, d_lens, sgs, outfig, by_count, min_freq, max_freq, min_fold, baseline, ratio) \
 					for kmer, counts in d_mat.items())
 		i = 0
 		tot_freqs = []
@@ -603,7 +603,7 @@ dev.off()
 		
 def _filter_kmer(arg):
 	(kmer, counts, d_lens, sgs, outfig, by_count, 
-		min_freq, max_freq, min_fold, baseline) = arg
+		min_freq, max_freq, min_fold, baseline, ratio) = arg
 	labels = d_lens.keys()
 	lengths = d_lens.values()
 	tot = sum(counts)
@@ -611,11 +611,11 @@ def _filter_kmer(arg):
 		return kmer, False, None
 	# normalize
 	d_counts = dict(zip(labels, counts))
-	includes = []
+	include, _all = 0, 0
 	for sg in sgs:
 		if len(sg) == 1:
 			continue
-		include = False
+		_all += 1
 		freqs = []
 		for chrs in sg:
 			if len(chrs) == 1:
@@ -632,9 +632,9 @@ def _filter_kmer(arg):
 		_max_freq = freqs[0]
 		_min_freq = freqs[baseline]
 		if 1.0 * _max_freq / (_min_freq+1e-20) >= min_fold:
-			include = True
-		includes += [include]
-	if not all(includes):
+			include += 1
+	_ratio = 1.0*include/_all
+	if _ratio < ratio:
 		return kmer, False, None
 	if outfig and (tot < min_freq or tot > max_freq):
 		return kmer, False, tot

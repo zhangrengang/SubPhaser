@@ -30,8 +30,7 @@ bash test_wheat.sh
 
 ### Introduction ###
 For many allopolyploid species, their diploid progenitors are unknown or extinct, making it impossible to unravel their subgenomes. 
-Here, we develop `SubPhaser` to partition and phase subgenomes, by using repetitive kmers as the "differential signatures". 
-The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights into the evolutionary history of allopolyploidization.
+Here, we develop `SubPhaser` to phase subgenomes, by using repetitive kmers as the "differential signatures", assuming that repetitive sequences (mainly transposable elements) were expanded across chromosomes in the progenitors' independently evolving period. The tool also identifies genome-wide subgenome-specific regions and long terminal repeat retrotransposons (LTR-RTs), which will provide insights into the evolutionary history of allopolyploidization.
 
 For details of methods and benchmarking results of SubPhaser, please see [the paper in *New Phytologist*](https://doi.org/10.1111/nph.18173) and 
 its [Supplementary Material](https://nph.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Fnph.18173&file=nph18173-sup-0001-SupInfo.pdf) 
@@ -39,7 +38,7 @@ including performances in dozens of chromosome-level neoallopolyploid/hybrid gen
 
 There are mainly four modules:
 
-1. The core module to partition and phase subgenomes:
+1. The core module to phase subgenomes:
    - Count kmers by `jellyfish`.
    - Identify the differential kmers among homoeologous chromosome sets.
    - Cluster into subgenomes by a K-Means algorithm and estimate confidence level by the bootstrap.
@@ -78,7 +77,7 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 **Note**: On the clustering heatmap (Fig. B) and PCA plot (Fig. C), a subgenome is defined as well-phased if it has clearly distinguishable patterns of both differential k-mers and homeologous chromosomes, indicating that each subgenome shares subgenome-specific features as expected. If the subgenomes are not well-phased, the downstream analyses are meaningless and should be ignored.
 
 ### Inputs ###
-1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (ABD, 1n=3x=21).
+1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (haploid assembly, ABD, 1n=3x=21).
 **Note**: do not use hard-masked genome by RepeatMakser, as `subphaser` depends on repeat sequences.
 2. Configuration of homoeologous chromosome sets, e.g. 
 ```
@@ -170,7 +169,7 @@ If you use `SubPhaser`, please cite:
 > Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, in press [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
 
 ### Contact ###
-For cooperations on polyploid genome research, please contact us via Email (zhangrengang@ori-gene.cn) or WeChat (bio_ture).
+For cooperations on polyploid genome research, please contact us via Email (zhangrengang@mail.kib.ac.cn) or WeChat (bio_ture).
 
 ### Full Usage and Default Parameters ###
 ```
