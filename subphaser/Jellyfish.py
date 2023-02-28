@@ -227,7 +227,7 @@ class KmerMatrix:
 		logger.info('Total kmers: {}; After filter: {} ({:.2%});'.format(
 				i, j, j/i, ))
 		return 
-	def to_gemma(self, prefix, genome=None):
+	def to_gemma(self, prefix, tmpdir, genome=None, mapq=1):
 		iterable = ((line, samples) \
 						for line, samples in self)
 		jobs = pool_func(_parse_line, iterable, 
@@ -243,13 +243,13 @@ class KmerMatrix:
 		if not genome:
 			return
 		
-		ref= '{}.ref'.format( prefix)
+		ref= '{}/ref'.format(tmpdir, )
 		cmd = '[ ! -f {1}.ok ] && bowtie-build {0} {1} && touch {1}.ok'.format(genome, ref)
 		run_cmd(cmd, log=True)
 		outsam = prefix + '.sam'
-		cmd = '''bowtie {ref} {reads} -f  -p 10 -S --best --sam-nohead 2> {reads}.map.log \
-			| awk '{{if ($3=="*"){{$3="chr0";$4=NR*1}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
-				ref=ref, reads=outfa, snp=outsnp)
+		cmd = '''bowtie {ref} {reads} -f  -p 10 -S --best -M 1 --sam-nohead 2> {reads}.map.log \
+			| awk '$5>={mapq}{{if ($3=="*"){{$3="chr0";$4=NR*1}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
+				ref=ref, reads=outfa, snp=outsnp, mapq=mapq)
 		run_cmd(cmd, log=True)
 
 class KmerMatrixLine:

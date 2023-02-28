@@ -8,6 +8,7 @@ import numpy as np
 from xopen import xopen as open
 from .small_tools import lazy_open
 
+
 __version__='0.1'
 __LastModified__='20190115'
 __Example__=''
@@ -203,7 +204,7 @@ def genome_base(genome_fasta, out_karyotype, out_gc, window_size=None, chr_mark=
 		try:
 			chr_color = colors[i]
 		except IndexError:
-			chr_color = colors[i-25]
+			chr_color = colors[i%len(colors)]
 		if rechrom and rc.id not in d_rechr:
 			continue
 		line1 = ['chr', '-', rechr(rc.id), rechr(rc.id), 0, seq_len, chr_color]
@@ -253,15 +254,51 @@ stroke_thickness = 0
 # </axes>
 
 </plot>\n\n'''
-def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='', 
+class CircleLegend:
+	def __init__(self, labels, colors, title=None, **kargs):
+		self.labels = labels
+		self.colors = colors
+		self.title = title
+		self.kargs = kargs
+	def plot(self, ax):
+		for clade, color in zip(self.labels, self.colors):
+			ax.barh(0, 0, height=0, color=color, left=0, align='center', label=clade)
+		ncols = len(self.labels)//5 + 1
+		ax.legend(loc='upper left',fancybox=False, frameon=False)
+		ax.xaxis.set_tick_params(length=0)
+		ax.spines['right'].set_color('none')
+		ax.spines['top'].set_color('none')
+		ax.spines['left'].set_color('none')
+		ax.spines['bottom'].set_color('none')
+		ax.xaxis.set_ticks([])
+		ax.yaxis.set_ticks([])
+		ax.set_title(self.title, loc='left')
+class CirclesLegend:
+	def __init__(self, legends):
+		self.legends = legends
+	def plot(self, outfig):
+		import matplotlib.pyplot as plt
+		n = len(self.legends)
+		plt.figure()
+
+		for i, legend in enumerate(self.legends):
+			ax = plt.subplot(n, 1, i+1)
+			legend.plot(ax)
+		plt.savefig(outfig, bbox_inches='tight', transparent=True)
+		plt.close()
+		
+def centomics_plot(genome, wddir='circos', tr_bed='', tr_labels='',
+		hic_bed='', chip_bed='', 
 		prefix='circos', figfmt='pdf',
 		chr_prefix='chr', window_size=100000):
 	from .RunCmdsMP import run_cmd
+	from .colors import Colors
 	from .small_tools import mkdirs
 	
 	datadir = '{}/data'.format(wddir)
 	mkdirs(datadir)
 	
+	legends = []
 	# karyotype
 	karyotype_file = '{}/genome_karyotype.txt'.format(datadir)
 	gc_file = '{}/genome_gc.txt'.format(datadir, )
@@ -269,7 +306,7 @@ def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='',
 	
 	# tr
 	tr_file = '{}/tr_density.txt'.format(datadir, )
-	n = stack_bed(tr_bed, tr_file, window_size=window_size)
+	_n = n = stack_bed(tr_bed, tr_file, window_size=window_size)
 	
 	
 	# histogram
@@ -279,49 +316,64 @@ def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='',
 	
 	n_circles = 1
 	if hic_bed:
-		n_circles += 2
+		n_circles += 2-1
+		n += 1
 	if chip_bed:
 		n_circles += 1
+		n += 1
 	start = 0.99
 	step = round(0.55/n_circles, 2)
 	
 	# circle 1
-	colors = ['chr{}'.format(i) for i in range(1, n+1)]
+	colors = ['c{}'.format(i) for i in range(1, n+1)]
+	colors_mat = Colors(n)
+	colors_hex = colors_mat.to_hex()
+	colors_rgb = colors_mat.to_rgb()
+	_colors, d_cmap = fmt_color(colors, colors_rgb)
+	create_color_conf(wddir, d_cmap)
 	r1, r0 = start, start-step
-	color = ','.join(colors)
+	color = ','.join(colors[:_n])
 	circle = CIRCLE.format(type='histogram', datafile=tr_file, r1=r1, r0=r0, color=color)
 	fout.write(circle)
 	start = r0-0.01
-		
+	legend = CircleLegend(labels=tr_labels, colors=colors_hex, title='Tandem Repeats')
+	legends += [legend]
+	
+	xcolors = list(zip(colors, colors_hex))
+	colors = xcolors[_n:]
 	# hic
 	if hic_bed:
 		# inter
 		hic_file = '{}/hic_inter.density.txt'.format(datadir, )
 		stack_bed(hic_bed[0], hic_file, window_size=window_size)
 		r1, r0 = start, start-step
-		color = 'red'
+		color, color_hex = colors[0]
 		circle = CIRCLE.format(type='histogram', datafile=hic_file, r1=r1, r0=r0, color=color)
 		fout.write(circle)
 		start = r0-0.01
-		
+		legend = CircleLegend(labels=['inter-chromosomal interaction'], colors=[color_hex], title='Hi-C')
+		legends += [legend]
 		# intra
-		hic_file = '{}/hic_intra.density.txt'.format(datadir, )
-		stack_bed(hic_bed[1], hic_file, window_size=window_size)
-		r1, r0 = start, start-step
-		color = 'lred'
-		circle = CIRCLE.format(type='histogram', datafile=hic_file, r1=r1, r0=r0, color=color)
-		fout.write(circle)
-		start = r0-0.01
+		# hic_file = '{}/hic_intra.density.txt'.format(datadir, )
+		# stack_bed(hic_bed[1], hic_file, window_size=window_size)
+		# r1, r0 = start, start-step
+		# color = 'lred'
+		# circle = CIRCLE.format(type='histogram', datafile=hic_file, r1=r1, r0=r0, color=color)
+		# fout.write(circle)
+		# start = r0-0.01
+		colors = colors[1:]
 	
 	# chip
 	if chip_bed:
 		chip_file = '{}/chip_density.txt'.format(datadir, )
 		stack_bed(chip_bed, chip_file, window_size=window_size)
 		r1, r0 = start, start-step
-		color = 'green'
+		color, color_hex = colors[0] #'green'
 		circle = CIRCLE.format(type='histogram', datafile=chip_file, r1=r1, r0=r0, color=color)
 		fout.write(circle)
 		start = r0-0.01
+		legend = CircleLegend(labels=['coverage depth'], colors=[color_hex], title='ChIP-Seq')
+		legends += [legend]
 	
 	fout.write('</plots>\n\n')
 	fout.close()
@@ -345,7 +397,10 @@ def centomics_plot(genome, wddir='circos', tr_bed='', hic_bed='', chip_bed='',
 		os.link(figfile, dstfig)
 	
 	# legend
-	annofile = '{}/../circos_legend.txt'.format(wddir)
+	lefig = '{}_legend.pdf'.format(prefix)
+	CirclesLegend(legends).plot(lefig)
+	
+	annofile = '{}_legend.txt'.format(prefix)
 	fout = open(annofile, 'w')
 	fout.write('Rings from outer to inner:\n\t1. Karyotypes\n')
 	ring = 2
@@ -387,6 +442,7 @@ def stack_bed(bedfile, outfile, window_size=100000, trim=True, high_tile=99, low
 def limit_upper(count, uppers):
 	return [min(c,u) for c,u in zip(count, uppers)]
 	
+# subphaser
 def circos_plot(genomes, wddir='circos', bedfile='', 
 		sg_lines=[], d_sg={}, prefix='circos', figfmt='pdf',
 		ltr_lines=[], enrich_ltr_bedlines=[[]],	# list
@@ -411,12 +467,7 @@ def circos_plot(genomes, wddir='circos', bedfile='',
 	d_outfiles = stack_bed_density(bedfile, outpre, colnames=sgs, window_size=window_size)
 	
 	# colors
-	conf_file = '{}/colors.conf'.format(wddir)
-	with open(conf_file, 'w') as f:
-		f.write('<colors>\n\n')
-		for name, color in sorted(d_cmap.items()):
-			f.write('{} = {}\n'.format(name, color))
-		f.write('</colors>\n')
+	create_color_conf(wddir, d_cmap)
 	
 	# histogram
 	conf_file = '{}/histogram.conf'.format(wddir)
@@ -538,6 +589,27 @@ file       = {}
 		if pafs:
 			fout.write('Window size: {} bp\n'.format(window_size))
 			
+
+def create_color_conf(wddir, d_cmap):
+	# colors
+	conf_file = '{}/colors.conf'.format(wddir)
+	with open(conf_file, 'w') as f:
+		f.write('<colors>\n\n')
+		for name, color in sorted(d_cmap.items()):
+			f.write('{} = {}\n'.format(name, color))
+		f.write('</colors>\n')
+def fmt_color(sgs, color_set, white='white'):
+	if len(sgs) > len(color_set):
+		color_set = color_set * (len(sgs)//len(color_set) + 1)
+	colors, d_cmap = [], {}
+	for i, sg in enumerate(sgs):
+		cname = str(sg)
+		d_cmap[cname] = color_set[i]
+		colors += [cname]
+	colors += [white]
+#	d_cmap[white] = white
+	return colors, d_cmap
+
 def out_sg_lines(sg_lines, datadir, ratio_col=6, enrich_col=7):
 	ratio_file = '{}/sg_ratio.txt'.format(datadir)
 	enrich_file = '{}/sg_enrich.txt'.format(datadir)
@@ -554,18 +626,7 @@ def out_sg_lines(sg_lines, datadir, ratio_col=6, enrich_col=7):
 	fr.close()
 	fe.close()
 	return ratio_file, enrich_file
-def fmt_color(sgs, color_set, white='white'):
-	if len(sgs) > len(color_set):
-		color_set = color_set * (len(sgs)//len(color_set) + 1)
-	colors, d_cmap = [], {}
-	for i, sg in enumerate(sgs):
-		cname = str(sg)
-		d_cmap[cname] = color_set[i]
-		colors += [cname]
-	colors += [white]
-#	d_cmap[white] = white
-	return colors, d_cmap
-
+	
 def fmt_svg(svgfile):
 	import re
 	from .small_tools import backup_file
