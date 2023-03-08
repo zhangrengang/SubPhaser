@@ -24,6 +24,7 @@ bash test_wheat.sh
    * [Inputs](#Inputs)
    * [Run SubPhaser](#Run-SubPhaser)
    * [Outputs](#Outputs)
+   * [When SubPhaser do not work](#When-SubPhaser-do-not-work)
    * [Citation](#Citation)
    * [Contact](#Contact)
    * [Full Usage and Default Parameters](#Full-Usage-and-Default-Parameters)
@@ -74,7 +75,7 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
-**Note**: On the clustering heatmap (Fig. B) and PCA plot (Fig. C), a subgenome is defined as well-phased if it has clearly distinguishable patterns of both differential k-mers and homeologous chromosomes, indicating that each subgenome shares subgenome-specific features as expected. If the subgenomes are not well-phased, the downstream analyses are meaningless and should be ignored.
+**Note**: On the clustering heatmap (Fig. B) and PCA plot (Fig. C), a subgenome is defined as well-phased if it has clearly distinguishable patterns of both differential k-mers and homeologous chromosomes, indicating that each subgenome shares subgenome-specific features as expected. If the subgenomes are not well-phased, the downstream analyses (may be failed) are meaningless and should be ignored.
 
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (haploid assembly, ABD, 1n=3x=21).
@@ -164,6 +165,14 @@ tmp/
 ├── LTR.LTR_*.map           # information of tip nodes on the above tree
 .....
 ```
+
+### When SubPhaser do not work ###
+1. It is expected not to work with autopolyploids, as autopolyploids is expected not to produce subgenome-specific TEs.
+2. It may not work when there are too much natural combinations or artifact switch errors between subgenomes.
+3. It does not work when there are no or too less TEs expanding in the independently evolving period of the progenitors or these TEs have been eliminated. This maybe true for some plants and fungi with low TE content.
+4. It may not work for mesopolyploids, and not work for paleopolyploids, which subgenome-specific TEs have been eliminated. However, the genetic boundary is not very clear.
+5. Other unknown cases can be reported to me.
+
 ### Citation ###
 If you use `SubPhaser`, please cite:
 > Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, in press [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
