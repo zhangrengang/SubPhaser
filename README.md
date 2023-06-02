@@ -26,6 +26,7 @@ bash test_wheat.sh
    * [Outputs](#Outputs)
    * [When SubPhaser do not work](#When-SubPhaser-do-not-work)
    * [Citation](#Citation)
+   * [Applications](#Applications)
    * [Contact](#Contact)
    * [Full Usage and Default Parameters](#Full-Usage-and-Default-Parameters)
 
@@ -168,14 +169,20 @@ tmp/
 
 ### When SubPhaser do not work ###
 1. It is expected not to work with autopolyploids, as autopolyploids is expected not to produce subgenome-specific TEs.
-2. It may not work when there are too much natural combinations or artifact switch errors between subgenomes.
-3. It does not work when there are no or too less TEs expanding in the independently evolving period of the progenitors or these TEs have been eliminated. This maybe true for some plants and fungi with low TE content.
+2. It may not work when there are too many natural combinations or artifact switch errors between subgenomes.
+3. It does not work when there are no or too few TEs expanding in the independently evolving period of the progenitors or these TEs have been eliminated. This maybe true for some plants and fungi with low TE content.
 4. It may not work for mesopolyploids, and not work for paleopolyploids, which subgenome-specific TEs have been eliminated. However, the genetic boundary is not very clear.
 5. Other unknown cases can be reported to me.
 
 ### Citation ###
 If you use `SubPhaser`, please cite:
-> Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, in press [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
+> Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, 235: 801-809 [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
+
+### Applications ###
+##### Evolution of genome size #####
+> Zhang T, Qiao Q, Du X et. al. Cultivated hawthorn (*Crataegus pinnatifida* var. *major*) genome sheds light on the evolution of Maleae (apple tribe) [J]. *J. Integr. Plant Biol.*, 2022, 64 (8): 1487–1501 [DOI:10.1111/jipb.13318](http://doi.org/https://doi.org/10.1111/jipb.13318)
+##### Evolution of reticulate allopolyploidization #####
+> Zhang R, Lu C, Li G et. al. Subgenome-aware analyses suggest a reticulate allopolyploidization origin in three *Papaver* genomes [J]. *Nat. Commun.*, 2023, 14 (1): 2204 [DOI:10.1038/s41467-023-37939-2](http://doi.org/10.1038/s41467-023-37939-2)
 
 ### Contact ###
 For cooperations on polyploid genome research, please contact us via Email (zhangrengang@mail.kib.ac.cn) or WeChat (bio_ture).
