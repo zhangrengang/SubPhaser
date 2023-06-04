@@ -169,7 +169,7 @@ tmp/
 
 ### When SubPhaser do not work ###
 1. It is expected not to work with autopolyploids, as autopolyploids is expected not to produce subgenome-specific TEs.
-2. It may not work when there are too many natural combinations or artifact switch errors between subgenomes.
+2. It may not work when there are too many natural recombinations or artifact switch errors between subgenomes.
 3. It does not work when there are no or too few TEs expanding in the independently evolving period of the progenitors or these TEs have been eliminated. This maybe true for some plants and fungi with low TE content.
 4. It may not work for mesopolyploids, and not work for paleopolyploids, which subgenome-specific TEs have been eliminated. However, the genetic boundary is not very clear.
 5. Other unknown cases can be reported to me.
@@ -180,8 +180,10 @@ If you use `SubPhaser`, please cite:
 
 ### Applications ###
 ##### Evolution of genome size #####
+In this study, `SubPhaser` was used to identify species-specific TEs among the apple tribe. By comparing the contents of non-TEs, species-specific TEs and non-specific TEs, the differences in genome size could be attributed to differential expansion and contraction of specific and non‐specific TEs, assuming that specific TEs expanded and non‐specific TEs contracted after split of species.
 > Zhang T, Qiao Q, Du X et. al. Cultivated hawthorn (*Crataegus pinnatifida* var. *major*) genome sheds light on the evolution of Maleae (apple tribe) [J]. *J. Integr. Plant Biol.*, 2022, 64 (8): 1487–1501 [DOI:10.1111/jipb.13318](http://doi.org/https://doi.org/10.1111/jipb.13318)
 ##### Evolution of reticulate allopolyploidization #####
+In this study, `SubPhaser` was used to partition subgenomes of both neo-allotetraploid and neo-allooctoploid poppy genomes, identify exchanges between subgenomes and identify subgenome-specific LTR-RTs. By analysing subgenome phylogeny, exchange patterns and LTR-RT insertion time, a reticulate allopolyploidization scenario was strongly supported.
 > Zhang R, Lu C, Li G et. al. Subgenome-aware analyses suggest a reticulate allopolyploidization origin in three *Papaver* genomes [J]. *Nat. Commun.*, 2023, 14 (1): 2204 [DOI:10.1038/s41467-023-37939-2](http://doi.org/10.1038/s41467-023-37939-2)
 
 ### Contact ###
