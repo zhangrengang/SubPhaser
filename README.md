@@ -47,13 +47,14 @@ There are mainly four modules:
    - Evaluate whether subgenomes are successfully phased by hierarchical clustering and principal component analysis (PCA).
 2. The module to identify and test the enrichments of subgenome-specific kmers:
    - Identify subgenome-specific kmers.
-   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchanges (HEs) and/or assembly errors (e.g. switch errors and hamming errors).
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchanges (HEs; refer to [Supplementary Material](https://nph.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Fnph.18173&file=nph18173-sup-0001-SupInfo.pdf) for identifying bona fide HEs) and/or assembly errors (e.g. switch errors and hamming errors).
    - Identify subgenome-specific enrichments with user-defined features (e.g. transposable elements, genes) via `-custom_features`.
 3. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
    - Classify the LTR-RTs by `TEsorter`.
    - Identify subgenome-specific LTR-RTs by testing the enrichment of subgenome-specific kmers.
-   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the time of divergence–hybridization period(s).
+   - Estimate the insertion age of subgenome-specific LTR-RTs, which is helpful to estimate the time of divergence–hybridization period(s) 
+(the period in which the progenitors are evolving independently; refer to [Supplementary Material](https://nph.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Fnph.18173&file=nph18173-sup-0001-SupInfo.pdf) for estimating the time period).
    - Reconstruct phylogenetic trees of subgenome-specific LTR/Gypsy and LTR/Copia elements, which is helpful to infer the evolutionary history of these LTR-RTs (disable by `-disable_ltrtree`, time-consuming for large genome).
 4. The visualization module to visualize genome-wide data (disable by `-disable_circos`):
    - Identify the homoeologous blocks by `minimap2` simply (disable by `-disable_blocks`, time-consuming for large genome).
