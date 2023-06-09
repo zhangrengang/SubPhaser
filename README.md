@@ -47,7 +47,7 @@ There are mainly four modules:
    - Evaluate whether subgenomes are successfully phased by hierarchical clustering and principal component analysis (PCA).
 2. The module to identify and test the enrichments of subgenome-specific kmers:
    - Identify subgenome-specific kmers.
-   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchange(s) and/or assembly errors (e.g. switch errors and hamming errors).
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchanges (HEs) and/or assembly errors (e.g. switch errors and hamming errors).
    - Identify subgenome-specific enrichments with user-defined features (e.g. transposable elements, genes) via `-custom_features`.
 3. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
@@ -76,7 +76,9 @@ The below is an example of output figures of wheat (ABD, 1n=3x=21):
 * (**E**) Insertion time of subgenome-specific LTR-RTs. 
 * (**F**) A phylogenetic tree of 1,000 randomly subsampled LTR/Gypsy elements.
 
-**Note**: On the clustering heatmap (Fig. B) and PCA plot (Fig. C), a subgenome is defined as well-phased if it has clearly distinguishable patterns of both differential k-mers and homeologous chromosomes, indicating that each subgenome shares subgenome-specific features as expected. If the subgenomes are not well-phased, the downstream analyses (may be failed) are meaningless and should be ignored.
+**Note**: On the clustering heatmap (Fig. B) and PCA plot (Fig. C), a subgenome is defined as well-phased if it has clearly distinguishable patterns of both differential k-mers and homeologous chromosomes, indicating that each subgenome shares subgenome-specific features as expected. If the subgenomes are not well-phased, the downstream analyses (may be failed) are meaningless and should be ignored. 
+Sometimes, just a few abmormal chromosomes are mistakely assigned by the k-Means method, according to the heatmap, PCA and/or circos plots. 
+In this case, the users could manually adjust the subgenome assignments (edit and rename the `*chrom-subgenome.tsv` file) and then feed it to SubPhaser by `-sg_assigned` option for downstream analysis.
 
 ### Inputs ###
 1. Chromosome-level genome sequences (**fasta** format), e.g. [the wheat genome](https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies) (haploid assembly, ABD, 1n=3x=21).
@@ -114,9 +116,9 @@ or
 ```
 subphaser -i genome.fasta.gz -c sg.config -disable_ltr -disable_circos
 ```
-Change key parameters when differential kmers are too few:
+Change key parameters when differential kmers are too few (see Fig. A):
 ```
-subphaser -i genome.fasta.gz -c sg.config -k 13 -q 100 -f 2
+subphaser -i genome.fasta.gz -c sg.config -k 15 -q 50 -f 2
 ```
 Mutiple genomes (e.g. two relative species):
 ```
@@ -176,15 +178,17 @@ tmp/
 
 ### Citation ###
 If you use `SubPhaser`, please cite:
-> Jia K, Wang Z, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, 235: 801-809 [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
+> Jia KH, Wang ZX, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, 235: 801-809 [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)
 
 ### Applications ###
-##### Evolution of genome size #####
+#### Evolution of genome size ####
 In this study, `SubPhaser` was used to identify species-specific TEs among the apple tribe. By comparing the contents of non-TEs, species-specific TEs and non-specific TEs, the differences in genome size could be attributed to differential expansion and contraction of specific and non‐specific TEs, assuming that specific TEs expanded and non‐specific TEs contracted after split of species.
-> Zhang T, Qiao Q, Du X et. al. Cultivated hawthorn (*Crataegus pinnatifida* var. *major*) genome sheds light on the evolution of Maleae (apple tribe) [J]. *J. Integr. Plant Biol.*, 2022, 64 (8): 1487–1501 [DOI:10.1111/jipb.13318](http://doi.org/https://doi.org/10.1111/jipb.13318)
-##### Evolution of reticulate allopolyploidization #####
-In this study, `SubPhaser` was used to partition subgenomes of both neo-allotetraploid and neo-allooctoploid poppy genomes, identify exchanges between subgenomes and identify subgenome-specific LTR-RTs. By analysing subgenome phylogeny, exchange patterns and LTR-RT insertion time, a reticulate allopolyploidization evolutionary scenario was strongly supported.
-> Zhang R, Lu C, Li G et. al. Subgenome-aware analyses suggest a reticulate allopolyploidization origin in three *Papaver* genomes [J]. *Nat. Commun.*, 2023, 14 (1): 2204 [DOI:10.1038/s41467-023-37939-2](http://doi.org/10.1038/s41467-023-37939-2)
+> Zhang TC, Qiao Q, Du X et. al. Cultivated hawthorn (*Crataegus pinnatifida* var. *major*) genome sheds light on the evolution of Maleae (apple tribe) [J]. *J. Integr. Plant Biol.*, 2022, 64 (8): 1487–1501 [DOI:10.1111/jipb.13318](http://doi.org/https://doi.org/10.1111/jipb.13318)
+#### Evolution of reticulate allopolyploidization ####
+In this study, `SubPhaser` was used to partition subgenomes of both neo-allotetraploid and neo-allooctoploid poppy genomes, 
+identify homoeologous (HEs) exchanges between subgenomes and identify subgenome-specific LTR-RTs. 
+By analysing subgenome phylogeny, HE patterns and LTR-RT insertion time, a reticulate allopolyploidization evolutionary scenario was strongly supported.
+> Zhang RG, Lu C, Li G et. al. Subgenome-aware analyses suggest a reticulate allopolyploidization origin in three *Papaver* genomes [J]. *Nat. Commun.*, 2023, 14 (1): 2204 [DOI:10.1038/s41467-023-37939-2](http://doi.org/10.1038/s41467-023-37939-2)
 
 ### Contact ###
 For cooperations on polyploid genome research, please contact us via Email (zhangrengang@mail.kib.ac.cn) or WeChat (bio_ture).
