@@ -19,7 +19,7 @@ setup(
     author='Zhang, Ren-Gang and Wang, Zhao-Xuan',
     license='GPL-3.0',
 
-    python_requires='>=3.6:',
+    python_requires='>=3.6',
     packages=find_packages(),
     include_package_data=True,
     scripts=[],

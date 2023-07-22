@@ -47,7 +47,7 @@ There are mainly four modules:
    - Evaluate whether subgenomes are successfully phased by hierarchical clustering and principal component analysis (PCA).
 2. The module to identify and test the enrichments of subgenome-specific kmers:
    - Identify subgenome-specific kmers.
-   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify homoeologous exchanges (HEs; refer to [Supplementary Material](https://nph.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Fnph.18173&file=nph18173-sup-0001-SupInfo.pdf) for identifying bona fide HEs) and/or assembly errors (e.g. switch errors and hamming errors).
+   - Identify significant enrichments of subgenome-specific kmers by genome window/bin, which is useful to identify intewr-subgenomic exchanges (refer to [Supplementary Material](https://nph.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Fnph.18173&file=nph18173-sup-0001-SupInfo.pdf) for identifying bona fide exchanges) and/or assembly errors (e.g. switch errors and hamming errors).
    - Identify subgenome-specific enrichments with user-defined features (e.g. transposable elements, genes) via `-custom_features`.
 3. The LTR module to identify and analyze subgenome-specific LTR-RT elements (disable by `-disable_ltr`):
    - Identify the LTR-RTs by `LTRharvest` and/or `LTRfinder` (time-consuming for large genome, especially `LTRfinder`).
@@ -187,8 +187,8 @@ In this study, `SubPhaser` was used to identify species-specific TEs among the a
 > Zhang TC, Qiao Q, Du X et. al. Cultivated hawthorn (*Crataegus pinnatifida* var. *major*) genome sheds light on the evolution of Maleae (apple tribe) [J]. *J. Integr. Plant Biol.*, 2022, 64 (8): 1487–1501 [DOI:10.1111/jipb.13318](http://doi.org/https://doi.org/10.1111/jipb.13318)
 #### Evolution of reticulate allopolyploidization ####
 In this study, `SubPhaser` was used to partition subgenomes of both neo-allotetraploid and neo-allooctoploid poppy genomes, 
-identify homoeologous (HEs) exchanges between subgenomes and identify subgenome-specific LTR-RTs. 
-By analysing subgenome phylogeny, HE patterns and LTR-RT insertion time, a reticulate allopolyploidization evolutionary scenario was strongly supported.
+identify exchanges between subgenomes and identify subgenome-specific LTR-RTs. 
+By analysing subgenome phylogeny, exchange patterns and LTR-RT insertion time, a reticulate allopolyploidization evolutionary scenario was strongly supported.
 > Zhang RG, Lu C, Li G et. al. Subgenome-aware analyses suggest a reticulate allopolyploidization origin in three *Papaver* genomes [J]. *Nat. Commun.*, 2023, 14 (1): 2204 [DOI:10.1038/s41467-023-37939-2](http://doi.org/10.1038/s41467-023-37939-2)
 
 ### Contact ###
