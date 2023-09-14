@@ -6,6 +6,7 @@ from sklearn.utils import resample
 from sklearn import metrics
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
+plt.switch_backend('agg')
 from scipy import stats
 from Bio.Seq import Seq
 from .Data import LoadData

@@ -498,6 +498,7 @@ def main():
 def run_job(cmd_file=None, cmd_list=None, by_bin=1, tc_tasks=8, mode='grid', grid_opts='-tc {tc}', cont=1, fail_exit=True,
             ckpt=None, retry=1, out_path=None, cmd_sep='\n', **kargs):
 	if not GRID and mode == 'grid':
+		logger.info('GRID is not available. Turning to the local mode..')
 		mode = 'local'
 	tc_tasks = int(tc_tasks)
 	if cmd_file is None:

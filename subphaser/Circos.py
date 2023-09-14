@@ -211,6 +211,8 @@ def genome_base(genome_fasta, out_karyotype, out_gc, window_size=None, chr_mark=
 		line1 = list(map(str, line1))
 		print(' '.join(line1), file=f1)
 		i += 1
+	if i == 0:
+		raise ValueError('No chromosomes are recognized. Please reset `-chr_prefix`')
 	f1.close()
 	f2.close()
 def genomes_base(genome_fastas, out_karyotype, d_cmap={}):
@@ -278,6 +280,7 @@ class CirclesLegend:
 		self.legends = legends
 	def plot(self, outfig):
 		import matplotlib.pyplot as plt
+		plt.switch_backend('agg')
 		n = len(self.legends)
 		plt.figure()
 

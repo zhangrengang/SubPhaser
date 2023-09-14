@@ -642,6 +642,7 @@ def _filter_kmer(arg):
 		
 def plot_histogram(data, outfig, step=25, xlim=99, xlabel='Kmer occurrence', ylabel='Count', vline=None):
 	from matplotlib import pyplot as plt
+	plt.switch_backend('agg')
 	_min, _max = 0, max(data)
 	nbins = int((_max-_min)/step)
 	plt.figure(figsize=(7,5), dpi=300, tight_layout=True)

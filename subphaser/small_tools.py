@@ -92,6 +92,7 @@ def get_version(value):
 
 def get_hex_colors(n):
 	import matplotlib.pyplot as plt
+	plt.switch_backend('agg')
 	import matplotlib.colors as colors
 	import matplotlib.cm as cmx
 	values = list(range(n))
