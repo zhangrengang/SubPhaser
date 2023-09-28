@@ -23,6 +23,7 @@ bash test_wheat.sh
    * [Introduction](#introduction)
    * [Inputs](#Inputs)
    * [Run SubPhaser](#Run-SubPhaser)
+   * [Run SubPhaser through Singularity/Apptainer](#Run-SubPhaser-through-Singularity/Apptainer)
    * [Outputs](#Outputs)
    * [When SubPhaser do not work](#When-SubPhaser-do-not-work)
    * [Citation](#Citation)
@@ -133,7 +134,17 @@ Input custom feature (e.g. transposable element, gene) sequences for subgenome-s
 ```
 subphaser -i genome.fasta.gz -c sg.config -custom_features TEs.fasta genes.fasta
 ```
+### Run SubPhaser through Singularity/Apptainer ###
+Alternatively, you can run `subphaser` through Singularity/Apptainer container:
+```
+# install
+apptainer remote add --no-login SylabsCloud cloud.sylabs.io
+apptainer remote use SylabsCloud
+apptainer pull subphaser.sif library://shang-hongyun/collection/subphaser.sif:1.2.6
 
+# run
+./subphaser.sif subphaser -h
+```
 ### Outputs ###
 ```
 phase-results/
