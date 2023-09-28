@@ -23,7 +23,7 @@ bash test_wheat.sh
    * [Introduction](#introduction)
    * [Inputs](#Inputs)
    * [Run SubPhaser](#Run-SubPhaser)
-   * [Run SubPhaser through Singularity/Apptainer](#Run-SubPhaser-through-Singularity/Apptainer)
+   * [Run SubPhaser through Singularity/Apptainer](#Run-SubPhaser-through-SingularityApptainer)
    * [Outputs](#Outputs)
    * [When SubPhaser do not work](#When-SubPhaser-do-not-work)
    * [Citation](#Citation)
