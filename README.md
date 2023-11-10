@@ -134,6 +134,10 @@ Input custom feature (e.g. transposable element, gene) sequences for subgenome-s
 ```
 subphaser -i genome.fasta.gz -c sg.config -custom_features TEs.fasta genes.fasta
 ```
+Define custom colors for subgenomes:
+```
+subphaser -i genome.fasta.gz -c sg.config -colors "#f9c00c,#00b9f1,#7200da"
+```
 ### Run SubPhaser through Singularity/Apptainer ###
 Alternatively, you can run `subphaser` through Singularity/Apptainer container:
 ```

@@ -23,7 +23,9 @@ class HexColors:
 		return [','.join(map(str, v.bitmap_rgb())) for v in colors_lst]
 	@property 
 	def colors_r(self):
-		return 'c({})'.format(','.join(map(repr, self.olors_hex)))
+		return 'c({})'.format(','.join(map(repr, self.colors_hex)))
+	def __str__(self):
+		return str(self.colors_hex)
 
 class Colors:
 	def __init__(self, n):

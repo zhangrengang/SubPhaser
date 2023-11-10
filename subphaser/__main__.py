@@ -67,8 +67,8 @@ such as TE and gene [default: %(default)s]")
 					help="Output directory [default=%(default)s]")
 	group_out.add_argument('-tmpdir', default='tmp', type=str, metavar='DIR',
 					help="Temporary directory [default=%(default)s]")
-	group_out.add_argument('-colors', default=None, dest='colors', metavar='HEX,HEX...',
-                    help="Subgenome colors [default=%(default)s]")
+	group_out.add_argument('-colors', default=None, dest='colors', metavar='HEX,HEX[,...]',
+                    help="Subgenome colors in hex codes [default=%(default)s]")
 
 	# kmer
 	group_kmer = parser.add_argument_group('Kmer', 'Options to count and filter kmers')

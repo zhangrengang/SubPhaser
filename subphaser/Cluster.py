@@ -45,7 +45,7 @@ class Cluster:
 			self.d_sg = self.assign_subgenomes()
 		if bootstrap:
 			self.d_bs = self.bootstrap(replicates, jackknife)
-	def pca(self, outfig, n_components=2, ):
+	def pca(self, outfig, n_components=2, sg_color=None):
 		pca = PCA(n_components=n_components)
 		X_pca = pca.fit_transform(self.data)
 		percent = pca.explained_variance_ratio_ * 100
