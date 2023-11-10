@@ -17,7 +17,7 @@ except :
 from .split_records import bin_split_fastx_by_chunk_num
 from .RunCmdsMP import run_job, run_cmd, pool_func, logger
 from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp
-from .colors import colors_r
+#from .colors import colors_r
 from .fonts import fonts, fonts_r
 
 job_args = {
@@ -232,7 +232,7 @@ skip this step by `-disable_ltrtree`')
 		run_job(cmd_file, cmds, **job_args)
 		return d_files
 
-	def visualize_treefile(self, treefile, mapfile, outfig, 
+	def visualize_treefile(self, treefile, mapfile, outfig, sg_color=None,
 			ggtree_options="branch.length='none', layout='circular'"):
 		rsrc_file = os.path.splitext(outfig)[0] + '.R'
 		rsrc = '''treefile = "{treefile}"
@@ -291,7 +291,7 @@ p = p + theme(plot.margin=margin(0,0,0,0)) +
 #	theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text=element_blank())
 
 ggsave("{outfig}", p, width=10.2, height=8.4, dpi=300, units="in")
-'''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=colors_r, 
+'''.format(treefile=treefile, mapfile=mapfile, outfig=outfig, colors=sg_color.colors_r, 
 			ggtree_options=ggtree_options, **fonts_r)
 		with open(rsrc_file, 'w') as f:
 			f.write(rsrc)
@@ -470,7 +470,7 @@ def is_completed(ltr):
 	return True if completed == 'yes' else False
 
 def plot_insert_age(ltrs, d_enriched, prefix, mu=7e-9, exclude_exchanges=False, d_exchange={}, 
-		shared={}, non_specific=False, figfmt='pdf'):
+		shared={}, non_specific=False, figfmt='pdf', sg_color=None):
 	datfile = prefix + '.data'
 	fout = open(datfile, 'w')
 	line = ['ltr', 'sg', 'age']
@@ -555,7 +555,7 @@ p <- ggplot(data, aes(x = age, fill=sg)) + geom_histogram() +
 ggsave('{outfig2}', p, width=7, height=7, dpi=300, units="in") 
 
 '''.format(datfile=datfile, outfig1=outfig1, outfig2=outfig2, sorted_sg=sorted_sg, 
-			colors=colors_r, annotate=text, **fonts_r)
+			colors=sg_color.colors_r, annotate=text, **fonts_r)
 	with open(rsrc_file, 'w') as f:
 		f.write(rsrc)
 	cmd = 'Rscript ' + rsrc_file

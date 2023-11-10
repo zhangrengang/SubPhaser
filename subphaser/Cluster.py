@@ -10,12 +10,12 @@ plt.switch_backend('agg')
 from scipy import stats
 from Bio.Seq import Seq
 from .Data import LoadData
-from .colors import colors_hex
+#from .colors import colors_hex
 from .fonts import fonts
 from .RunCmdsMP import logger, pool_func
 
 class Cluster:
-	def __init__(self, datafile, n_clusters, sg_prefix='SG', 
+	def __init__(self, datafile, n_clusters, sg_prefix='SG', sg_color=None,
 						sg_assigned={}, re_assign=True, # use priors
 						bootstrap=True, replicates=1000, jackknife=80, **kargs):
 		data = LoadData(datafile)
@@ -59,7 +59,7 @@ class Cluster:
 		for _x, _y, _c, _l in zip(x, y, self.chrs, self.labels):
 			sg = self.d_sg[_c]
 			if sg not in d_coord:
-				d_coord[sg] = [[], [], colors_hex[_l]]
+				d_coord[sg] = [[], [], sg_color.colors_hex[_l]]
 			d_coord[sg][0] += [_x]
 			d_coord[sg][1] += [_y]
 		for sg, (_x, _y, _c) in sorted(d_coord.items()):

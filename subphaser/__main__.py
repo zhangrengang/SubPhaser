@@ -16,6 +16,7 @@ from . import LTR
 from . import Stats
 from . import Circos
 from . import Blocks
+from .colors import HexColors
 from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp, test_s
 from .RunCmdsMP import logger, available_memory, limit_memory
 from .__version__ import version
@@ -66,6 +67,9 @@ such as TE and gene [default: %(default)s]")
 					help="Output directory [default=%(default)s]")
 	group_out.add_argument('-tmpdir', default='tmp', type=str, metavar='DIR',
 					help="Temporary directory [default=%(default)s]")
+	group_out.add_argument('-colors', default=None, dest='colors', metavar='HEX,HEX...',
+                    help="Subgenome colors [default=%(default)s]")
+
 	# kmer
 	group_kmer = parser.add_argument_group('Kmer', 'Options to count and filter kmers')
 	group_kmer.add_argument('-k', type=int, default=15, metavar='INT',
@@ -240,6 +244,7 @@ PROT (rexdb) = AP (gydb), RH (rexdb) = RNaseH (gydb)) [default: %(default)s]")
 		args.outdir = args.prefix + args.outdir
 		args.tmpdir = args.prefix + args.tmpdir
 	args.ltr_detectors = sorted(set(args.ltr_detectors))
+	args.colors = HexColors(args.colors)
 	return args
 
 class Pipeline:
@@ -453,13 +458,13 @@ class Pipeline:
 		
 		# heatmap	# static method
 		outfig = dumps.heatmap(matfile, mapfile=sg_chrs, kmermapfile=sg_kmers,
-					figfmt=self.figfmt, color=self.heatmap_colors, 
+					figfmt=self.figfmt, color=self.heatmap_colors, sg_color=self.colors,
 					heatmap_options=self.heatmap_options)
 		
 		# PCA
 		outfig = self.para_prefix + '.kmer_pca.' + self.figfmt
 		logger.info('Outputing PCA plot to `{}`'.format(outfig))
-		cluster.pca(outfig, n_components=self.nsg)
+		cluster.pca(outfig, n_components=self.nsg, sg_color=self.colors,)
 
 
 		if self.just_core:
@@ -517,7 +522,7 @@ class Pipeline:
 				logger.info('\t{} {}{} features'.format(count, sg, suffix))
 		
 		# LTR
-		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers) if not self.disable_ltr else ([],[])
+		ltr_bedlines, enrich_ltr_bedlines = self.step_ltr(d_kmers,sg_color=self.colors,) if not self.disable_ltr else ([],[])
 
 		# circos
 		if self.chr_ordered:
@@ -530,7 +535,7 @@ class Pipeline:
 				enrich_ltr_bedlines=enrich_ltr_bedlines, 	#	circles n+3
 				d_sg = d_sg, # chrom -> SG, for colors
 				prefix=self.para_prefix + '.circos',
-				figfmt=self.figfmt,
+				figfmt=self.figfmt, sg_color=self.colors,
 				window_size=self.window_size)
 
 		self.step_final()
@@ -539,7 +544,7 @@ class Pipeline:
 	def mk_ckpfile(self, file):
 		return '{}{}.ok'.format(self.tmpdir, os.path.basename(file))
 
-	def step_ltr(self, d_kmers):
+	def step_ltr(self, d_kmers, sg_color):
 		# LTR
 		logger.info('###Step: LTR')
 		tmpdir = '{}LTR'.format(self.tmpdir)
@@ -610,7 +615,7 @@ class Pipeline:
 						exclude_exchanges=self.exclude_exchanges, # exclude exchanges or not
 						d_exchange=d_exchange, # exchanged LTRs
 						non_specific=self.non_specific,	# plot non-specific LTRs
-						mu=self.mu, figfmt=self.figfmt)
+						mu=self.mu, figfmt=self.figfmt, sg_color=sg_color)
 		
 		# ltr tree
 		if not self.disable_ltrtree and not n_enriched_ltrs == 0:
@@ -628,7 +633,7 @@ class Pipeline:
 				key = tuple([v for v in key if v])
 				outfig = '{}.{}.tree.pdf'.format(self.para_prefix, '_'.join(key))
 				tree.visualize_treefile(treefile, mapfile, outfig, 
-						ggtree_options=self.ggtree_options)
+						ggtree_options=self.ggtree_options, sg_color=sg_color)
 		# ltr bed for circos
 		ltr_bedlines = [ltr.to_bed() for ltr in ltrs]
 		# bin ltrs by sg

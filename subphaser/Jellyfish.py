@@ -7,7 +7,7 @@ from xopen import xopen as open
 from .RunCmdsMP import run_cmd, logger, pool_func, run_job
 from .small_tools import is_gz, mk_ckp, check_ckp
 from .fonts import fonts
-from .colors import colors_r
+#from .colors import colors_r
 
 class JellyfishDumpRecord(object):
 	def __init__(self, seq, freq):
@@ -514,7 +514,7 @@ candidate (freq > 0) kmers'.format(remain, remain/i, min_freq, total, total/i))
 	def heatmap(self, matfile, **kargs):
 		_heatmap(matfile, **kargs)
 	
-def _heatmap(matfile, mapfile=None, kmermapfile=None, figfmt='pdf', color=('green', 'black', 'red'), 
+def _heatmap(matfile, sg_color=None, mapfile=None, kmermapfile=None, figfmt='pdf', color=('green', 'black', 'red'), 
 		heatmap_options='scale="row", key=TRUE, density.info="density", trace="none", labRow=F, main="",xlab=""'):
 	if len(color) == 3:
 		color = 'colorpanel(100, low="{}", mid="{}", high="{}")'.format(*color)
@@ -592,7 +592,7 @@ library("gplots")
 heatmap.2(data, col={color}, {heatmap_options}, RowSideColors=names, ColSideColors=knames, cexRow = cex)
 dev.off()
 '''.format(matfile=matfile, mapfile=mapfile, kmermapfile=kmermapfile,
-		dev=figfmt, outfig=outfig, colors=colors_r, # colors by SG
+		dev=figfmt, outfig=outfig, colors=sg_color.colors_r, # colors by SG
 		color=color, heatmap_options=heatmap_options, )
 	rsrc_file = matfile + '.R'
 	with open(rsrc_file, 'w') as f:
