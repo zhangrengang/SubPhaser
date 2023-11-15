@@ -17,7 +17,7 @@ from . import Stats
 from . import Circos
 from . import Blocks
 from .colors import HexColors
-from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp, test_s
+from .small_tools import mkdirs, rmdirs, mk_ckp, check_ckp, test_s, test_r
 from .RunCmdsMP import logger, available_memory, limit_memory
 from .__version__ import version
 
@@ -351,6 +351,8 @@ class Pipeline:
 				self.re_filter = True
 				#if set(self.chrs)-set(d_targets):	# new chrs, have to re-split
 				#	logger.info('Chromosome set is not equal to the checkpoint, re-splitting..')
+				split = True
+			if not all(map(test_r, chromfiles)):
 				split = True
 		else:
 			split = True
