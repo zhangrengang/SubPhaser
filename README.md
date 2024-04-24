@@ -192,7 +192,8 @@ tmp/
 4. It may not work for mesopolyploids, and not work for paleopolyploids, of which subgenome-specific TEs have been eliminated. However, the genetic boundary is not very clear.
 5. Other unknown cases can be reported to me.
 
-When it do not work, you may try another [pipeline](https://github.com/zhangrengang/subgenome_phasing_example) based on evidence of synteny, orthology and phylogeny.
+When it do not work, you may try another [pipeline](https://github.com/zhangrengang/subgenome_phasing_example#subgenome-phasing-with-wgdi) 
+based on multiple evidence of synteny, orthology and phylogeny.
 
 ### Citation ###
 If you use `SubPhaser`, please cite:
