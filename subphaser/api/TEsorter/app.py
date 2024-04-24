@@ -92,6 +92,13 @@ def Args():
 	parser.add_argument("-prob", "--min-probability", action="store",
 					default=0.5, type=float,
 					help="mininum posterior probability for protein domains in HMMScan output [default=%(default)s]")	
+	parser.add_argument("-score", "--min-score", action="store",
+                    default=0.1, type=float,
+                    help="mininum score for protein domains in HMMScan output [default=%(default)s]")
+
+	parser.add_argument("-mask", action="store", type=str, nargs='+',
+					default=None, choices=['soft', 'hard'],
+					help="output masked sequences (soft: masking with lowercase; hard: masking with N) [default=%(default)s]")
 	parser.add_argument("-nocln", "--no-cleanup", action="store_true",
 					default=False,
 					help="do not clean up the temporary directory [default=%(default)s]")
@@ -211,27 +218,33 @@ def pipeline(args):
 	logger.info( 'check database '+ db_file)
 	check_db(db_file)
 
+	gap = 'X' if args.seq_type == 'prot' else 'N' 
+	kargs = dict(hmmdb = db_file,
+            db_name = db_name,
+            prefix = args.prefix,
+            force_write_hmmscan = args.force_write_hmmscan,
+            processors = args.processors,
+            tmpdir = args.tmp_dir,
+            mincov = args.min_coverage,
+            maxeval = args.max_evalue,
+            minprob = args.min_probability,
+			minscore = args.min_score
+            )
+
 	if args.genome:
 		logger.info( 'Start identifying pipeline (GENOME mode)' )
 		#print(open(args.sequence))
 		#print([(rc.id, len(rc.seq)) for rc in SeqIO.parse(open(args.sequence), 'fasta')])
 		seq_type = 'nucl'
-		genomeAnn(genome=args.sequence, 
+		gff, geneSeq = genomeAnn(genome=args.sequence, 
 			window_size=args.win_size, window_ovl=args.win_ovl, 
-			hmmdb = db_file,
-			db_name = db_name,
 			seqtype = seq_type,
-			prefix = args.prefix,
-			force_write_hmmscan = args.force_write_hmmscan,
-			processors = args.processors,
-			tmpdir = args.tmp_dir,
-			mincov = args.min_coverage,
-			maxeval = args.max_evalue,
-			minprob = args.min_probability,
+			**kargs
 			)
+		mask_gff3(args.sequence, gff, args.prefix, types=args.mask, gap=gap)
 		cleanup(args)
 		logger.info( 'Pipeline done.' )
-		return
+		return	# genome mode stop at here
 	logger.info( 'Start classifying pipeline (ELEMENT mode)' )
 	lens = [len(rc.seq) for rc in SeqIO.parse(open(args.sequence), 'fasta')]
 	if max(lens) > 1e6:
@@ -243,18 +256,11 @@ please switch to the GENOME mode by specifiy `-genome`')
 	seq_type = 'prot' if db_name == 'sine' else args.seq_type
 	gff, geneSeq = LTRlibAnn(
 			ltrlib = args.sequence,
-			hmmdb = db_file,
-			db_name = db_name,
 			seqtype = seq_type,
-			prefix = args.prefix,
-			force_write_hmmscan = args.force_write_hmmscan,
-			processors = args.processors,
-			tmpdir = args.tmp_dir,
-			mincov = args.min_coverage,
-			maxeval = args.max_evalue,
-			minprob = args.min_probability,
+			**kargs
 			)
 
+	mask_gff3(args.sequence, gff, args.prefix, types=args.mask, gap=gap)
 	# classify
 	classify_out = args.prefix + '.cls.tsv'
 	fc = open(classify_out, 'w')
@@ -332,7 +338,17 @@ please switch to the GENOME mode by specifiy `-genome`')
 	summary(d_class)
 	cleanup(args)
 	logger.info( 'Pipeline done.' )
-
+def mask_gff3(inSeq, inRM, outPrefix, types=['hard'], **kargs):
+	if not types:
+		return
+	from .modules.RepeatMasker import mask
+	for type in types:
+		outSeqfile = '{}.{}masked'.format(outPrefix, type)
+		soft = True if type == 'soft' else False
+		logger.info( '{}-masking `{}`; output `{}`'.format(type, inSeq, outSeqfile) )
+		with open(outSeqfile, 'w') as outSeq:
+			masked, total = mask(inSeq, inRM, outSeq, soft=soft, **kargs)
+	logger.info('{} / {} ({:.2%}) masked'.format(masked, total, masked/total))
 def cleanup(args):
 	# clean up
 	if not args.no_cleanup:
@@ -920,7 +936,7 @@ def format_gff_id(id):
 	return re.compile(r'[;=\|]').sub("_", id)
 
 def hmm2best(inSeqs, inHmmouts, nucl_len=None, prefix=None, db='rexdb', seqtype='nucl', 
-			mincov=20, maxeval=1e-3, minprob=0.6, genome=False):
+			mincov=20, maxeval=1e-3, minprob=0.6, minscore=0.5, genome=False):
 	if prefix is None:
 		prefix = inSeqs[0]
 	if nucl_len is None and seqtype=='nucl':
@@ -934,7 +950,7 @@ def hmm2best(inSeqs, inHmmouts, nucl_len=None, prefix=None, db='rexdb', seqtype=
 			qid, s, e, domain = key
 		else:
 			qid, domain = key
-		if rc.hmmcov < mincov or rc.evalue > maxeval or rc.acc < minprob:
+		if rc.hmmcov < mincov or rc.evalue > maxeval or rc.acc < minprob or rc.score < minscore:
 			continue
 		rawid = qid
 		gene,clade = parse_hmmname(rc.tname, db=db)
@@ -1129,11 +1145,12 @@ def genomeAnn(genome, tmpdir='./tmp', seqfmt='fasta',window_size=1e6, window_ovl
 	gff, geneSeq = LTRlibAnn(ltrlib=cutSeq, genome=True, tmpdir=tmpdir, **kargs)
 	logger.info('Summary of classifications:')
 	summary_genome(gff, fout=sys.stdout)
+	return gff, geneSeq
 	
 def LTRlibAnn(ltrlib, hmmdb='rexdb', db_name='rexdb',  seqtype='nucl', prefix=None,
 			force_write_hmmscan=False, genome=False, 
 			processors=4, tmpdir='./tmp',
-			mincov=20, maxeval=1e-3, minprob=0.5):
+			mincov=20, maxeval=1e-3, minprob=0.5, minscore=0.5):
 	if prefix is None:
 		prefix = '{}.{}'.format(ltrlib, hmmdb)
 	bin = 'hmmscan'
@@ -1149,7 +1166,7 @@ def LTRlibAnn(ltrlib, hmmdb='rexdb', db_name='rexdb',  seqtype='nucl', prefix=No
 			processors=processors, bin=bin, seqtype=seqtype, force_write_hmmscan=force_write_hmmscan)
 	logger.info( 'generating gene anntations' )
 	gff, geneSeq = hmm2best(chunk_files, [domtbl], db=db_name, nucl_len=d_nucl_len, genome=genome,
-				prefix=prefix, seqtype=seqtype, mincov=mincov, maxeval=maxeval, minprob=minprob)
+				prefix=prefix, seqtype=seqtype, mincov=mincov, maxeval=maxeval, minprob=minprob, minscore=minscore)
 	return gff, geneSeq
 
 def replaceCls(ltrlib, seqtype='nucl', db='rexdb'):

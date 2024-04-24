@@ -397,7 +397,8 @@ def centomics_plot(genome, wddir='circos', tr_bed='', tr_labels='',
 		dstfig = '{}.{}'.format(prefix, figfmt)
 		try: os.remove(dstfig)
 		except FileNotFoundError: pass
-		os.link(figfile, dstfig)
+		try: os.link(figfile, dstfig)
+		except PermissionError: shutil.move(figfile, dstfig)
 	
 	# legend
 	lefig = '{}_legend.pdf'.format(prefix)

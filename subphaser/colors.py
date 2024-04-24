@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import cm
 import matplotlib
 
-COLORS_HEX = ['#f9c00c', '#00b9f1', '#7200da', '#f9320c',
+COLORS_HEX = ['#f9c00c', '#00b9f1', '#7200da', '#f9320c', '#00b8a9', "#F4A460", '#009999', '#00C02E',
 	'#980000','#00ffff','#0000ff','#ff0000','#4a86e8','#ff9900','#ffff00',
 	'#00ff00','#9900ff','#ff00ff','#20124d','#274e13','#000000','#cccccc',
 	'#7f6000','#a64d79','#6aa84f','#fff2cc','#47a952','#3ea6b6','#a5b805','#8f9276','#ca8d7c']
@@ -25,6 +25,8 @@ class HexColors:
 	def colors_r(self):
 		return 'c({})'.format(','.join(map(repr, self.colors_hex)))
 	def __str__(self):
+		return str(self.colors_hex)
+	def __repr__(self):
 		return str(self.colors_hex)
 
 class Colors:

@@ -192,6 +192,8 @@ tmp/
 4. It may not work for mesopolyploids, and not work for paleopolyploids, of which subgenome-specific TEs have been eliminated. However, the genetic boundary is not very clear.
 5. Other unknown cases can be reported to me.
 
+When it do not work, you may try another [pipeline](https://github.com/zhangrengang/subgenome_phasing_example) based on evidence of synteny, orthology and phylogeny.
+
 ### Citation ###
 If you use `SubPhaser`, please cite:
 > Jia KH, Wang ZX, Wang L et. al. SubPhaser: A robust allopolyploid subgenome phasing method based on subgenome-specific k-mers [J]. *New Phytologist*, 2022, 235: 801-809 [DOI:10.1111/nph.18173](https://doi.org/10.1111/nph.18173)

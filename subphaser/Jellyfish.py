@@ -244,11 +244,15 @@ class KmerMatrix:
 			return
 		
 		ref= '{}/ref'.format(tmpdir, )
-		cmd = '[ ! -f {1}.ok ] && bowtie-build {0} {1} && touch {1}.ok'.format(genome, ref)
-		run_cmd(cmd, log=True)
+#		cmd = '[ ! -f {1}.ok ] && bowtie-build {0} {1} && touch {1}.ok'.format(genome, ref)
+		cmd = '[ ! -f {1}.ok ] && bwa index {0} -p {1} && touch {1}.ok'.format(genome, ref)
+		run_cmd(cmd, log=True, fail_exit=False)
 		outsam = prefix + '.sam'
-		cmd = '''bowtie {ref} {reads} -f  -p 10 -S --best -M 1 --sam-nohead 2> {reads}.map.log \
-			| awk '$5>={mapq}{{if ($3=="*"){{$3="chr0";$4=NR*1}}; print $1"\t"$4"\t"$3}}' > {snp}'''.format(
+		cmd = '''bwa mem -t 10 -k 15 {ref} {reads} | awk '$1 !~ "^@"' '''
+#		cmd = '''bowtie {ref} {reads} -f  -p 10 -S --best -M 1 --sam-nohead 2> {reads}.map.log '''
+
+		cmd += '''		| awk '$5>={mapq}{{if ($3=="*"){{$3="chr0";$4=NR*1}}; print $1"\t"$4"\t"$3}}' > {snp}'''
+		cmd = cmd.format(
 				ref=ref, reads=outfa, snp=outsnp, mapq=mapq)
 		run_cmd(cmd, log=True)
 
