@@ -390,6 +390,8 @@ with complete protein domains'.format(i, i/ltr_count, j, j/i))
 					seqfile=inseq, options=self.tesorter_options, tmpdir=self.prefix)
 			if self.intact and '-dp2' not in cmd and "--disable-pass2" not in cmd:
 				cmd += ' -dp2'
+			if self.overwrite:
+				cmd += ' -fw'
 			run_cmd(cmd, log=True)
 			mk_ckp(ckp)
 		clsfile = '{seqfile}.cls.tsv'.format(seqfile=inseq)

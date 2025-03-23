@@ -40,9 +40,13 @@ from .version import __version__
 
 DB = {
 	'gydb' : bindir + '/database/GyDB2.hmm',
-	'rexdb': bindir + '/database/REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm',
-	'rexdb-plant': bindir + '/database/REXdb_protein_database_viridiplantae_v3.0.hmm',
-	'rexdb-metazoa': bindir + '/database/REXdb_protein_database_metazoa_v3.hmm',
+	'rexdb': bindir + '/database/REXdb_protein_database_viridiplantae_v4.0_plus_metazoa_v3.1.hmm',
+    'rexdb-plant': bindir + '/database/REXdb_protein_database_viridiplantae_v4.0.hmm',
+    'rexdb-metazoa': bindir + '/database/REXdb_protein_database_metazoa_v3.1.hmm',
+
+	'rexdb-v3': bindir + '/database/REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm',
+	'rexdb-plantv3': bindir + '/database/REXdb_protein_database_viridiplantae_v3.0.hmm',
+	'rexdb-metazoav3': bindir + '/database/REXdb_protein_database_metazoa_v3.hmm',
 #	'rexdb-tir': bindir + '/database/REXdb_v3_TIR.hmm',
 	'rexdb-pnas': bindir + '/database/Yuan_and_Wessler.PNAS.TIR.hmm',
 	'rexdb-line': bindir + '/database/Kapitonov_et_al.GENE.LINE.hmm',
@@ -85,16 +89,16 @@ def Args():
 					help="directory for temporary files [default=%(default)s]")
 	parser.add_argument("-cov", "--min-coverage", action="store",
 					default=20, type=float,
-					help="mininum coverage for protein domains in HMMScan output [default=%(default)s]")
+					help="mininum coverage for protein domains in HMMScan output (ranging: 0-100) [default=%(default)s]")
 	parser.add_argument("-eval", "--max-evalue", action="store",
 					default=1e-3, type=float,
-					help="maxinum E-value for protein domains in HMMScan output [default=%(default)s]")
+					help="maxinum E-value for protein domains in HMMScan output (ranging: 0-10) [default=%(default)s]")
 	parser.add_argument("-prob", "--min-probability", action="store",
 					default=0.5, type=float,
-					help="mininum posterior probability for protein domains in HMMScan output [default=%(default)s]")	
+					help="mininum posterior probability for protein domains in HMMScan output (ranging: 0-1) [default=%(default)s]")	
 	parser.add_argument("-score", "--min-score", action="store",
                     default=0.1, type=float,
-                    help="mininum score for protein domains in HMMScan output [default=%(default)s]")
+                    help="mininum score for protein domains in HMMScan output (ranging: 0-2) [default=%(default)s]")
 
 	parser.add_argument("-mask", action="store", type=str, nargs='+',
 					default=None, choices=['soft', 'hard'],
@@ -496,9 +500,10 @@ class Classifier(object):
 			('LTR', 'Bel-Pao'): ['GAG', 'PROT', 'RT', 'RH', 'INT'],
 			}
 		clade_count = Counter(clades)
+		counts = list(clade_count.values())
 		max_clade = max(clade_count, key=lambda x: clade_count[x])
 		order, superfamily = self._parse_rexdb(max_clade)
-		if len(clade_count) == 1 or clade_count[max_clade] > 1:
+		if len(clade_count) == 1 or (clade_count[max_clade] > 1 and counts[0] > counts[1]):
 			max_clade = max_clade.split('/')[-1]
 		elif len(clade_count) > 1:
 			max_clade = 'mixture'
@@ -876,7 +881,7 @@ def resolve_overlaps(lines, max_ovl=20, ):
 
 		if not last_line or discard != line:
 			last_line = line
-	logger.info('discard {} equal and {} overlapped hits; {} in total'.format(ie, io, ie+io))
+#	logger.info('discard {} equal and {} overlapped hits; {} in total'.format(ie, io, ie+io))
 	return sorted(set(lines) - set(discards), key=lambda x:x[3])
 
 def _hmm2best(inHmmouts, db='rexdb', seqtype='nucl', genome=False):

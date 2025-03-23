@@ -23,7 +23,7 @@ from .__version__ import version
 
 
 bindir = os.path.dirname(os.path.realpath(__file__))
-NCPU = multiprocessing.cpu_count()
+NCPU = len(os.sched_getaffinity(0)) #multiprocessing.cpu_count()
 MEM = available_memory()
 
 def makeArgparse():
@@ -554,7 +554,7 @@ class Pipeline:
 			self.tesorter_options += ' -p {}'.format(self.ncpu)
 		cont = not self.overwrite
 		job_args = {'mode': 'local', 'retry': 3, 'cont': cont,  'tc_tasks': self.ncpu}
-		kargs = dict(progs=self.ltr_detectors, 
+		kargs = dict(progs=self.ltr_detectors, overwrite=self.overwrite, 
 				options={'ltr_finder': self.ltr_finder_options, 'ltr_harvest':self.ltr_harvest_options},
 				job_args=job_args, tesorter_options=self.tesorter_options, mu=self.mu,)
 		# multiprocessing by chromfile

@@ -484,6 +484,9 @@ class JellyfishDumps:
 		
 		d_mat2 = {}
 		d_lens = OrderedDict(zip(self.labels, self.lengths))
+		lens0 = [lab for lab, _len in d_lens.items() if _len == 0]
+		if lens0:
+			raise ValueError('Chromosomes `{}` have only 0 kmers'.format(lens0))
 		args = ((kmer, counts, d_lens, sgs, outfig, by_count, min_freq, max_freq, min_fold, baseline, ratio) \
 					for kmer, counts in d_mat.items())
 		i = 0
@@ -622,7 +625,7 @@ def _filter_kmer(arg):
 		_all += 1
 		freqs = []
 		for chrs in sg:
-			if len(chrs) == 1:
+			if len(chrs) == 1: # 
 				chr = chrs[0]
 				count = d_counts[chr]
 				lens = d_lens[chr]

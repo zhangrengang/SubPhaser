@@ -1,4 +1,4 @@
-import sys, os, re, shutil
+import sys, os, re, shutil, math
 import argparse
 #from xopen import xopen as open
 import collections
@@ -262,11 +262,12 @@ class CircleLegend:
 		self.colors = colors
 		self.title = title
 		self.kargs = kargs
+		self.ncols = math.ceil(len(labels) / 6)
 	def plot(self, ax):
 		for clade, color in zip(self.labels, self.colors):
 			ax.barh(0, 0, height=0, color=color, left=0, align='center', label=clade)
 		ncols = len(self.labels)//5 + 1
-		ax.legend(loc='upper left',fancybox=False, frameon=False)
+		ax.legend(loc='upper left',fancybox=False, frameon=False, ncol=self.ncols)
 		ax.xaxis.set_tick_params(length=0)
 		ax.spines['right'].set_color('none')
 		ax.spines['top'].set_color('none')
