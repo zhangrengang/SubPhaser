@@ -23,7 +23,7 @@ from .__version__ import version
 
 
 bindir = os.path.dirname(os.path.realpath(__file__))
-NCPU = len(os.sched_getaffinity(0)) #multiprocessing.cpu_count()
+NCPU = int(len(os.sched_getaffinity(0)) / 3) #multiprocessing.cpu_count()
 MEM = available_memory()
 
 def makeArgparse():
@@ -79,8 +79,8 @@ such as TE and gene [default: %(default)s]")
 	group_kmer.add_argument('-q', '-min_freq', type=int, default=200, metavar='INT', dest='min_freq',
 					 help="Minimum total count for each kmer; will not work \
 if `-min_prop` is specified [default=%(default)s]")
-	group_kmer.add_argument('-baseline', type=int, default=1, 
-					 help="Use sub-maximum (1) or minimum (-1) as the baseline of fold \
+	group_kmer.add_argument('-baseline', type=int, default=-1, 
+				 help="Use sub-maximum (1) or minimum (-1) as the baseline of fold \
 [default=%(default)s]")
 	group_kmer.add_argument('-ratio', type=float, default=1,
                      help="Need `-min_fold` to be true in how many chromosome set [default=%(default)s]")
