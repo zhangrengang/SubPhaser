@@ -187,23 +187,27 @@ def split_fastx_by_chunk_num(inFastx, prefix, chunk_num, seqfmt, suffix):
 		inFastx = open(inFastx)
 	# open files
 	outfiles = []
+	d_handles = {}
 	for chunk_id in range(chunk_num):
 		chunk_id += 1
 		outfile = '%s.%s.%s%s' % (prefix, chunk_id, seqfmt, suffix)
 		outfiles += [outfile]
-		hname = 'f%s' % (chunk_id,)
-		exec('%s = open("%s", "w")' % (hname, outfile))
+#		hname = 'f%s' % (chunk_id,)
+#		exec('%s = open("%s", "w")' % (hname, outfile))
+		d_handles[chunk_id] = open(outfile, "w")
 
 	i = 0
 	for rc in parse_fastx(inFastx):
 		chunk_id = i % chunk_num + 1
-		hname = 'f%s' % (chunk_id,)
-		exec('%s.write(rc)' % (hname, ))
+#		hname = 'f%s' % (chunk_id,)
+#		exec('%s.write(rc)' % (hname, ))
+		d_handles[chunk_id].write(rc)
 		i += 1
 	# close files
 	for chunk_id in range(chunk_num):
 		chunk_id += 1
-		exec('f%s.close()' % (chunk_id, ))
+#		exec('f%s.close()' % (chunk_id, ))
+		d_handles[chunk_id].close()
 	return (i, chunk_num, i/chunk_num, outfiles)
 def cut_seqs(inSeq, outSeq, window_size=500000, window_ovl=100000, seqfmt='fasta'):
 	window_size, window_ovl = int(window_size) ,int(window_ovl)

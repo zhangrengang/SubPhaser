@@ -387,3 +387,139 @@ def flattern2(nested):
     for sublist in nested:
         for element in sublist:
             yield element
+
+
+def trim_labels(labels):
+    """Strip common non-digit prefix and suffix from labels, then leading zeros.
+
+    Examples:
+      ['chr22a', 'chr27a'] → ['22', '27']
+      ['gwh000001', 'gwh000002'] → ['1', '2']
+      ['scaffold_1', 'scaffold_2'] → ['1', '2']
+    """
+    if not labels or len(labels) < 2:
+        return labels
+
+    # Find longest common prefix (non-digit characters only)
+    prefix = labels[0]
+    for s in labels[1:]:
+        i = 0
+        while i < len(prefix) and i < len(s) and prefix[i] == s[i] and not prefix[i].isdigit():
+            i += 1
+        prefix = prefix[:i]
+        if not prefix:
+            break
+
+    # Find longest common suffix (non-digit characters only)
+    suffix = labels[0]
+    for s in labels[1:]:
+        i = 1
+        while i <= len(suffix) and i <= len(s) and suffix[-i] == s[-i] and not suffix[-i].isdigit():
+            i += 1
+        suffix = suffix[-(i-1):] if i > 1 else ''
+        if not suffix:
+            break
+
+    if prefix or suffix:
+        trimmed = []
+        for s in labels:
+            t = s
+            if len(s) > len(prefix) + len(suffix):
+                t = s[len(prefix):len(s)-len(suffix)]
+            # Strip leading zeros if the result contains digits
+            if t and any(c.isdigit() for c in t):
+                t = t.lstrip('0') or '0'
+            trimmed.append(t)
+        if any(t for t in trimmed):
+            return trimmed
+    return labels
+
+
+def sort_version(alist):
+    """Natural sort by first number found in each string.
+    e.g. ['chr10', 'chr2', 'chr1'] → ['chr1', 'chr2', 'chr10']
+    """
+    import re
+    blist = []
+    for v in alist:
+        try:
+            i = int(re.compile(r'(\d+)').search(v).groups()[0])
+        except AttributeError:
+            i = 0
+        try:
+            p = re.compile(r'([^\d]*)').match(v).groups()[0]
+        except AttributeError:
+            p = ''
+        blist.append((p, i))
+    return [y for x, y in sorted(zip(blist, alist))]
+
+
+# ── BED/Parsing utilities ───────────────────────────────────────────────
+
+def parse_hvlines(bedfile, min_span=100, midpoint_short=False):
+    """Parse BED file, returning (chr, position) tuples."""
+    lines = []
+    for line in open(bedfile):
+        temp = line.strip().split()
+        id = temp[0]
+        start = int(temp[1])
+        try:
+            end = int(temp[2])
+            if end - start < min_span:
+                if midpoint_short:
+                    lines += [(id, (start + end) // 2)]
+                continue
+            lines += [(id, start)]
+            lines += [(id, end)]
+        except:
+            lines += [(id, start)]
+    return lines
+
+
+def add_offset(positions, d_left, res=1):
+    """Convert chr-relative positions to global coordinates using offset dict."""
+    lines = []
+    for id, pos in positions:
+        if id not in d_left:
+            continue
+        lines += [d_left[id] + pos / res]
+    return lines
+
+
+def offset_hvlines(bedfile, d_left, min_span=100, res=1):
+    """Parse BED file and convert to global coordinates in one step."""
+    if bedfile is None:
+        return bedfile
+    return add_offset(parse_hvlines(bedfile, min_span=min_span), d_left, res=res)
+
+
+def parse_chrs(values, default=None):
+    """Parse chromosome list: None→default, list→passthrough, string→comma-split."""
+    if values is None:
+        return default
+    if isinstance(values, list):
+        return values
+    return values.strip(',').split(',')
+
+
+def resolve_chr_file(values):
+    """If values is a single filename, read first column as chromosome list."""
+    if values and len(values) == 1 and os.path.isfile(values[0]):
+        chrs = []
+        for line in open(values[0]):
+            line = line.strip()
+            if line and not line.startswith('#'):
+                chrs.append(line.split()[0])
+        return chrs
+    return values
+
+
+def get_offset(chrs, lengths):
+    """Build {chr: cumulative_offset} dict from chromosome lengths."""
+    d = {}
+    last = 0
+    for chr, length in zip(chrs, lengths):
+        offset = last
+        d[chr] = offset
+        last = offset + length
+    return d

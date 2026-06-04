@@ -635,6 +635,8 @@ class LTRHarvest():
 class LTRHarvestRecord(object):
 	def __init__(self, line, idmap=None):
 		self.line = line.strip().split()
+		if len(self.line) < 11:
+			raise ValueError('Unrecognized LTRHarvest format for line: {}'.format(self.line))
 		self.start, self.end, self.element_len, self.start, \
 			self.lltr_e0, self.lltr, self.rltr_s0, self.end, self.rltr, \
 			self.similarity, self.seq_nr = self.line[:11]

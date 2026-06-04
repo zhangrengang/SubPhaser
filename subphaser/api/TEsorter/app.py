@@ -196,7 +196,7 @@ def check_db(full_path):
 			#Execute the command
 			process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
 			stdout, stderr = process.communicate()
-			logger.info(stdout.decode('utf-8'))
+			logger.info(lazy_decode(stdout))
 
 def pipeline(args):
 	logger.info('Command: {}'.format(' '.join(sys.argv)))
@@ -1257,14 +1257,20 @@ class Dependency(object):
 	def check_hmmer_verion(self, program):
 		cmd = '{} -h'.format(program)
 		out, err, status = run_cmd(cmd)
-		version = re.compile(r'HMMER (\S+)').search(out.decode('utf-8')).groups()[0]
+		version = re.compile(r'HMMER (\S+)').search(lazy_decode(out)).groups()[0]
 		return version
 
 	def check_blast_version(self, program):
 		cmd = '{} -version'.format(program)
 		out, err, status = run_cmd(cmd)
-		version = re.compile(r'blast\S* ([\d\.\+]+)').search(out.decode('utf-8')).groups()[0]
+		version = re.compile(r'blast\S* ([\d\.\+]+)').search(lazy_decode(out)).groups()[0]
 		return version
+
+def lazy_decode(out):
+	try:
+		return out.decode('utf-8')
+	except:
+		return out
 
 def main():
 	pipeline(Args())
